@@ -37,9 +37,10 @@ Within step 3, delete Kibana objects in this order (dependency-aware):
 6. **SLOs** — may reference alerting rules; delete before rules
 7. **Alerting rules**
 8. **SIEM detection rules**
-9. **Data views**
-10. **Tags**
-11. **Space** — delete last, after all objects within it
+9. **Cases** — delete before spaces (cases belong to a space)
+10. **Data views**
+11. **Tags**
+12. **Space** — delete last, after all objects within it
 
 ---
 
@@ -82,10 +83,19 @@ KB_TEARDOWN: dict[str, callable] = {
     "siem_rule":      lambda sp, a: kb(sp, "DELETE", f"/api/detection_engine/rules?rule_id={a['id']}"),
     "data_view":      lambda sp, a: kb(sp, "DELETE", f"/api/data_views/data_view/{a['id']}"),
     "tag":            lambda sp, a: kb(sp, "DELETE", f"/api/saved_objects/tag/{a['id']}"),
+    # Cases: DELETE /api/cases?ids[]=<id> (query param, not path param; returns 204)
+    "case":           lambda sp, a: kb(sp, "DELETE", f"/api/cases?ids[]={a['id']}", ok=(200, 204)),
+    # kibana_space: space objects are in manifest["assets"]["kibana"]["kibana_spaces"]
     # Space is deleted last via a separate call — not in this dispatch table
     # New Kibana asset types: add handler here — no other changes required
 }
 ```
+
+**Notes on `case` handler:**
+- The Cases delete API uses `DELETE /api/cases?ids[]=<id>` (query string, not path)
+- Accepts multiple IDs: `DELETE /api/cases?ids[]=id1&ids[]=id2`
+- Returns `200` with a list of deleted IDs on success, or `204` if none found
+- The manifest key for cases is `kibana.cases` (added in bootstrap D-031 update)
 
 ---
 

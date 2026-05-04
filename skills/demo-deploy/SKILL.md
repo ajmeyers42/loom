@@ -480,7 +480,16 @@ titles, skip if present.
 `POST /api/observability/slos` per `observability-manage-slos`. Indicator types vary (KQL,
 APM, Synthetics, etc.). Treat `409` as already created.
 
-**13c — Alerting rules** *(when the script needs alerts — SLO burn, metric threshold, etc.)*  
+**13c — Connectors + Alerting rules** *(when the script needs alerts — SLO burn, metric threshold, etc.)*
+
+**⚠ `.cases` connector is UI-ONLY (confirmed 9.4):** Do NOT generate `POST /api/actions/connector` calls with `connector_type_id: ".cases"` — the API rejects them with `400`. The `.cases` connector is auto-provisioned by Kibana per solution space. Instead, generate a printed manual step instructing the SA to wire Cases actions from the Kibana UI:
+```
+⚠  MANUAL: Kibana → Stack Management → Rules → [rule name] → Edit
+   → Add action → Kibana Cases → set owner=Observability → Save
+```
+
+For the **ServiceNow `.webhook` connector**, the `config.headers` field must be a plain JSON object (`{"Content-Type": "application/json"}`), NOT an array of `{key, value}` pairs.
+
 `POST /api/alerting/rule/{id}` with the correct `rule_type_id` for that scenario (e.g. SLO
 burn rate: `slo.rules.burnRate`, `consumer`: `slo`) — validate with `kibana-alerting-rules`
 for the target version.
@@ -518,9 +527,6 @@ burn-rate rules are one `rule_type_id` under Alerting; the Observability SLO ref
 `PUT/POST` under `/api/agent_builder/...` per `demo/{slug}-agent-builder-spec.md` — not a
 manual “Create agent” handoff.
 
-**13f — Workflows** *(when in scope and supported)*  
-After connectors if needed — follow `references/workflow-patterns.md`.
-
 **13g — Security / SIEM** *(when demo is Sec or hybrid)*
 
 Use `security-*` skills as appropriate. For detection rules:
@@ -557,22 +563,33 @@ except RuntimeError as e:
 
 Teardown deletes cloned rules by `rule_id`. Elastic-managed originals are left untouched.
 
-**13h — Cases configuration** *(when Security or SIEM is in scope)*  
-Configure the Cases feature for the engagement:
+**13h — Workflows** *(when in scope and supported)*
+
+Deploy workflows via `POST /api/workflows` with `{"workflows": [{"yaml": "<yaml string>"}]}`.
+The correct endpoint is `/api/workflows` — NOT `/api/workchat/workflows` (which returns 404 on 9.4).
+Workflow YAML must use `triggers:` (plural array), not `trigger:` (singular).
+Always check `created[0].valid == true` in the response. See `references/kibana-api-registry.md` for full format details.
+
+Every engagement with Agent Builder should also deploy `deploy/demo-refresh-workflow.yaml` — a manually triggered workflow that checks GPU anomaly data and writes a status record. See step 13l below.
+
+**13i — Cases configuration** *(when Security, Observability, or hybrid cases are in scope)*
+
+**⚠ `configure` prerequisite (confirmed 9.4):** `POST /api/cases` returns `400` unless `POST /api/cases/configure` has been called first for each `owner`. Call it once per owner type BEFORE creating any cases:
 
 ```python
-# GET current config (will 404 on first run → POST to create)
-try:
-    existing = kb("GET", "/api/cases/configure", ok=(200,))
-    version = existing[0]["version"] if existing else None
-    if version:
-        kb("PATCH", "/api/cases/configure", {"closure_type": "close-by-user", "version": version})
-    else:
-        kb("POST", "/api/cases/configure", {"closure_type": "close-by-user"})
-except Exception:
-    kb("POST", "/api/cases/configure", {"closure_type": "close-by-user", "owner": "securitySolution"})
-print("  Cases: configured")
+for owner in ["observability", "securitySolution", "cases"]:
+    # GET first — returns [] (empty array) if never configured
+    existing = kb("GET", f"/api/cases/configure?owner={owner}", ok=(200,))
+    if existing and isinstance(existing, list) and len(existing) > 0:
+        continue  # already configured
+    kb("POST", "/api/cases/configure", {
+        "connector":    {"id": "none", "name": "none", "type": ".none", "fields": None},
+        "closure_type": "close-by-user",
+        "owner":        owner,
+    }, ok=(200, 201))
 ```
+
+The `"type": ".none"` connector in the configure body is valid and means "no external connector attached". The `owner` must match the solution area of the space.
 
 **13i — Probe-based feature detection** *(for optional capabilities — applies alongside D-033 version gate)*
 
@@ -612,11 +629,42 @@ the ES|QL dashboard panels. This is a standard deliverable for any Agent Builder
 If the platform audit and script call for them, add the matching API steps — do not assume
 this list is exhaustive.
 
-**13l — Engagement tagging (`demobuilder:<id>`)** *(D-026 — whenever a create payload has `tags`)*  
-Merge **`demobuilder_tags()`** from **`references/demobuilder-tagging.md`** into SLOs, alerting
-rules, ML job bodies, Agent Builder agents/tools, Security rules (if tagged), and any other
-scoped creates. Indices remain distinguished by **`p(name)`**; saved objects should carry the tag
-in export or follow-up tagging when the stack supports it.
+**13l — Demo Refresh Workflow + `refresh.py`** *(standard deliverable for any Agent Builder or ML engagement)*
+
+Every engagement that includes Agent Builder or ML anomaly detection should include two refresh artifacts:
+
+1. **`deploy/demo-refresh-workflow.yaml`** — A manually-triggered Kibana Workflow that checks GPU anomaly data, corpus size, and writes a status record to the agent-sessions index. Deploy in bootstrap step 13h alongside the other workflows. This is a demo deliverable — it shows Workflows capability to the customer.
+
+2. **`deploy/refresh.py`** — A standalone Python script for pre-demo operational maintenance: anomaly re-injection, ELSER warmup, case timestamp refresh, session cleanup, and readiness summary table. Run 15–30 minutes before any demo. Generated once per engagement. Key flags: `--inject-anomaly`, `--skip-cases`, `--dry-run`.
+
+**13m — Engagement tagging (`demobuilder:<id>`)** *(D-026 — REQUIRED on every create payload that has a `tags` field)*
+
+**`merge_tags()` must be called on EVERY asset with a `tags` field.** This includes SLOs, alerting rules, Kibana Workflows, Cases, Agent Builder agents (labels field), Agent Builder ES|QL tools, ML job tags, and SIEM rule tags. The function is defined in bootstrap.py and must not be skipped:
+
+```python
+def merge_tags(existing):
+    return sorted(set((existing or []) + [f"demobuilder:{_engagement_id()}"]))
+```
+
+Usage:
+```python
+# SLOs
+"tags": merge_tags(["gpu", "operator", "demo"])
+
+# Alerting rules
+"tags": merge_tags(["llm-obs", "demo"])
+
+# Workflows
+"tags": merge_tags(["clinical", "workflow", "demo"])
+
+# Cases
+"tags": merge_tags(["gpu", "tenant-a", "priority-1"])
+
+# Agent Builder agent labels
+"labels": merge_tags(["clinical", "rag", "medsystem"])
+```
+
+Indices remain distinguished by `p(name)`. Saved objects should carry the tag in export or via follow-up tagging when the stack supports it.
 
 **Example — saved objects import (multipart for NDJSON):**
 ```python

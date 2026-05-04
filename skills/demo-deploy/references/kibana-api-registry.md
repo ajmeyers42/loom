@@ -79,6 +79,10 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 | List connectors | `GET` | `{KIBANA_SPACE_PATH}/api/actions/connectors` |
 | Test connector | `POST` | `{KIBANA_SPACE_PATH}/api/actions/connector/{id}/_execute` |
 
+**⚠ `.cases` connector is UI-only (confirmed 9.4):** The connector type `.cases` CANNOT be created via the REST API. It is auto-provisioned by Kibana when a solution space is created. Any `POST /api/actions/connector` with `connector_type_id: ".cases"` will return `400`. To wire Cases actions to alert rules: Kibana → Stack Management → Rules → [rule] → Edit → Add action → Kibana Cases.
+
+**`.webhook` headers format:** The `config.headers` field must be a plain JSON object (`{"Content-Type": "application/json"}`), NOT an array of `{key, value}` pairs (which returns `400`). Confirmed via live API probe on 9.4 ECH.
+
 ---
 
 ## Alerting Rules
@@ -123,6 +127,12 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 
 **PUT update rule (D-025):** Send only `description`, `configuration`, and optional `tags`. Do NOT include `id` or `type` (immutable).
 
+**⚠ Tools are space-scoped (confirmed 9.4):** Agent Builder tools created in space A are NOT visible in space B. Always create both the tool and agent in the same space. If an agent lives in `lg-tenant-a`, create the ES|QL tool there too.
+
+**`configuration.tools` array format (confirmed 9.4):** Must be `[{"tool_ids": ["id1", "id2", ...]}]` — NOT a flat array of ID strings. A flat string array returns `400`. Confirmed via live API probe.
+
+**Agent ID convention:** Agent IDs must be lowercase-with-hyphens (e.g. `cds-agent-medsystem`). Mixed-case IDs are rejected by the API.
+
 ---
 
 ## Workflows
@@ -133,8 +143,14 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 | Get workflow | `GET` | `{KIBANA_SPACE_PATH}/api/workflows/{id}` |
 | Update workflow | `PUT` | `{KIBANA_SPACE_PATH}/api/workflows/{id}` |
 | Delete workflow | `DELETE` | `{KIBANA_SPACE_PATH}/api/workflows/{id}` |
-| Search workflows | `POST` | `{KIBANA_SPACE_PATH}/api/workflows/search` |
+| List all workflows | `GET` | `{KIBANA_SPACE_PATH}/api/workflows` |
 | Execute workflow | `POST` | `{KIBANA_SPACE_PATH}/api/workflows/{id}/_run` |
+
+**⚠ API endpoint (confirmed 9.4):** The correct endpoint is `/api/workflows`. The old endpoint `/api/workchat/workflows` returns 404 on 9.4 and should NOT be used.
+
+**Create request body format:** `{"workflows": [{"yaml": "<yaml string>"}]}` — NOT a plain JSON object. The YAML string must use `triggers:` (plural array), NOT `trigger:` (singular). Response is `{"created": [...], "failed": [...]}`.
+
+**YAML `valid: true` check:** Always check `created[0].valid == true` after creation. `valid: false` means the YAML was stored but could not be parsed — usually caused by `trigger:` (singular) instead of `triggers:` or wrong input format.
 
 **Stale read warning:** Capture `id` from the POST response directly. Do not immediately GET after create — may return stale data or 404 for up to a few seconds.
 
@@ -164,6 +180,17 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 | Create case | `POST` | `{KIBANA_SPACE_PATH}/api/cases` |
 | Update case | `PATCH` | `{KIBANA_SPACE_PATH}/api/cases` |
 | Get case | `GET` | `{KIBANA_SPACE_PATH}/api/cases/{id}` |
+| Find cases | `POST` | `{KIBANA_SPACE_PATH}/api/cases/_find` |
+| Add comment | `POST` | `{KIBANA_SPACE_PATH}/api/cases/{id}/comments` |
+| Delete cases | `DELETE` | `{KIBANA_SPACE_PATH}/api/cases?ids[]={id}` |
+
+**⚠ `configure` prerequisite (confirmed 9.4):** `POST /api/cases` returns `400` unless `POST /api/cases/configure` has been called first for the target `owner`. Call it once per owner (`observability`, `securitySolution`, `cases`) before creating any cases. `GET /api/cases/configure` returns `[]` (empty array) if never configured — NOT a 404.
+
+**Configure body:** `{"connector": {"id": "none", "name": "none", "type": ".none", "fields": null}, "closure_type": "close-by-user", "owner": "<owner>"}`. The `".none"` type is valid and means "no external connector attached".
+
+**`owner` valid values:** `observability`, `securitySolution`, `cases`. Must match the solution area of the space where the case lives.
+
+**Delete cases API:** Uses query param `ids[]=<id>`, not a path param. `DELETE /api/cases?ids[]=abc123` (204 on success).
 
 ---
 
