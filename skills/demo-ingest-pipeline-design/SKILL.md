@@ -1,7 +1,7 @@
 # demo-ingest-pipeline-design
 
 **Status: BACKLOG — not yet implemented**
-**Scoped: 2026-05-01 | Originated from: 2026lenovoGAIaaS engagement**
+**Scoped: 2026-05-01**
 
 ## Purpose
 

@@ -211,14 +211,14 @@ available, run `demo-discovery-parser` first, then pass both to `demo-script-tem
 
 **Path-first resolution (preferred):** If the user provides a path to discovery
 documents or files that are already inside a folder under `DEMOBUILDER_ENGAGEMENTS_ROOT`
-(e.g., `~/engagements/2026lenovoGAIaaS/discovery/notes.md`), the **parent of that
+(e.g., `~/engagements/2026acmecorp/discovery/notes.md`), the **parent of that
 discovery folder is `{engagement_dir}`**:
 
 ```
-user provides: ~/engagements/2026lenovoGAIaaS/discovery/
-                               ^^^^^^^^^^^^^^^^^
-engagement_dir = ~/engagements/2026lenovoGAIaaS/   ← use exactly as-is
-slug           = 2026lenovoGAIaaS                  ← taken from folder name, not re-normalized
+user provides: ~/engagements/2026acmecorp/discovery/
+                               ^^^^^^^^^^^
+engagement_dir = ~/engagements/2026acmecorp/   ← use exactly as-is
+slug           = 2026acmecorp                  ← taken from folder name, not re-normalized
 ```
 
 Use the **folder name exactly as it exists on disk** for the slug in this case.

@@ -570,7 +570,7 @@ The correct endpoint is `/api/workflows` — NOT `/api/workchat/workflows` (whic
 Workflow YAML must use `triggers:` (plural array), not `trigger:` (singular).
 Always check `created[0].valid == true` in the response. See `references/kibana-api-registry.md` for full format details.
 
-Every engagement with Agent Builder should also deploy `deploy/demo-refresh-workflow.yaml` — a manually triggered workflow that checks GPU anomaly data and writes a status record. See step 13l below.
+Every engagement with Agent Builder should also deploy `deploy/demo-refresh-workflow.yaml` — a manually triggered workflow that checks ML anomaly readiness and writes a status record. See step 13l below.
 
 **13i — Cases configuration** *(when Security, Observability, or hybrid cases are in scope)*
 
@@ -633,7 +633,7 @@ this list is exhaustive.
 
 Every engagement that includes Agent Builder or ML anomaly detection should include two refresh artifacts:
 
-1. **`deploy/demo-refresh-workflow.yaml`** — A manually-triggered Kibana Workflow that checks GPU anomaly data, corpus size, and writes a status record to the agent-sessions index. Deploy in bootstrap step 13h alongside the other workflows. This is a demo deliverable — it shows Workflows capability to the customer.
+1. **`deploy/demo-refresh-workflow.yaml`** — A manually-triggered Kibana Workflow that checks ML anomaly readiness, key index health, and writes a status record to the `{prefix}agent-sessions` index. Scope the checks to the engagement's actual ML jobs and indices. Deploy in bootstrap step 13h alongside the other workflows. This is a demo deliverable — it shows Workflows capability to the customer.
 
 2. **`deploy/refresh.py`** — A standalone Python script for pre-demo operational maintenance: anomaly re-injection, ELSER warmup, case timestamp refresh, session cleanup, and readiness summary table. Run 15–30 minutes before any demo. Generated once per engagement. Key flags: `--inject-anomaly`, `--skip-cases`, `--dry-run`.
 
@@ -655,13 +655,13 @@ Usage:
 "tags": merge_tags(["llm-obs", "demo"])
 
 # Workflows
-"tags": merge_tags(["clinical", "workflow", "demo"])
+"tags": merge_tags(["workflow", "demo"])
 
 # Cases
-"tags": merge_tags(["gpu", "tenant-a", "priority-1"])
+"tags": merge_tags(["incident", "priority-1"])
 
 # Agent Builder agent labels
-"labels": merge_tags(["clinical", "rag", "medsystem"])
+"labels": merge_tags(["rag", "agent"])
 ```
 
 Indices remain distinguished by `p(name)`. Saved objects should carry the tag in export or via follow-up tagging when the stack supports it.

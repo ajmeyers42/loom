@@ -119,6 +119,57 @@ For each index, define:
 - Multi-value arrays with sub-structure: `nested`
 - Booleans: `boolean`
 
+**Observability / Infrastructure UI visibility (metrics data streams):**
+When a data stream is named `metrics-*-*` and the demo includes any Observability scene
+(Infrastructure UI, Hosts view, Container view, Kubernetes view, Metrics Explorer), the
+following ECS fields are **mandatory** — without them the Infrastructure UI will find zero
+entities even though documents exist:
+
+| Field | Why it matters |
+|---|---|
+| `host.name` | Identifies the host entity — the single most important field |
+| `event.dataset` | Links the metric set to its source dataset |
+| `service.type` | Identifies the service/integration type (e.g. `prometheus`, `system`) |
+| `container.id` | Required for container entity views |
+| `kubernetes.pod.name` + `kubernetes.namespace` | Required for Kubernetes views |
+
+**Always generate an ingest pipeline** that maps source-specific field names (e.g. Prometheus
+`instance`) to these ECS fields, and wire it via `index.default_pipeline` in the settings
+component template. Add the pipeline to the `build_order` **before** the index template that
+references it. See `references/mapping-patterns.md` → "Observability Metrics Data Streams —
+ECS Required Fields" for complete component template, pipeline, and backfill patterns.
+
+**Elastic Security / SIEM (security event data streams):**
+When the demo includes any Security scene (Alerts view, Detection rules, Entity Analytics,
+Timeline, Cases), security event data streams must satisfy three additional constraints that
+can silently produce empty UIs:
+
+1. **Index naming must use `logs-*-*`** — detection rules run against `logs-*` by default.
+   Custom index names like `security-events-*` will not be seen by any built-in rule.
+   Use `logs-demo.{dataset}-{namespace}` for synthetic demo security events.
+
+2. **Required ECS fields on every raw event document:**
+
+| Field | Value/Notes |
+|---|---|
+| `event.kind` | `"event"` (raw events); `"signal"` (synthetic alerts) |
+| `event.category` | `authentication`, `network`, `process`, `file`, `registry`, etc. |
+| `event.type` | `start`, `end`, `allowed`, `denied`, `info`, `error`, `access`, etc. |
+| `event.outcome` | `success`, `failure`, `unknown` |
+| `host.name` | Required for host-based rules and Entity Analytics host risk scores |
+| `user.name` | Required for user-based rules and Entity Analytics user risk scores |
+
+3. **Detection rules must target the exact data stream index pattern** — add the rule's
+   `index` field to the build manifest and verify it matches the data stream name.
+
+For synthetic alerts (pre-seeded in `.alerts-security.alerts-default`), `event.kind` must be
+`"signal"` and `kibana.space_ids` must be set. For the Cases API, `POST /api/cases/configure`
+must precede `POST /api/cases` — this is a build-order dependency.
+
+See `references/mapping-patterns.md` → "Elastic Security — ECS Required Fields and Index
+Conventions" for the full component template, detection rule spec, Entity Analytics checklist,
+and cases configure pattern.
+
 **Do not use `dynamic: true` on production-intent indices.** Explicit mappings only.
 On indices where dynamic mapping is acceptable (e.g., enrichment lookup tables), set
 `dynamic: false` (accept but don't index unmapped fields) or `dynamic: strict` (reject).
@@ -353,6 +404,7 @@ by scenario type with critical/important/nice-to-have breakdown.
 | Support / Knowledge Base | Content, questions, answers | Dates, view counts |
 | Analytics / Observability | Queries, click patterns, sessions | Exact counts |
 | Financial / Fraud | Transaction sequences, amounts in range | Non-demo-path records |
+| **Observability Metrics** | **ECS fields (`host.name`, `event.dataset`, `service.type`) on every document, realistic metric value ranges, temporal continuity** | Exact node counts, IP addresses |
 
 **Common fidelity failures to avoid:**
 - Broken image URLs — use `picsum.photos/seed/{id}/400/400` or validated placeholder pattern
@@ -360,6 +412,10 @@ by scenario type with critical/important/nice-to-have breakdown.
 - Inconsistent IDs — entity IDs used in demo-critical documents must appear in related indices
 - Temporal incoherence — events that precede their prerequisite events (logout before login)
 - Anomaly injection too early or too late — ML jobs need sufficient lead time before the anomaly
+- **Missing ECS fields on metrics data streams** — `host.name`, `event.dataset`, and `service.type` must be populated on every document or the Infrastructure UI and Hosts view will show no entities even when the index contains data. Always use an ingest pipeline with `index.default_pipeline` wired into the settings component template.
+- **Security events in wrong index pattern** — data in `security-events-*` or any non-`logs-*` index will never be seen by SIEM detection rules. Use `logs-demo.{dataset}-{namespace}` for all synthetic security event data.
+- **Missing `event.kind: "event"` on raw security events** — detection rules filter on this; omitting it silently excludes documents from rule matches.
+- **Missing `user.name` or `host.name` on security events/alerts** — Entity Analytics user and host risk scores will show blank tables even when alerts exist.
 
 **For seed data with AI:** `hive-mind/patterns/data/LLM_DATA_GENERATION.md` provides
 structured LLM prompts for generating domain-specific demo data. Use when custom data

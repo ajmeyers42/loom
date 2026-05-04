@@ -127,11 +127,11 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 
 **PUT update rule (D-025):** Send only `description`, `configuration`, and optional `tags`. Do NOT include `id` or `type` (immutable).
 
-**⚠ Tools are space-scoped (confirmed 9.4):** Agent Builder tools created in space A are NOT visible in space B. Always create both the tool and agent in the same space. If an agent lives in `lg-tenant-a`, create the ES|QL tool there too.
+**⚠ Tools are space-scoped (confirmed 9.4):** Agent Builder tools created in space A are NOT visible in space B. Always create both the tool and agent in the same target space.
 
 **`configuration.tools` array format (confirmed 9.4):** Must be `[{"tool_ids": ["id1", "id2", ...]}]` — NOT a flat array of ID strings. A flat string array returns `400`. Confirmed via live API probe.
 
-**Agent ID convention:** Agent IDs must be lowercase-with-hyphens (e.g. `cds-agent-medsystem`). Mixed-case IDs are rejected by the API.
+**Agent ID convention:** Agent IDs must be lowercase-with-hyphens (e.g. `demo-search-agent`). Mixed-case IDs are rejected by the API.
 
 ---
 

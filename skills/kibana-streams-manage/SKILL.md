@@ -1,7 +1,7 @@
 # kibana-streams-manage
 
 **Status: BACKLOG — not yet implemented**
-**Scoped: 2026-05-01 | Originated from: 2026lenovoGAIaaS engagement**
+**Scoped: 2026-05-01**
 **Extends: `kibana-streams` (read-only list/inspect/resync)**
 
 ## Purpose
