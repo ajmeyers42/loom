@@ -47,12 +47,247 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 
 ---
 
-## Saved Objects Import
+## Dashboards API (versioned — use for all dashboard creation)
+
+| Operation | Method | Path | Header |
+|-----------|--------|------|--------|
+| Create dashboard | `POST` | `{KIBANA_SPACE_PATH}/api/dashboards` | `Elastic-Api-Version: 2023-10-31` |
+| Get dashboard | `GET` | `{KIBANA_SPACE_PATH}/api/dashboards/{id}` | `Elastic-Api-Version: 2023-10-31` |
+| Update dashboard | `PUT` | `{KIBANA_SPACE_PATH}/api/dashboards/{id}` | `Elastic-Api-Version: 2023-10-31` |
+| Delete dashboard | `DELETE` | `{KIBANA_SPACE_PATH}/api/dashboards/{id}` | `Elastic-Api-Version: 2023-10-31` |
+| List dashboards | `GET` | `{KIBANA_SPACE_PATH}/api/dashboards` | `Elastic-Api-Version: 2023-10-31` |
+
+**Always use this API — NOT the saved objects API — for dashboard creation.** The `Elastic-Api-Version: 2023-10-31` header is required; `"1"` or missing version returns 400.
+
+**`PUT /api/dashboards/{id}` is a true upsert** — creates the dashboard if it doesn't exist, updates if it does. Use `PUT` (not `POST`) for all bootstrap deployments so you can control the stable ID. `POST` auto-generates an ID that cannot be specified.
+
+**Create/update body (fields at the root level — NOT nested under `data`):**
+```json
+{
+  "title": "Dashboard Title",
+  "time_range": {"from": "now-2y", "to": "now"},
+  "options": {
+    "hide_panel_titles": false,
+    "hide_panel_borders": false,
+    "use_margins": true,
+    "auto_apply_filters": true,
+    "sync_colors": false,
+    "sync_cursor": true,
+    "sync_tooltips": false
+  },
+  "panels": [
+    {
+      "id": "<short-uuid>",
+      "type": "vis",
+      "grid": {"x": 0, "y": 0, "w": 24, "h": 8},
+      "config": {"hide_title": false, "ref_id": "<lens-saved-object-id>"}
+    },
+    {
+      "id": "<uuid>",
+      "type": "slo_overview",
+      "grid": {"x": 24, "y": 0, "w": 24, "h": 8},
+      "config": {
+        "overview_mode": "single",
+        "slo_id": "<slo-id>",
+        "slo_instance_id": "*",
+        "remote_name": ""
+      }
+    }
+  ],
+  "pinned_panels": []
+}
+```
+
+**Grid:** 48 columns wide. Common widths: full=48, half=24, third=16, quarter=12, small-metric=8.
+
+**Panel types — Dashboards API support matrix (confirmed via cluster agent, 9.4 ECH):**
+| `type` | Supported by Dashboards API | Purpose | Key `config` fields |
+|---|---|---|---|
+| `vis` | ✅ Yes | Lens saved object reference | `ref_id` (Lens saved object ID), `hide_title` |
+| `slo_overview` | ✅ Yes | SLO embeddable | `overview_mode`, `slo_id`, `slo_instance_id`, `remote_name` |
+| `markdown` | ✅ Yes | Text/markdown content panel | `content` (markdown string), `openLinksInNewTab` |
+| `legacy_vis` | ❌ No — stripped on import | Old markdown/text viz framework | Use `markdown` type instead |
+| `links` | ❌ No — stripped on import | Navigation link panels | Use `markdown` with URL instead |
+
+**`ref_id` resolves to a `lens` saved object ID** — Kibana maps this to the `references` array internally. No `references` array needed in the PUT request.
+
+**Markdown panel format (for section headers, callouts):**
+```json
+{
+  "id": "<uuid>",
+  "type": "markdown",
+  "grid": {"x": 0, "y": 17, "w": 48, "h": 3},
+  "config": {
+    "content": "### Section Header",
+    "openLinksInNewTab": false
+  }
+}
+```
+
+**When to use Dashboards API vs Saved Objects `_import`:**
+| Scenario | Approach |
+|---|---|
+| Bootstrap: programmatic dashboard creation with Lens + SLO panels | `PUT /api/dashboards/{id}` (Dashboards API) |
+| Terraform IaC: deploying dashboard NDJSON files | `elasticstack_kibana_import_saved_objects` resource |
+| Dashboards with `legacy_vis`, `links`, or unknown panel types | Saved Objects `_export` → `_import` |
+| Exact 1:1 copy preserving all panel types | Saved Objects `_export` / `_import` |
+
+---
+
+## Lens Visualizations (saved objects API)
+
+| Operation | Method | Path |
+|-----------|--------|------|
+| Create/upsert Lens viz | `POST` | `{KIBANA_SPACE_PATH}/api/saved_objects/lens/{id}?overwrite=true` |
+| Get Lens viz | `GET` | `{KIBANA_SPACE_PATH}/api/saved_objects/lens/{id}` |
+| Delete Lens viz | `DELETE` | `{KIBANA_SPACE_PATH}/api/saved_objects/lens/{id}` |
+| Find Lens vizzes | `GET` | `{KIBANA_SPACE_PATH}/api/saved_objects/_find?type=lens` |
+
+**Create/upsert body (do NOT include `id`, `type`, `namespaces`, `migrationVersion`, `coreMigrationVersion`, `updated_at`, `version`, `managed`):**
+```json
+{
+  "attributes": {
+    "title": "My Metric",
+    "description": "",
+    "visualizationType": "lnsMetric",
+    "state": {
+      "datasourceStates": {
+        "formBased": {
+          "layers": {
+            "main": {
+              "indexPatternId": "<data-view-id>",
+              "columns": {
+                "col1": {
+                  "label": "Count",
+                  "dataType": "number",
+                  "operationType": "count",
+                  "isBucketed": false,
+                  "sourceField": "Records",
+                  "params": {}
+                }
+              },
+              "columnOrder": ["col1"]
+            }
+          }
+        }
+      },
+      "visualization": {
+        "layers": [{"layerId": "main", "layerType": "data", "metricAccessor": "col1", "color": "#1EA593"}]
+      },
+      "query": {"query": "", "language": "kuery"},
+      "filters": []
+    }
+  },
+  "references": [
+    {"type": "index-pattern", "id": "<data-view-id>", "name": "indexpattern-datasource-layer-main"}
+  ]
+}
+```
+
+**Reference `name` convention:** `"indexpattern-datasource-layer-{layerId}"` — must match the key in `datasourceStates.formBased.layers`.
+
+**`formBased` aggregation compatibility on 9.4 ECH (confirmed via live cluster):**
+| Operation | Status |
+|---|---|
+| `count` | ✅ Works |
+| `sum`, `avg`, `min`, `max` | ❌ `TypeError: toExpression` crash at render — use `textBased` ES\|QL instead |
+
+**ES\|QL (`textBased`) Lens layer shape (confirmed on 9.4 ECH live cluster):**
+```json
+{
+  "attributes": {
+    "visualizationType": "lnsMetric",
+    "state": {
+      "datasourceStates": {
+        "textBased": {
+          "layers": {
+            "main": {
+              "index": "<data-view-id>",
+              "query": {"esql": "FROM tf-project-risk-scores | STATS val = SUM(cost_usd)"},
+              "columns": [{"columnId": "col1", "fieldName": "val", "meta": {"type": "number"}}]
+            }
+          }
+        }
+      },
+      "visualization": {
+        "layers": [{"layerId": "main", "layerType": "data", "metricAccessor": "col1"}]
+      },
+      "query": {"query": "", "language": "kuery"},
+      "filters": [],
+      "adHocDataViews": {}
+    }
+  },
+  "references": [{"type": "index-pattern", "id": "<data-view-id>", "name": "indexpattern-datasource-current-indexpattern"}]
+}
+```
+
+**`textBased` ES\|QL rules (all confirmed via live cluster probe on 9.4 ECH):**
+- `layer.index` **must** be the **data view ID** — NOT the raw index name. Missing/wrong ID = "no data view attached" error.
+- `references[0].name` **must** be `"indexpattern-datasource-current-indexpattern"` (not the layer key). Confirmed by exporting working vizzes from cluster.
+- Column `fieldName` must match the alias used in the ES\|QL `STATS` clause (e.g., `STATS val = SUM(x)` → `fieldName: "val"`).
+- ES\|QL `WHERE` uses `==` not `:` — do NOT do `kuery.replace(":", "==")` (corrupts values like `demobuilder_tf`). Only replace the operator ` : ` (with spaces) → ` == `.
+
+**Dashboard time picker binding for ES\|QL vizzes (MANDATORY for non-`@timestamp` indices):**
+
+Kibana applies the dashboard time filter to ES\|QL visualizations by substituting `?_tstart` and `?_tend` named parameters with ISO-8601 bounds. For indices that do **not** have `@timestamp`:
+- The query MUST include `WHERE {time_field} >= ?_tstart AND {time_field} <= ?_tend` explicitly.
+- Without this, Kibana silently tries `@timestamp`, finds nothing, returns zero rows — even though data exists.
+- Kibana injects full ISO-8601 values (e.g., `"2024-05-05T00:00:00.000Z"`), so the date field must be a `date` type.
+
+```esql
+FROM tf-project-risk-scores
+| WHERE updated_at >= ?_tstart AND updated_at <= ?_tend
+| STATS val = AVG(risk_score) BY site_id
+| SORT val DESC
+| LIMIT 10
+```
+
+For indices **with** `@timestamp` (`tf-deliverables`, `tf-agent-sessions`, `tf-ml-anomaly-results`): Kibana uses the data view's configured time field automatically — no explicit `?_tstart`/`?_tend` needed in the query.
+
+**Non-`@timestamp` indices in this engagement and their time fields:**
+| Index | Time field | Data view time field |
+|---|---|---|
+| `tf-project-risk-scores` | `updated_at` | `updated_at` |
+| `tf-entity-store` | `last_updated` | `last_updated` |
+| `tf-portfolio-projects` | `updated_at` | `updated_at` |
+
+**Seed data requirement (D-044):** Every index used by a time-filtered dashboard MUST have a populated date field at seed time. For project/entity indices: populate `updated_at` (or equivalent) to represent when the record was last scored/updated — NOT derived from the project start date. Use the seeding timestamp (`_NOW_ISO`) for active records so they always fall within the demo time range.
+
+**Field population requirement (D-044):** Every field referenced in a `WHERE`, `STATS`, `BY`, `SUM`, `AVG`, `MAX`, or `MIN` clause across all visualization ES|QL queries MUST be non-null in every document. A null value is invisible to ES|QL and produces `Unknown column` errors. Derived fields (e.g., `risk_label` from `risk_score`) must be computed and stored at seed time — never left null. After seeding, verify with:
+
+```python
+# Validation pattern — run after every _bulk_index call
+def assert_field_populated(index, field):
+    total = es_count(index)
+    populated = es_count(index, query={"exists": {"field": field}})
+    assert populated == total, f"SEED VALIDATION FAIL: {index}.{field} null in {total-populated}/{total} docs"
+```
+
+---
+
+## Saved Objects Import / Export
 
 | Operation | Method | Path | Notes |
 |-----------|--------|------|-------|
-| Import NDJSON | `POST` | `{KIBANA_SPACE_PATH}/api/saved_objects/_import?overwrite=true` | Multipart form; `file` field; strip `migrationVersion` / `coreMigrationVersion` before import |
-| Export objects | `POST` | `{KIBANA_SPACE_PATH}/api/saved_objects/_export` | |
+| Import NDJSON | `POST` | `{KIBANA_SPACE_PATH}/api/saved_objects/_import?overwrite=true` | Multipart form; `file` field; strip `migrationVersion` / `coreMigrationVersion` / `updated_at` / `version` / `managed` / `namespaces` before import |
+| Export objects | `POST` | `{KIBANA_SPACE_PATH}/api/saved_objects/_export` | `{"objects":[...],"includeReferencesDeep":true,"excludeExportDetails":true}` |
+
+**Export + clean for re-import:**
+```python
+strip_keys = {'migrationVersion','coreMigrationVersion','typeMigrationVersion',
+              'updated_at','created_at','version','managed','namespaces'}
+# Strip these from each line before storing as a deployable NDJSON artifact
+```
+
+**Terraform — NDJSON import resource** (`elasticstack_kibana_import_saved_objects`):
+```hcl
+resource "elasticstack_kibana_import_saved_objects" "dashboards" {
+  space_id      = var.space_id
+  overwrite     = true
+  file_contents = file("${path.module}/kibana-objects/2026thermopm-dashboards-clean.ndjson")
+}
+```
+This is the **recommended Terraform path** for dashboards, Lens vizzes, and data views. The NDJSON file should be exported from a validated cluster and stored in `deploy/kibana-objects/` as a deployment artifact. Strip migration/version metadata before storing.
 
 ---
 
@@ -65,6 +300,64 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 | Update data view | `PUT` | `{KIBANA_SPACE_PATH}/api/data_views/data_view/{id}` |
 | Delete data view | `DELETE` | `{KIBANA_SPACE_PATH}/api/data_views/data_view/{id}` |
 | List data views | `GET` | `{KIBANA_SPACE_PATH}/api/data_views` |
+
+### Data View Time Semantics — Architectural Rule
+
+**A data view is a time-axis declaration, not just an index alias.**
+
+The `timeFieldName` on a data view determines which date field the dashboard time picker controls for any `formBased` (aggregation) layer that references it. Different visualizations over the same index can — and should — have different time semantics when the date fields carry different meanings:
+
+| Date field | Semantic meaning | Example visualization |
+|---|---|---|
+| `updated_at` | When was this record last scored/refreshed? | "Current risk score by project" |
+| `start_date` | When did the project begin? | "Projects opened this quarter" |
+| `target_completion` | When is the work due? | "Deadlines in the next 90 days" |
+| `@timestamp` | When did this event occur? | "Agent session volume over time" |
+
+**Rule:** Create one data view per *(index, time-semantic)* pair, not one per index. Name secondary data views `{index-pattern}-{semantic}` to make intent explicit (e.g., `tf-portfolio-projects-deadline` with `timeFieldName: target_completion`).
+
+**For ES|QL (`textBased`) layers:** The data view's `timeFieldName` does NOT inject a time filter automatically. You must include `WHERE {field} >= ?_tstart AND {field} <= ?_tend` explicitly in the query. Kibana substitutes `?_tstart`/`?_tend` with ISO-8601 bounds from the dashboard time picker at render time. This is MORE flexible than `formBased` — each query can use a different field regardless of what the data view declares.
+
+**For `formBased` (aggregation) layers:** `timeFieldName` controls the automatic time filter. No `WHERE` clause needed.
+
+**Consequence:** If you create a single data view for an index and point it at `updated_at`, then a `formBased` visualization that should filter by `start_date` will silently use the wrong field. The dashboard time picker will appear to work but will return the wrong slice of data. Always align the data view's `timeFieldName` to the **semantic intent of the visualizations that will use it**.
+
+**Seed data rule:** Every index with a `formBased` or ES|QL visualization on a time-filtered dashboard MUST have a populated value in the relevant date field at seed time. A null `updated_at` means the document is invisible when the dashboard time picker is active.
+
+### Create body
+
+```json
+{
+  "data_view": {
+    "id": "{stable-uuid}",
+    "title": "{index-pattern}",
+    "timeFieldName": "{date-field}",
+    "name": "{human-readable-label}"
+  }
+}
+```
+
+### Existing data views for this engagement
+
+| Data view ID (stable) | Index | `timeFieldName` | Semantic |
+|---|---|---|---|
+| `dv-tf-deliverables` | `tf-deliverables` | `@timestamp` | Event creation time |
+| `dv-tf-portfolio-projects` | `tf-portfolio-projects` | `updated_at` | Last status update |
+| `dv-tf-project-risk-scores` | `tf-project-risk-scores` | `updated_at` | Last scoring run |
+| `dv-tf-entity-store` | `tf-entity-store` | `last_updated` | Entity last seen |
+| `dv-tf-agent-sessions` | `tf-agent-sessions` | `@timestamp` | Session event time |
+| `dv-tf-slo-metrics` | `tf-slo-metrics` | `@timestamp` | SLO sample time |
+| `dv-tf-ml-anomaly-results` | `tf-ml-anomaly-results` | `@timestamp` | Anomaly detection time |
+| `dv-tf-lessons-learned` | `tf-lessons-learned` | `date` | Lesson recorded date |
+| `dv-tf-issue-log` | `tf-issue-log` | `raised_date` | Issue raised date |
+
+**Additional data views to create when needed (not yet created):**
+
+| Future data view ID | Index | `timeFieldName` | When to add |
+|---|---|---|---|
+| `dv-tf-portfolio-projects-deadline` | `tf-portfolio-projects` | `target_completion` | Any viz filtering by project deadline |
+| `dv-tf-portfolio-projects-start` | `tf-portfolio-projects` | `start_date` | Any viz filtering by project open date |
+| `dv-tf-deliverables-planned` | `tf-deliverables` | `planned_completion_date` | Any viz filtering by planned vs. actual delivery |
 
 ---
 
@@ -147,13 +440,21 @@ A rule creation with `"group": "default"` or missing `"frequency"` returns `400:
 | Delete tool | `DELETE` | `{KIBANA_SPACE_PATH}/api/agent_builder/tools/{id}` |
 | List skills catalog | `GET` | `{KIBANA_SPACE_PATH}/api/agent_builder/skills` |
 
-**PUT update rule (D-025):** Send only `description`, `configuration`, and optional `tags`. Do NOT include `id` or `type` (immutable).
+**PUT update rule (D-025):** Send only `description`, `configuration`, and optional `labels`. Do NOT include `id`, `type`, `readonly`, or `created_by` (immutable/read-only).
 
 **⚠ Tools are space-scoped (confirmed 9.4):** Agent Builder tools created in space A are NOT visible in space B. Always create both the tool and agent in the same target space.
 
 **`configuration.tools` array format (confirmed 9.4):** Must be `[{"tool_ids": ["id1", "id2", ...]}]` — NOT a flat array of ID strings. A flat string array returns `400`. Confirmed via live API probe.
 
 **Agent ID convention:** Agent IDs must be lowercase-with-hyphens (e.g. `demo-search-agent`). Mixed-case IDs are rejected by the API.
+
+**`labels` vs Kibana tags:** Agent objects use a `labels` field (string array, e.g. `["demobuilder", "thermo-fisher-pm"]`) — this is **NOT** the same as Kibana saved-object tags. Do not use the tags API for agents.
+
+**`visibility`:** Always set `"visibility": "public"` on demo agents. Omitting it defaults to private/internal — agent will not appear in the chat UI.
+
+**`enable_elastic_capabilities`:** Set `false` for custom demo agents (prevents the built-in Elastic capabilities from overriding the demo persona). The system `elastic-ai-agent` has it `true` by default.
+
+**`avatar_symbol`:** Two-character string, e.g. `"fr"`. Optional but improves UI appearance.
 
 **D-029 — `skill_ids` probe (MANDATORY before generating agent configuration):**
 `skill_ids` = platform skills (capabilities like data-exploration); `tool_ids` = custom tools + `platform.core.*` built-ins. These are separate concerns and BOTH must be configured.
@@ -165,16 +466,25 @@ if r is None or (isinstance(r, int) and r == 404):
     platform_skill_ids = []    # skills catalog not available; tools-only mode
 else:
     available = {s["id"] for s in r.get("skills", [])}
-    wanted    = {"data-exploration", "visualization-creation", "case-management"}
+    wanted    = {"data-exploration", "visualization-creation", "case-management",
+                 "entity-analytics", "graph-creation", "workflow-authoring",
+                 "search.keyword-search", "search.rag-chatbot", "search.vector-hybrid-search"}
     platform_skill_ids = list(available & wanted)
 
 agent_body = {
-    "id":   agent_id,
-    "name": agent_name,
+    "id":          agent_id,
+    "type":        "chat",
+    "name":        agent_name,
+    "description": agent_description,
+    "labels":      ["demobuilder", engagement_id],
+    "avatar_symbol": "db",
+    "visibility":  "public",
     "configuration": {
-        "instructions": system_prompt,
-        "tools": [{"tool_ids": [custom_tool_id, "platform.core.execute_esql", "platform.core.search"]}],
-        "skill_ids": platform_skill_ids,    # ALWAYS include; set [] if catalog unavailable
+        "instructions":              system_prompt,
+        "tools":                     [{"tool_ids": [custom_tool_id, "platform.core.execute_esql", "platform.core.search"]}],
+        "skill_ids":                 platform_skill_ids,  # ALWAYS include; set [] if catalog unavailable
+        "enable_elastic_capabilities": False,
+        "workflow_ids":              [],
     }
 }
 kb("POST", f"{space_path}/api/agent_builder/agents", agent_body, ok=(200, 201))

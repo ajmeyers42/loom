@@ -47,6 +47,7 @@ For each index/data stream in the data model:
 - Are demo-critical documents present? (check specific IDs or field values from the
   injection spec)
 - Is the ingest pipeline attached and processing? (check pipeline stats)
+- **Field population check (D-044):** For every field referenced in a visualization query (`WHERE`, `STATS`, `BY`, `SUM`, `AVG`, etc.), verify non-null across all documents: `POST /{index}/_count {"query": {"exists": {"field": "{field}"}}}` must equal total doc count. A null viz-queried field produces `Unknown column` errors in ES|QL and causes neighboring dashboard panels to render as broken even when their own data is valid. Flag as **no-go blocker** if any viz-queried field has nulls.
 
 ### ML checks (if ML scene in script)
 - Is the job open and the datafeed started?
@@ -116,6 +117,7 @@ proceed with minor adjustments — the SE knows what to say if a scene doesn't r
 - ELSER endpoint is not responding and the semantic scene has no fallback
 - Agent scenarios have not been tested end-to-end
 - The environment is unreachable (connectivity issue)
+- Any viz-queried field is null in any document in a custom index (D-044) — one broken panel can render adjacent panels as broken regardless of their own data state
 
 ## Step 4: Write the Outputs
 

@@ -190,8 +190,9 @@ Before writing a single line of `bootstrap.py` or `main.tf`, mechanically verify
 | 11 | **D-026 tags on every asset** | `merge_tags()` called on every resource that accepts a `tags` or `labels` field | Check rule/SLO/agent/workflow payloads |
 | 12 | **Provider versions (TF only)** | `elasticstack` + `ec` provider pins reflect latest minor (D-041) | Check reference-repos.md |
 | 13 | **`disabled_features = []` on every space (TF only)** | Every `elasticstack_kibana_space` resource has `disabled_features = []` | See terraform-patterns.md#kibana-space |
+| 14 | **Field population confirmed (D-044)** | For every custom index, produce a table of (field → viz that uses it → seed value/derivation). Every viz-queried field must be non-null in 100% of seed docs. Derived fields (`risk_label`, `on_track`, etc.) computed and stored at seed time. | Fix seed data or mapping before proceeding |
 
-**Hard gate — asset ordering (D-043):** No dashboard, alert, SLO, workflow, or Agent Builder tool that queries an index may be authored or deployed until checklist row 3 is complete for that index. If the integration template exists but no data has arrived yet, the `@package` component template field list is the authoritative schema source. For custom indices, at least one document must exist before dashboard authoring begins.
+**Hard gate — asset ordering (D-043, D-044):** No dashboard, alert, SLO, workflow, or Agent Builder tool that queries an index may be authored or deployed until checklist rows 3 and 14 are complete for that index. If the integration template exists but no data has arrived yet, the `@package` component template field list is the authoritative schema source. For custom indices, at least one document must exist — with all viz-queried fields populated — before dashboard authoring begins.
 
 ## Step 3: Generate `bootstrap.py`
 
@@ -477,6 +478,23 @@ if count >= ds["seed_document_count"] * 0.9:  # 90% threshold — already loaded
 - Generate `demo_critical_docs` first and index them individually (verified)
 - Fill remaining doc count with randomized but realistic values
 - For `days_since_filed`, `@timestamp`, etc. — use realistic date arithmetic from "now"
+- **Derived fields must be computed at seed time (D-044).** Fields like `risk_label` derived from `risk_score` must be calculated in Python before indexing — never stored as null with the expectation that a query will derive them later.
+
+**Post-seed validation gate (D-044):** After each `_bulk_index` call for a custom index, assert every viz-queried field is non-null across all documents:
+```python
+def assert_viz_fields_populated(index, viz_fields):
+    """Fail fast if any field used by a visualization is null in any document."""
+    total = es("GET", f"/{index}/_count")["count"]
+    for field in viz_fields:
+        populated = es("POST", f"/{index}/_count",
+                       {"query": {"exists": {"field": field}}})["count"]
+        if populated < total:
+            raise RuntimeError(
+                f"SEED VALIDATION FAIL: {index}.{field} null in "
+                f"{total - populated}/{total} docs — fix seed data before deploying vizzes"
+            )
+# Call immediately after _bulk_index for every custom index
+```
 
 **ML jobs (step 11)**
 ```python

@@ -1024,3 +1024,53 @@ Violating Rule 3 is the root cause of "Unknown column", "no such index", and "em
 When a value in these files conflicts with text in a `SKILL.md` or `docs/decisions.md`, the reference file wins. Update the SKILL or decision text to point to the reference file.
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+
+---
+
+## D-043: Data views are time-axis declarations — one per (index, time-semantic) pair
+
+**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-data-modeler/SKILL.md`, all `bootstrap.py` and Terraform data view creation
+
+**Decision:** A Kibana data view is not just an index alias — its `timeFieldName` is the declaration of which date field the dashboard time picker controls for `formBased` (aggregation) layers that reference it. Different visualizations over the same index may have different time semantics (e.g., "when was this risk score calculated?" vs. "when is the project deadline?"). Each distinct time-semantic requires its own data view.
+
+**Rules:**
+
+1. **One data view per (index, time-semantic) pair.** Never create a single catch-all data view and assume it serves all visualizations over that index.
+
+2. **Naming convention:** Primary data view uses the index name directly. Secondary data views append the semantic intent: `{index-pattern}-deadline`, `{index-pattern}-start`, etc.
+
+3. **`formBased` layers:** `timeFieldName` controls the automatic time filter. Aligning the data view to the visualization's intent is mandatory — a mismatch silently returns the wrong time slice without any error.
+
+4. **`textBased` (ES|QL) layers:** `timeFieldName` does NOT inject a time filter automatically. The query must include `WHERE {field} >= ?_tstart AND {field} <= ?_tend` with the semantically correct field. This provides per-visualization time-field flexibility regardless of the data view's declared time field.
+
+5. **Seed data:** Every document in an index used by a time-filtered dashboard MUST have a non-null value in the relevant date field at seed time. A null date field makes the document invisible when any time filter is active.
+
+6. **Evaluate at data model time:** When `demo-data-modeler` produces index definitions, it MUST inventory every date field per index, state the semantic meaning of each, and propose data views accordingly. Do not defer this to bootstrap or dashboard build time.
+
+**Anti-pattern to avoid:** Creating `tf-portfolio-projects` with `timeFieldName: updated_at`, then building a "Projects by Deadline" visualization using a `formBased` layer — the dashboard time picker will filter on `updated_at` (last status refresh) not `target_completion` (the deadline), producing wrong results with no visible error.
+
+**Reference:** `skills/demo-deploy/references/kibana-api-registry.md` → "Data View Time Semantics — Architectural Rule"
+
+**Date:** 2026-05-05 | **Session:** ThermoFisher PM demo — dashboard time picker alignment
+
+---
+
+## D-044: All mapped fields in custom indices must be populated at seed time
+
+**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-data-modeler/SKILL.md`, all `bootstrap.py` seed data generation
+
+**Decision:** Every field that appears in a custom index mapping must be populated with a non-null value in every seed document, unless a specific `null` value has explicit business meaning AND is documented in the data model. An empty custom index with null fields is not deployable.
+
+**Rules:**
+
+1. **Every viz-queried field must be confirmed populated before bootstrap deploys vizzes.** At minimum: any field named in a `WHERE`, `STATS`, `BY`, `SUM`, `AVG`, `MAX`, `MIN` clause must exist in the index mapping AND have non-null values in every document.
+
+2. **Every mapped field must have a non-null value.** If a field is in the mapping and has no known value at seed time, either remove it from the mapping or populate it with a meaningful default (e.g., `"none"`, `"unknown"`, `0.0`). A `null` value stored in `_source` is invisible to ES|QL and causes `Unknown column` errors.
+
+3. **Derived fields must be computed at seed time, not deferred.** Fields like `risk_label` that are derived from another field (e.g., `risk_score`) must be computed and stored during seeding — never left null with the expectation that a query will derive them at read time. ES|QL does not store computed values.
+
+4. **bootstrap.py validation gate:** After seeding each index, run `POST /{index}/_count` with `"query": {"exists": {"field": "{field}"}}` for every field used by a visualization and assert the count matches the total document count. Fail the step if any viz-queried field has nulls.
+
+**Anti-pattern that caused this rule:** `tf-entity-store` was deployed with `risk_label` absent from the mapping and null in all 5 seed documents. The viz `tf-viz-d3-highrisk` queried `risk_label == "HIGH"` and received `Unknown column [risk_label]` from ES|QL, causing the panel to render as a broken empty canvas. Additionally, a neighboring panel in the same dashboard (`tf-viz-d3-vendors`) rendered as broken even though its own data was valid, because Kibana propagates panel error state within a dashboard view.
+
+**Date:** 2026-05-05 | **Session:** ThermoFisher PM demo — null field audit

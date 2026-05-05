@@ -119,56 +119,40 @@ For each index, define:
 - Multi-value arrays with sub-structure: `nested`
 - Booleans: `boolean`
 
-**Observability / Infrastructure UI visibility (metrics data streams):**
-When a data stream is named `metrics-*-*` and the demo includes any Observability scene
-(Infrastructure UI, Hosts view, Container view, Kubernetes view, Metrics Explorer), the
-following ECS fields are **mandatory** — without them the Infrastructure UI will find zero
-entities even though documents exist:
+**Step 2a — Logs/Metrics naming contract (Hybrid OOTB foundation):**
 
-| Field | Why it matters |
-|---|---|
-| `host.name` | Identifies the host entity — the single most important field |
-| `event.dataset` | Links the metric set to its source dataset |
-| `service.type` | Identifies the service/integration type (e.g. `prometheus`, `system`) |
-| `container.id` | Required for container entity views |
-| `kubernetes.pod.name` + `kubernetes.namespace` | Required for Kubernetes views |
+For every logs or metrics data stream, choose exactly one strategy and record it in the data
+model manifest:
 
-**Always generate an ingest pipeline** that maps source-specific field names (e.g. Prometheus
-`instance`) to these ECS fields, and wire it via `index.default_pipeline` in the settings
-component template. Add the pipeline to the `build_order` **before** the index template that
-references it. See `references/mapping-patterns.md` → "Observability Metrics Data Streams —
-ECS Required Fields" for complete component template, pipeline, and backfill patterns.
+1. **Path A — Fleet integration package (required for Observability and Security domains; preferred everywhere else):**
+   - Use integration-native naming: `logs-<integration>.<dataset>-<namespace>` or
+     `metrics-<integration>.<dataset>-<namespace>`
+   - Declare `strategy: "fleet_integration"` with `package`, `dataset`, `namespace`
+   - Example: `metrics-nvidia_gpu.stats-default`, `logs-kubernetes.container_logs-default`
+   - The package provides ECS mappings, ingest pipelines, dashboards, and often ML/rules
+   - **Before recording any field name**, confirm the schema via `GET /_component_template/<package>.<dataset>@package`. Do not guess or infer field names — use only what the probe returns (D-043 Rule 3).
+   - **Before authoring any asset** (dashboard, alert, ML job, data view), enumerate what the package already ships: `GET /api/fleet/epm/packages/<name>/assets`. Use those assets as the primary demo deliverable. Author custom assets only for scenes or signals the package does not cover. Do not duplicate a shipped dashboard or rule with a custom version without SA approval.
+   - **Do not invent Prometheus-scraper stream names** (`metrics-gpu.dcgm.prometheus-*`, `metrics-k8s.state.prometheus-*`, etc.) for technology that has a shipped Fleet integration. Check EPR first.
 
-**Elastic Security / SIEM (security event data streams):**
-When the demo includes any Security scene (Alerts view, Detection rules, Entity Analytics,
-Timeline, Cases), security event data streams must satisfy three additional constraints that
-can silently produce empty UIs:
+2. **Path B — Managed templates fallback (custom/demo-only and search use cases):**
+   - Use `logs-demo.<dataset>-<namespace>` or `metrics-demo.<dataset>-<namespace>` for demo-only streams; use engagement-prefixed names (e.g. `lg-clinical-corpus`) for custom search indices
+   - Declare `strategy: "managed_templates"` or `strategy: "custom"`
+   - Compose templates using Elastic-managed ECS building blocks:
+     - Logs: `composed_of: ["logs@mappings", "logs@settings", "ecs@mappings", "<custom>"]`
+     - Metrics: `composed_of: ["metrics@mappings", "metrics@settings", "ecs@mappings", "<custom>"]`
+   - Custom component templates define only non-ECS fields
+   - Custom search indices (Path B, `strategy: "custom"`) may be iterated: author mapping → deploy → test query → refine. This is normal and expected (D-043 Rule 2).
 
-1. **Index naming must use `logs-*-*`** — detection rules run against `logs-*` by default.
-   Custom index names like `security-events-*` will not be seen by any built-in rule.
-   Use `logs-demo.{dataset}-{namespace}` for synthetic demo security events.
+**No third path:** reject arbitrary names (`security-events-*`, `metrics-gpu.*`, `metrics-k8s.state.prometheus-*`) unless they fit Path A or Path B. Prometheus-exporter-named streams are not Path A — they are custom streams that bypass the integration package.
 
-2. **Required ECS fields on every raw event document:**
+**Lowercase rule (mandatory):**
+- All generated field names must be lowercase snake_case / dotted ECS style.
+- If a source emits uppercase or mixed-case fields (`DCGM_FI_DEV_GPU_UTIL`), add an ingest
+  pipeline rename step to lowercase ECS-compliant names at write time.
+- Do not leave uppercase source fields in final indexed documents.
 
-| Field | Value/Notes |
-|---|---|
-| `event.kind` | `"event"` (raw events); `"signal"` (synthetic alerts) |
-| `event.category` | `authentication`, `network`, `process`, `file`, `registry`, etc. |
-| `event.type` | `start`, `end`, `allowed`, `denied`, `info`, `error`, `access`, etc. |
-| `event.outcome` | `success`, `failure`, `unknown` |
-| `host.name` | Required for host-based rules and Entity Analytics host risk scores |
-| `user.name` | Required for user-based rules and Entity Analytics user risk scores |
-
-3. **Detection rules must target the exact data stream index pattern** — add the rule's
-   `index` field to the build manifest and verify it matches the data stream name.
-
-For synthetic alerts (pre-seeded in `.alerts-security.alerts-default`), `event.kind` must be
-`"signal"` and `kibana.space_ids` must be set. For the Cases API, `POST /api/cases/configure`
-must precede `POST /api/cases` — this is a build-order dependency.
-
-See `references/mapping-patterns.md` → "Elastic Security — ECS Required Fields and Index
-Conventions" for the full component template, detection rule spec, Entity Analytics checklist,
-and cases configure pattern.
+See `references/mapping-patterns.md` for Path A/Path B examples, `ecs@mappings` behavior,
+and lowercase rename patterns.
 
 **Do not use `dynamic: true` on production-intent indices.** Explicit mappings only.
 On indices where dynamic mapping is acceptable (e.g., enrichment lookup tables), set
@@ -298,6 +282,41 @@ is generated by a separate script), but the schema and value constraints:
 specific field values existing. Enumerate every document that must be present for a
 scenario to work.
 
+**Field population requirement (D-044) — mandatory for every custom index:**
+
+For every field in the mapping:
+
+1. **Every field must have a non-null value in every seed document.** Null fields are invisible to ES|QL. A field present in the mapping but null in `_source` causes `Unknown column` errors in visualizations.
+2. **Derived fields must be computed at seed time.** If a field is derived from another (e.g., `risk_label` from `risk_score`, `on_track` from `days_behind_plan`), compute the value and store it during seeding. Do not defer derivation to query time.
+3. **If a field has no meaningful value for a specific document, use a sentinel.** For keyword arrays with no items, store `["none"]`. For optional scores with no reading, store `0.0`. Document the sentinel in the data model.
+4. **At the end of the sample data spec, produce a field population checklist** — a table of every (index, field) pair used by any viz query with a confirmation that it will be non-null in all seed docs.
+
+| Index | Field | Viz that queries it | Seed value / derivation |
+|---|---|---|---|
+| `entity-store` | `risk_label` | `d3-highrisk` | `"HIGH"` if `risk_score >= 7.0`, else `"MEDIUM"` if `>= 4.0`, else `"LOW"` |
+| `entity-store` | `entity_type` | `d3-vendors` | Explicitly set per entity: `"vendor"` or `"site"` |
+
+## Step 4b: Define Data Views (D-043)
+
+**A data view is a time-axis declaration, not just an index alias.** Before writing outputs, inventory every date field per index and decide which data views are required. Do not defer this to bootstrap or dashboard build time.
+
+For each index, produce a table:
+
+| Date field | Type | Semantic meaning | Dashboard use case |
+|---|---|---|---|
+| `@timestamp` | `date` | When did this event occur? | Volume/trend charts |
+| `updated_at` | `date` | When was this record last scored/refreshed? | Current-state metrics |
+| `start_date` | `date` | When did this project begin? | Timeline / cohort views |
+| `target_completion` | `date` | When is the work due? | Deadline / burndown views |
+
+**Rules:**
+- If all planned visualizations for an index share the same time semantic → one data view suffices.
+- If any visualization group has a different time semantic → create a separate data view named `{index}-{semantic}` (e.g., `tf-portfolio-projects-deadline` with `timeFieldName: target_completion`).
+- For `textBased` (ES|QL) vizzes, add the appropriate `WHERE {field} >= ?_tstart AND {field} <= ?_tend` in the query body — the data view's `timeFieldName` does NOT inject this automatically.
+- Seed data MUST populate every `timeFieldName` field with a non-null value so documents are visible when the dashboard time picker is active.
+
+Add a `data_views` section to the data model JSON output listing every data view with its `id` (stable UUID5), `title`, `timeFieldName`, and `semantic`.
+
 ## Step 5: Write the Outputs
 
 ### Output 1: `data/{slug}-data-model.json`
@@ -321,6 +340,22 @@ Master manifest — one document describing everything that needs to be built:
   "enrich_policies": [ ... ],
   "ilm_policies": [ ... ],
   "inference_endpoints": [ ... ],
+  "data_views": [
+    {
+      "id": "{stable-uuid}",
+      "title": "{index-pattern}",
+      "timeFieldName": "{primary-date-field}",
+      "semantic": "when this record was last scored/updated",
+      "name": "{human-readable label}"
+    },
+    {
+      "id": "{stable-uuid-2}",
+      "title": "{index-pattern}",
+      "timeFieldName": "target_completion",
+      "semantic": "project deadline — use for deadline/burndown visualizations",
+      "name": "{index-pattern}-deadline"
+    }
+  ],
   "sample_data": [ ... ]
 }
 ```
@@ -341,11 +376,21 @@ Human-readable build overview for the SE:
 ## Index Designs
 [For each index: purpose, key fields with types, shard count, ILM, special notes]
 
+## Data Views
+[For each index: table of date fields with semantic meaning, which data view(s) are created,
+ which visualizations use each, and what timeFieldName is configured. Flag any index where
+ different visualization groups require different time fields — those need multiple data views.]
+
+| Data view name | Index | timeFieldName | Semantic | Used by visualizations |
+|---|---|---|---|---|
+| ... | ... | ... | ... | ... |
+
 ## Ingest Pipeline Logic
 [For each pipeline: what it does, processor chain summary, any tricky logic]
 
 ## Sample Data Requirements
-[For each index: doc count, key entities, demo-critical documents]
+[For each index: doc count, key entities, demo-critical documents.
+ For each non-@timestamp index: confirm the timeFieldName field is populated at seed time.]
 
 ## Dependency Map
 [Which artifacts block which — drawn in text if no diagram tool]
@@ -404,7 +449,7 @@ by scenario type with critical/important/nice-to-have breakdown.
 | Support / Knowledge Base | Content, questions, answers | Dates, view counts |
 | Analytics / Observability | Queries, click patterns, sessions | Exact counts |
 | Financial / Fraud | Transaction sequences, amounts in range | Non-demo-path records |
-| **Observability Metrics** | **ECS fields (`host.name`, `event.dataset`, `service.type`) on every document, realistic metric value ranges, temporal continuity** | Exact node counts, IP addresses |
+| **Observability Metrics** | **Path A integration-native or Path B managed-template naming, ECS fields populated on every document, temporal continuity** | Exact node counts, IP addresses |
 
 **Common fidelity failures to avoid:**
 - Broken image URLs — use `picsum.photos/seed/{id}/400/400` or validated placeholder pattern
@@ -412,10 +457,9 @@ by scenario type with critical/important/nice-to-have breakdown.
 - Inconsistent IDs — entity IDs used in demo-critical documents must appear in related indices
 - Temporal incoherence — events that precede their prerequisite events (logout before login)
 - Anomaly injection too early or too late — ML jobs need sufficient lead time before the anomaly
-- **Missing ECS fields on metrics data streams** — `host.name`, `event.dataset`, and `service.type` must be populated on every document or the Infrastructure UI and Hosts view will show no entities even when the index contains data. Always use an ingest pipeline with `index.default_pipeline` wired into the settings component template.
-- **Security events in wrong index pattern** — data in `security-events-*` or any non-`logs-*` index will never be seen by SIEM detection rules. Use `logs-demo.{dataset}-{namespace}` for all synthetic security event data.
-- **Missing `event.kind: "event"` on raw security events** — detection rules filter on this; omitting it silently excludes documents from rule matches.
-- **Missing `user.name` or `host.name` on security events/alerts** — Entity Analytics user and host risk scores will show blank tables even when alerts exist.
+- **Data stream names outside the Path A/Path B contract** — arbitrary names break automatic ECS behavior and can make out-of-box UIs appear empty.
+- **Mixed-case field names in indexed docs** — uppercase fields often bypass ECS conventions and break aggregations/rule/query assumptions; always normalize to lowercase at ingest.
+- **Missing ECS identity fields** — absent `host.name`, `event.dataset`, `event.kind`, `event.type`, or `user.name` (as applicable) leaves Infrastructure/Security views without entities.
 
 **For seed data with AI:** `hive-mind/patterns/data/LLM_DATA_GENERATION.md` provides
 structured LLM prompts for generating domain-specific demo data. Use when custom data
