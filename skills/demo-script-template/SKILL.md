@@ -337,6 +337,8 @@ One page. This is what the AE reads before the meeting. No queries, no config de
 
 ## What Good Looks Like
 
+**Integration-first data sourcing (D-043):** When scripting Observability or Security scenes, name data sources by their Fleet integration stream — `metrics-kubernetes.pod-*`, `metrics-nvidia_gpu.stats-*`, `logs-system.syslog-*` — not Prometheus-scraper-style names (`metrics-k8s.state.prometheus-*`, `metrics-gpu.dcgm.prometheus-*`). If the script references a specific index or data stream, that name must correspond to a real Fleet integration package or a confirmed custom index. Scripts that name non-existent streams cause broken dashboards and ES|QL errors downstream. When in doubt, leave the data source as `[integration TBD — probe cluster]` in the script and resolve it in demo-data-modeler.
+
 **Lowe's pattern** (technical deep-dive, mixed audience): 45-min script, 6 scenes, human
 story of an associate helping a customer who drove across town on bad inventory data. Each
 scene escalates: live data → ML anomaly → semantic search → agent → observability →

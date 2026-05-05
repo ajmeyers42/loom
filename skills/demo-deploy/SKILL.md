@@ -170,6 +170,29 @@ Extract the build order from the data model — this is the sequence the script 
 import, Workflows, Agent Builder, ES `PUT`s) — single script, no parallel `deploy_*.py`. Paths
 are relative to `{engagement_dir}` (**D-024**).
 
+## Step 2b: Generation Checklist (run BEFORE authoring any script or HCL)
+
+Before writing a single line of `bootstrap.py` or `main.tf`, mechanically verify the following against the pipeline outputs and reference files. If any item fails, **stop and resolve it first**.
+
+| # | Check | How to verify | Fail action |
+|---|---|---|---|
+| 1 | **Reference files read** | Did you read `terraform-patterns.md`, `kibana-api-registry.md`, `pipeline-constants.md`, `asset-manifest.md`? | Read them now |
+| 2 | **DEPLOY_MODE set** | `.env` contains `DEPLOY_MODE=terraform` or `DEPLOY_MODE=python` | Ask SA if missing |
+| 3 | **Integration schema probed (D-043)** | For every index any asset queries: run `GET /_index_template/*`, then `GET /_component_template/<name>@package` (integration) or `GET /<index>/_mapping` (custom). Record actual field names. | Probe now; do not proceed until field schema is confirmed |
+| 4 | **Integration-first + package assets (D-043, D-032)** | Observability/Security streams use Fleet integration naming. No Prometheus-scraper or custom DCGM/kube-state streams unless SA-approved exception. **Also:** run `GET /api/fleet/epm/packages/<name>/assets` to enumerate what dashboards, rules, ML jobs, and data views the package ships — use those first; author custom assets only for scenes the package does not cover. Managed assets used as-is or referenced by ID; clone with `[{SLUG}]` prefix only when modification is needed (D-032). | Replace with correct integration stream; inventory package assets before authoring anything custom |
+| 5 | **Dashboard composition — embed existing assets (D-043)** | Custom dashboards must include any already-deployed SLOs (`slo_overview`/`slo_burn_rate`/`slo_error_budget` panel types), ML anomaly results (via `vis` + `ref_id`), and other relevant saved visualizations rather than re-creating them. Probe `GET /api/observability/slos`, `GET /api/ml/anomaly_detectors`, `GET /api/saved_objects/_find?type=visualization` before authoring dashboard panels. | Add embed panels for any found assets |
+| 5 | **Dashboard format (9.4+)** | Dashboards use the Kibana 9.4 declarative API (`POST /api/dashboards`, `type: "vis"` panels). NDJSON import (`/api/saved_objects/_import`) is 8.x only and broken on 9.4. Author `deploy/kibana-objects/dash-*.json` via `kibana-dashboards.js`. | Run `kibana-dashboards` skill |
+| 6 | **Alerting actions shape** | Any alerting rule must use `"group": "query matched"` (not `"default"`) and include `"frequency"` object | See kibana-api-registry.md#alerting-rules |
+| 7 | **Cases payload** | `POST /api/cases` body must NOT include `"status"` — use PATCH after create | See kibana-api-registry.md#cases |
+| 8 | **Agent Builder skill_ids** | Agent Builder create must include `"skill_ids"` key (even if `[]`); requires probe of `/api/agent_builder/skills` first | See kibana-api-registry.md#d-029 |
+| 9 | **ML job lifecycle** | ML job sequence: create → `_open` → datafeed create → `_start`; Terraform uses `ml_job_state` + `ml_datafeed_state` resources | See terraform-patterns.md#ml-job-lifecycle |
+| 10 | **attempt_or_skip scope** | `attempt_or_skip` only wraps GET probes for optional features; never wraps in-scope asset creation | See kibana-api-registry.md#attempt_or_skip |
+| 11 | **D-026 tags on every asset** | `merge_tags()` called on every resource that accepts a `tags` or `labels` field | Check rule/SLO/agent/workflow payloads |
+| 12 | **Provider versions (TF only)** | `elasticstack` + `ec` provider pins reflect latest minor (D-041) | Check reference-repos.md |
+| 13 | **`disabled_features = []` on every space (TF only)** | Every `elasticstack_kibana_space` resource has `disabled_features = []` | See terraform-patterns.md#kibana-space |
+
+**Hard gate — asset ordering (D-043):** No dashboard, alert, SLO, workflow, or Agent Builder tool that queries an index may be authored or deployed until checklist row 3 is complete for that index. If the integration template exists but no data has arrived yet, the `@package` component template field list is the authoritative schema source. For custom indices, at least one document must exist before dashboard authoring begins.
+
 ## Step 3: Generate `bootstrap.py`
 
 Write a complete, executable Python script to `{engagement_dir}/deploy/bootstrap.py`.
@@ -497,10 +520,17 @@ for the target version.
 **SLO stack docs:** Elastic Guide (concepts, create SLO, burn-rate alerts, troubleshoot incl.
 reset) plus the API hub — see **`docs/references-observability-slo.md`** in demobuilder. Use the **`current`** Guide branch for 9.x stacks (D-033/D-025) and re-check pages when the stack version changes.
 
-**13d — Saved objects / Dashboards** *(when dashboards/visualizations are in scope)*  
-`POST /api/saved_objects/_import?overwrite=true` (multipart NDJSON). Prefer definitions
-authored via `kibana-dashboards` from the data model + script. Apply `INDEX_PREFIX` to
-index titles in queries before import.
+**13d — Saved objects / Dashboards** *(when dashboards/visualizations are in scope)*
+
+**Managed and package assets first (D-032, D-043):** Before authoring any custom dashboard or visualization:
+1. Run `GET /api/fleet/epm/packages/<name>/assets` — note any shipped dashboards; link or reference them from the custom dashboard rather than rebuilding equivalent panels.
+2. Run `GET /api/observability/slos` — for each SLO in scope, plan an `slo_overview`, `slo_burn_rate`, or `slo_error_budget` embed panel in the relevant custom dashboard.
+3. Run `GET /_ml/anomaly_detectors` + `GET /api/saved_objects/_find?type=ml-telemetry` — embed ML results (swimlane, heatmap) via `type: "vis"` with `ref_id` pointing to the ML job's results saved object.
+4. Run `GET /api/saved_objects/_find?type=visualization` — inventory other already-deployed Lens/aggregation visualizations that belong in the story.
+
+**Custom dashboard panels** are authored only for content not covered by the above. Panels that embed existing saved objects use `"type": "vis", "config": { "ref_id": "<id>" }`. SLO panels use `"type": "slo_overview"` (or `slo_burn_rate`, `slo_error_budget`, `slo_alerts`) with `"config": { "sloId": "<id>", "instanceId": "*" }`.
+
+Author `deploy/kibana-objects/dash-*.json` via `kibana-dashboards.js` (`POST /api/dashboards` on 9.4+). Apply `INDEX_PREFIX` to index names in ES|QL queries before deploy.
 
 **Stable UUIDs for dashboards and saved objects** — always use deterministic UUIDs derived
 from the engagement ID + object name so re-deploys produce the same IDs and avoid duplicates:
@@ -593,31 +623,37 @@ The `"type": ".none"` connector in the configure body is valid and means "no ext
 
 **13i — Probe-based feature detection** *(for optional capabilities — applies alongside D-033 version gate)*
 
-For capabilities that may or may not be available (Agent Builder, Workflows, ELSER, Cases),
-use HTTP status probe before attempting deployment — do not only rely on deployment type:
+`attempt_or_skip` is ONLY for probing whether optional tech-preview features exist on the cluster. It MUST NOT be used to swallow `400` errors on in-scope asset creation. A `400` means the payload is wrong — the script must halt and report the error so it can be fixed.
 
 ```python
-def attempt_or_skip(label: str, fn):
-    """Try fn(); skip gracefully if API returns 404/403/400 (feature not available)."""
+def attempt_or_skip(label: str, fn) -> bool:
+    """
+    Use ONLY for optional tech-preview feature probes (GET 404/403).
+    NEVER wrap in-scope asset creation (alerting rules, cases, agents, SLOs).
+    Returns True if succeeded, False if skipped.
+    400 errors re-raise — they indicate a bad payload, not a missing feature.
+    """
     try:
         fn()
+        return True
     except RuntimeError as e:
         code = str(e)[:3]
-        if code in ("404", "403", "400"):
-            print(f"  {label}: not available on this cluster — skipping (probe: {code})")
-        else:
-            raise
+        if code in ("404", "403"):
+            print(f"  ⚠ {label}: feature not available on this cluster — skipped (probe: {code})")
+            return False
+        # 400 = bad payload on our end — never silently skip, always halt
+        raise
+
+# Correct: probing optional features
+available_workflows    = attempt_or_skip("Workflows",     lambda: kb("GET", "/api/workflows"))
+available_agent_builder = attempt_or_skip("Agent Builder", lambda: kb("GET", "/api/agent_builder/agents"))
+
+# WRONG — never wrap in-scope creates:
+# attempt_or_skip("Alerting rule", lambda: create_rule(...))   ← DO NOT DO THIS
+# attempt_or_skip("Cases",         lambda: create_case(...))   ← DO NOT DO THIS
 ```
 
-Usage:
-```python
-attempt_or_skip("Agent Builder",  lambda: create_agent_builder())
-attempt_or_skip("Workflows",      lambda: deploy_workflows())
-attempt_or_skip("Cases config",   lambda: configure_cases())
-```
-
-This complements the version gate (D-033) — it catches feature-flag or license-level
-unavailability that version numbers don't predict. Reference: `hive-mind/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`.
+This complements the version gate (D-033) — it catches feature-flag or license-level unavailability that version numbers don't predict. See `references/kibana-api-registry.md#attempt_or_skip` for full decision table. Reference: `hive-mind/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`.
 
 **13j — Token Visibility dashboard** *(when Agent Builder is in scope and INCLUDE_TOKEN_VISIBILITY=true)*
 
@@ -754,11 +790,23 @@ All Terraform-manageable resources from the data model, scoped to the engagement
 
 **Generate `bootstrap-data.py`:**
 Python for operations Terraform cannot perform:
-1. Enrich policy execution + polling
-2. Bulk seed data ingestion
-3. ELSER warm-up inference call
-4. Anomaly injection
-5. D-039 manifest write (`_manifest_add_es` / `_manifest_add_kibana`)
+1. Version gate 9.4+ and optional `user_settings_json` patch for new ECH deployments
+2. Tech preview probe per space: `PUT /api/spaces/space/{id}` + GET probe for Agent Builder / Workflows; halt (not skip) if unavailable on a scope-required feature
+3. Enrich policy execution + polling
+4. Bulk seed data ingestion + `demo_critical_docs` individual verification (D-004)
+5. Cases configure (per owner) + sample cases
+6. ELSER warm-up inference call
+7. Anomaly injection + sleep(2 × bucket_span)
+8. D-039 manifest write (`_manifest_add_es` / `_manifest_add_kibana`)
+
+**Hard gate before generating (D-038):**
+```
+if DEPLOY_MODE == "terraform":
+    required = ["deploy/kibana-objects/{slug}-dashboards.ndjson", "deploy/bootstrap-data.py scaffold"]
+    if any artifact is missing:
+        HALT — do not generate main.tf
+        instruct: "Author the missing NDJSON first using the kibana-dashboards skill"
+```
 
 **Terraform approval gate (D-024 compliant):**
 `terraform plan` output is the approval artifact — cleaner and more auditable than reading Python.
@@ -825,6 +873,35 @@ On completion:
    {"query":{"range":{"@timestamp":{"lt":"now-10m"}}}}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+## Step 4b: Post-Deploy Verification (run after every deployment)
+
+After `terraform apply + bootstrap-data.py` (or `bootstrap.py` in Python mode) completes, verify runtime health — HTTP 200 at creation time is necessary but not sufficient. Assets can be stored but non-functional.
+
+Run these checks in order. Log each result. If any check fails, fix it before handing off to the SA.
+
+| Asset | Verification | Pass condition |
+|---|---|---|
+| **Elasticsearch cluster** | `GET /` | `status: green` or `yellow`; version ≥ 9.4 |
+| **Data streams** | `GET /_data_stream/{prefix}*` | At least 1 doc per stream (for seeded streams) |
+| **ELSER endpoint** | `POST /{semantic-idx}/_search` with semantic query | Responds in < 2000ms; no `503` |
+| **ML jobs** | `GET /_ml/anomaly_detectors/{job_id}` | `state: opened` |
+| **ML datafeeds** | `GET /_ml/datafeeds/datafeed-{job_id}` | `state: started` |
+| **Dashboards** | `GET /api/saved_objects/_find?type=dashboard` in target space | Returns N dashboards (N = number authored) |
+| **Data views** | `GET /api/data_views` in each space | Returns N data views matching script references |
+| **Agent Builder** | `GET /api/agent_builder/agents/{id}` in target space | Agent exists; `skill_ids` and `tool_ids` populated |
+| **SLOs** | `GET /api/observability/slos/{id}` | `summary.status: NO_DATA` or `HEALTHY` (not `404`) |
+| **Alerting rules** | `GET /api/alerting/rules/_find` | Rules exist and `enabled: true` |
+| **Workflows** | `GET /api/workflows` | Workflows listed; `valid: true` |
+| **Asset manifest** | `GET /demobuilder-manifests/_doc/{engagement_id}` | Document exists; `deployed_at` set |
+
+**Dashboard editability check (critical — prevents the "dashboards are empty/uneditable" failure mode):**
+After dashboard deploy via `kibana-dashboards.js`, navigate to one panel in Kibana and confirm:
+1. Panel renders data (not "No results found" or "Unknown column" ES|QL errors)
+2. Panel can be opened in edit mode without errors
+3. Every ES|QL query references field names confirmed during the Step 2b integration probe (D-043)
+
+If dashboards render empty or throw `verification_exception — Unknown column`: the field name in the query does not match the actual mapping. Re-run the integration probe (`GET /_component_template/<name>@package`) and correct the field reference.
 
 ## Step 5: Write the Deploy Log
 

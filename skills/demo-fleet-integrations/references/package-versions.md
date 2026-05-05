@@ -15,6 +15,8 @@ initial supported packages. Update this table after each stack release cycle.
 | `kubernetes` | 1.57.x | 1.60.x | 1.62.0 |
 | `system` | 1.54.x | 1.57.x | 1.58.4 |
 | `nvidia_gpu` | 1.14.x | 1.16.x | 1.17.0 |
+| `custom_logs` | 1.1.x | 1.2.x | 1.3.0 |
+| `custom_metrics` | 1.1.x | 1.2.x | 1.3.0 |
 | `apm` | 8.17.x | 9.0.x | 9.4.0 |
 | `synthetics` | 1.4.x | 1.5.x | 1.6.2 |
 | `nginx` | 1.18.x | 1.20.x | 1.20.3 |

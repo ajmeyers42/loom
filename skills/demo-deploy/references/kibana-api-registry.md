@@ -97,6 +97,28 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 | Disable rule | `POST` | `{KIBANA_SPACE_PATH}/api/alerting/rule/{id}/_disable` |
 | Find rules | `GET` | `{KIBANA_SPACE_PATH}/api/alerting/rules/_find` |
 
+**⚠ Rule actions in 9.x require `group` + `frequency` (confirmed 9.4):** Every action object must include:
+- `"group"`: the rule-type-specific action group name — NOT the generic `"default"`. Common values:
+  - `.es-query` rules: `"query matched"` (fires on threshold breach), `"recovered"` (fires on recovery)
+  - `slo.rules.burnRate` rules: `"slo.rules.burnRate.alert"`, `"slo.rules.burnRate.warning"`
+  - Check `GET /api/alerting/rule_types` → `action_groups[].id` for any other rule type
+- `"frequency"`: required object — `{"notifyWhen": "onActiveAlert", "throttle": null, "summary": false}`
+
+A rule creation with `"group": "default"` or missing `"frequency"` returns `400: Invalid action groups: default / Actions missing frequency parameters`.
+
+```json
+{
+  "id": "<connector_id>",
+  "group": "query matched",
+  "frequency": {
+    "notifyWhen": "onActiveAlert",
+    "throttle": null,
+    "summary": false
+  },
+  "params": { "body": "..." }
+}
+```
+
 ---
 
 ## SLOs (Observability)
@@ -132,6 +154,33 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 **`configuration.tools` array format (confirmed 9.4):** Must be `[{"tool_ids": ["id1", "id2", ...]}]` — NOT a flat array of ID strings. A flat string array returns `400`. Confirmed via live API probe.
 
 **Agent ID convention:** Agent IDs must be lowercase-with-hyphens (e.g. `demo-search-agent`). Mixed-case IDs are rejected by the API.
+
+**D-029 — `skill_ids` probe (MANDATORY before generating agent configuration):**
+`skill_ids` = platform skills (capabilities like data-exploration); `tool_ids` = custom tools + `platform.core.*` built-ins. These are separate concerns and BOTH must be configured.
+
+```python
+# Step in bootstrap-data.py — run BEFORE creating agents
+r = kb("GET", f"{space_path}/api/agent_builder/skills", ok=(200, 404))
+if r is None or (isinstance(r, int) and r == 404):
+    platform_skill_ids = []    # skills catalog not available; tools-only mode
+else:
+    available = {s["id"] for s in r.get("skills", [])}
+    wanted    = {"data-exploration", "visualization-creation", "case-management"}
+    platform_skill_ids = list(available & wanted)
+
+agent_body = {
+    "id":   agent_id,
+    "name": agent_name,
+    "configuration": {
+        "instructions": system_prompt,
+        "tools": [{"tool_ids": [custom_tool_id, "platform.core.execute_esql", "platform.core.search"]}],
+        "skill_ids": platform_skill_ids,    # ALWAYS include; set [] if catalog unavailable
+    }
+}
+kb("POST", f"{space_path}/api/agent_builder/agents", agent_body, ok=(200, 201))
+```
+
+**`configuration.skill_ids` omission causes silent capability gap:** Omitting `skill_ids` from the agent body does NOT return a 400 — it succeeds but silently disables platform skills. Always explicitly set it to `[]` or the probed list. Never omit it.
 
 ---
 
@@ -190,6 +239,18 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 
 **`owner` valid values:** `observability`, `securitySolution`, `cases`. Must match the solution area of the space where the case lives.
 
+**⚠ `status` is read-only on POST (confirmed 9.4):** `POST /api/cases` does NOT accept a `status` field — returns `400: invalid keys "status"`. Cases are always created as `open`. To set `in-progress` or `closed`, PATCH immediately after creation using the `version` from the POST response:
+
+```python
+resp     = kb("POST", "/api/cases", {k: v for k, v in body.items() if k != "status"}, ok=(200, 201))
+case_id  = resp.get("id", "")
+case_ver = resp.get("version", "")
+if desired_status != "open" and case_id and case_ver:
+    kb("PATCH", "/api/cases", {
+        "cases": [{"id": case_id, "version": case_ver, "status": desired_status}]
+    }, ok=(200,))
+```
+
 **Delete cases API:** Uses query param `ids[]=<id>`, not a path param. `DELETE /api/cases?ids[]=abc123` (204 on success).
 
 ---
@@ -220,3 +281,50 @@ Space body must include `"solution"` and `"disabledFeatures": []` — see `docs/
 - Paths prefixed with `{KIBANA_SPACE_PATH}` must NOT include the prefix when `KIBANA_SPACE_PATH` is empty.
 - All Agent Builder, Workflow, saved object, SLO, alerting, and connector operations are space-scoped.
 - Space CREATE and DELETE operations are not space-scoped (use `/api/spaces/space` directly).
+
+---
+
+## `attempt_or_skip` — When to Skip vs. When to Halt
+
+**Critical rule: `4xx` responses do NOT all mean "feature absent". HTTP status determines whether to skip or halt:**
+
+| HTTP status | Meaning | Action |
+|---|---|---|
+| `404` on a feature **probe** (GET `/api/agent_builder/agents`, GET `/api/workflows`) | Feature not available on this cluster/version | **Skip gracefully** — log warning and continue |
+| `403` on a feature **probe** | Feature exists but access denied | **Skip gracefully** — log warning, note permission gap |
+| `400` on an **asset creation** (POST alerting rule, POST cases, POST Agent Builder) | Our payload is wrong | **HALT — fix the payload**, do NOT skip |
+| `400` on a `.cases` connector create | `.cases` connector is UI-only by design | **Expected** — skip and log MANUAL step |
+
+```python
+def attempt_or_skip(label: str, fn) -> bool:
+    """
+    Use ONLY for optional tech-preview feature probes (GET 404/403).
+    NEVER use to swallow 400 errors on in-scope asset creation.
+    Returns True if succeeded, False if skipped.
+    """
+    try:
+        fn()
+        return True
+    except APIError as e:
+        if e.status in (404, 403):
+            print(f"⚠ {label}: feature not available on this cluster — skipped")
+            return False
+        # 400 = bad payload — re-raise, do NOT silently skip
+        raise
+
+# Correct usage:
+# attempt_or_skip("Workflows", lambda: create_workflow(...))  ← optional feature probe
+
+# WRONG — never wrap in-scope asset creation:
+# attempt_or_skip("Alerting rule", lambda: create_rule(...))  ← DO NOT DO THIS
+# attempt_or_skip("Cases", lambda: create_case(...))          ← DO NOT DO THIS
+```
+
+**In-scope assets that must NEVER be wrapped in `attempt_or_skip`:**
+- Alerting rules (if script includes alert scene)
+- Cases (if script includes case scene)
+- Agent Builder agents/tools (if script includes AI agent scene)
+- SLOs (if script includes observability scene)
+- Dashboards import (always in scope if dashboards exist)
+
+If a `400` occurs on these, the bootstrap run must halt with a clear error message and the specific API response body, not silently log and continue.

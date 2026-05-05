@@ -197,6 +197,40 @@ def parse_default_agent_id(engagement_dir: Path) -> str | None:
     return m.group(1) if m else None
 
 
+def get_path(doc: dict, dotted: str):
+    cur = doc
+    for part in dotted.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+def has_non_empty(doc: dict, dotted: str) -> bool:
+    v = get_path(doc, dotted)
+    if v is None:
+        return False
+    if isinstance(v, str):
+        return v.strip() != ""
+    if isinstance(v, list):
+        return len(v) > 0
+    return True
+
+
+def collect_uppercase_field_paths(value, prefix: str = "") -> list[str]:
+    out: list[str] = []
+    if isinstance(value, dict):
+        for k, v in value.items():
+            path = f"{prefix}.{k}" if prefix else k
+            if any(ch.isupper() for ch in k):
+                out.append(path)
+            out.extend(collect_uppercase_field_paths(v, path))
+    elif isinstance(value, list):
+        for i, item in enumerate(value):
+            out.extend(collect_uppercase_field_paths(item, f"{prefix}[{i}]"))
+    return out
+
+
 # ── symbols ───────────────────────────────────────────────────────────────────
 
 OK = "✅ "
@@ -302,19 +336,126 @@ def main() -> None:
         dm = json.loads(dm_path.read_text())
         print("INDICES")
         for ds in dm.get("data_streams") or []:
-            idx = p(ds)
+            ds_name = None
+            if isinstance(ds, str):
+                ds_name = ds
+            elif isinstance(ds, dict):
+                if isinstance(ds.get("instances"), list) and ds.get("instances"):
+                    # Use the first concrete instance as representative stream for health checks.
+                    ds_name = ds["instances"][0]
+                elif isinstance(ds.get("name"), str):
+                    ds_name = ds.get("name")
+                elif isinstance(ds.get("pattern"), str):
+                    ds_name = ds.get("pattern")
+            if not ds_name:
+                continue
+            idx = p(ds_name)
             try:
                 c = es_req("GET", f"/{idx}/_count")["count"]
                 sym = OK if c > 0 else WARN
                 print(f"  {sym}{idx}  {c} docs")
                 if c == 0:
                     warnings.append(f"{idx} has 0 docs")
+                    continue
+
+                # Check 2b: ECS baseline field population
+                sample = es_req(
+                    "GET",
+                    f"/{idx}/_search",
+                    {
+                        "size": 5,
+                        "sort": [{"@timestamp": {"order": "desc"}}],
+                        "_source": True,
+                    },
+                )
+                hits = [h.get("_source", {}) for h in (sample.get("hits", {}).get("hits") or [])]
+                if not hits:
+                    warnings.append(f"{idx} has docs but sample query returned no hits")
+                    continue
+
+                uppercase_paths = []
+                for doc in hits:
+                    uppercase_paths.extend(collect_uppercase_field_paths(doc))
+                uppercase_paths = sorted(set(uppercase_paths))
+                if uppercase_paths:
+                    failures.append(f"{idx} contains uppercase field names")
+                    print(f"  {FAIL}{idx} uppercase fields detected (example: {uppercase_paths[0]})")
+                    fix_cmds.append(
+                        f"# Normalize uppercase fields before demo:\n"
+                        f"# add ingest rename pipeline + clean reload for {idx}"
+                    )
+
+                if ds_name.startswith("metrics-"):
+                    missing_metrics = False
+                    for doc in hits:
+                        if not has_non_empty(doc, "@timestamp"):
+                            missing_metrics = True
+                        if not has_non_empty(doc, "event.dataset"):
+                            missing_metrics = True
+                        if not has_non_empty(doc, "host.name"):
+                            missing_metrics = True
+                        if not (has_non_empty(doc, "service.type") or has_non_empty(doc, "agent.type")):
+                            missing_metrics = True
+                    if missing_metrics:
+                        failures.append(f"{idx} missing ECS baseline metric fields")
+                        print(f"  {FAIL}{idx} missing one or more required metric ECS fields (`host.name`, `event.dataset`, `service.type|agent.type`)")
+                        fix_cmds.append(
+                            f"# Ensure default pipeline populates ECS fields for {idx}\n"
+                            f"python3 bootstrap.py --step 4"
+                        )
+
+                    # Check 2c: entity discoverability baseline
+                    host_agg = es_req(
+                        "GET",
+                        f"/{idx}/_search",
+                        {"size": 0, "aggs": {"hosts": {"terms": {"field": "host.name", "size": 1}}}},
+                    )
+                    host_buckets = ((host_agg.get("aggregations") or {}).get("hosts") or {}).get("buckets") or []
+                    if not host_buckets:
+                        failures.append(f"{idx} has no host entities discoverable")
+                        print(f"  {FAIL}{idx} has no host.name aggregation buckets — Infrastructure UI may be empty")
+
+                if ds_name.startswith("logs-"):
+                    missing_logs = False
+                    for doc in hits:
+                        if not has_non_empty(doc, "@timestamp"):
+                            missing_logs = True
+                        if not has_non_empty(doc, "event.dataset"):
+                            missing_logs = True
+                        if not (
+                            has_non_empty(doc, "host.name")
+                            or has_non_empty(doc, "container.id")
+                            or has_non_empty(doc, "kubernetes.pod.name")
+                        ):
+                            missing_logs = True
+                    if missing_logs:
+                        failures.append(f"{idx} missing logs baseline entity fields")
+                        print(f"  {FAIL}{idx} missing logs entity identity (`host.name` or `container.id` or `kubernetes.pod.name`)")
+
+                    security_like = "security" in ds_name or any(
+                        has_non_empty(doc, "event.category") for doc in hits
+                    )
+                    if security_like:
+                        missing_security = False
+                        for doc in hits:
+                            if not has_non_empty(doc, "event.kind"):
+                                missing_security = True
+                            if not has_non_empty(doc, "event.type"):
+                                missing_security = True
+                            if not (has_non_empty(doc, "user.name") or has_non_empty(doc, "host.name")):
+                                missing_security = True
+                        if missing_security:
+                            failures.append(f"{idx} missing security baseline fields")
+                            print(f"  {FAIL}{idx} missing security fields (`event.kind`, `event.type`, `user.name|host.name`)")
             except Exception as e:
                 print(f"  {FAIL}{idx}: {e}")
                 failures.append(f"count {idx}")
                 fix_cmds.append(f"python3 bootstrap.py  # reload data for {idx}")
         for idx_name in dm.get("indices") or []:
-            name = p(idx_name)
+            index_name = idx_name if isinstance(idx_name, str) else (idx_name or {}).get("name")
+            if not index_name:
+                continue
+            name = p(index_name)
             try:
                 c = es_req("GET", f"/{name}/_count")["count"]
                 sym = OK if c > 0 else WARN

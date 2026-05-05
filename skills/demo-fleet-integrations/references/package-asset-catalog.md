@@ -161,6 +161,38 @@ Asset entry format (shared taxonomy — also used by future `demo-platform-audit
 
 ---
 
+## custom_logs
+
+### Purpose
+- Generic Fleet package for arbitrary log payloads when no domain-specific package exists.
+- Best fit for `logs-demo.<dataset>-<namespace>` fallback streams.
+
+### Notes
+- Provides package scaffolding and a valid logs data stream shape.
+- Does not replace domain-specific packages (`kubernetes`, `system`, `nginx`, etc.) when those fit.
+
+### Demo classification guidance
+- Use as `use_as_is` only for fallback path where no canonical package is available.
+- Prefer package-native datasets first; use `custom_logs` to keep conventions without inventing index names.
+
+---
+
+## custom_metrics
+
+### Purpose
+- Generic Fleet package for arbitrary metric payloads when no domain-specific package exists.
+- Best fit for `metrics-demo.<dataset>-<namespace>` fallback streams.
+
+### Notes
+- Keeps stream naming and ECS compatibility aligned for Metrics Explorer / Infrastructure UI baselines.
+- Does not replace domain-specific metrics packages (`nvidia_gpu`, `kubernetes`, `system`, etc.) when those fit.
+
+### Demo classification guidance
+- Use as `use_as_is` only when no real package maps to the demo dataset.
+- Prefer integration-native package datasets when available.
+
+---
+
 ## Maintenance notes
 
 - Dashboard Kibana object IDs are partial; resolve full IDs via

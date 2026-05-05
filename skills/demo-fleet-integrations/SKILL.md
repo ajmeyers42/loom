@@ -8,8 +8,9 @@ description: >
   and demo/{slug}-integration-assets.md, and injects an idempotent install step into
   bootstrap.py. Supports ECH (full Fleet) and Serverless (asset-only mode).
 
-  ALWAYS use this skill when the demo includes pre-built integration dashboards, agent-based
-  data collection, or integration-managed index patterns (logs-*.*  / metrics-*.*). Also
+  ALWAYS use this skill when the data model includes any logs-* or metrics-* data streams.
+  This skill decides whether each stream should be backed by a real integration package
+  (Path A) or managed-template fallback naming (Path B). Also trigger when the SA says
   trigger when the SA says "install the kubernetes integration", "use Fleet for log
   collection", "EPM package install", "I want the out-of-the-box dashboards", "set up the
   integration", or "install integration packages for the demo".
@@ -45,6 +46,26 @@ If neither source is available, default to `"mode": "asset-only"` and flag as un
 
 ---
 
+## Step 0.5: Validate data stream strategy (Path A / Path B contract)
+
+Read `data/{slug}-data-model.json` and inspect every `logs-*` / `metrics-*` stream.
+
+For each stream, classify it:
+
+1. **Path A — Fleet package backed**
+   - Stream matches `logs-<integration>.<dataset>-<namespace>` or
+     `metrics-<integration>.<dataset>-<namespace>`
+   - `<integration>` resolves to a known package in this skill's catalog
+
+2. **Path B — Managed-template fallback**
+   - Stream matches `logs-demo.<dataset>-<namespace>` or `metrics-demo.<dataset>-<namespace>`
+   - No package install required for that stream
+
+If a stream matches neither path (e.g. `security-events-*`, `metrics-gpu.*`, uppercase naming),
+stop and return a `schema_contract_error` with the exact stream name and expected replacement.
+
+---
+
 ## Step 1: Select packages from data model and discovery
 
 Read `data/{slug}-data-model.json` and `demo/{slug}-discovery.json`. Derive the candidate
@@ -66,6 +87,8 @@ Extract the integration name from the pattern and add to the candidate list.
 | Kubernetes / K8s / containers | `kubernetes` |
 | Linux / Windows host metrics | `system` |
 | NVIDIA GPU / DCGM / GPU utilization | `nvidia_gpu` |
+| Generic custom logs stream | `custom_logs` (optional Path B scaffolding) |
+| Generic custom metrics stream | `custom_metrics` (optional Path B scaffolding) |
 | APM / traces / OpenTelemetry | `apm` |
 | Synthetic monitoring / uptime / availability | `synthetics` |
 | Nginx / Apache | `nginx` |

@@ -598,14 +598,27 @@ manifest stays fresh automatically because bootstrap writes it.
 
 ---
 
-## D-032: Clone Elastic-managed assets; never modify prebuilt rules or policies directly
+## D-032: Managed assets preferred; clone before modifying; never patch originals
 
-**Decision:** When a demo requires adapting an **Elastic-managed** asset (prebuilt SIEM
-detection rules, prebuilt ML jobs, built-in Kibana policies, etc.), the pipeline must
-**clone** the asset and modify the clone — **never** PUT/PATCH the original Elastic-managed
-resource.
+**Decision:** Elastic-managed / prebuilt assets should be **used as-is wherever they serve the demo story** — they are the preferred deliverable over custom-authored equivalents. When a demo requires adapting a managed asset, the pipeline must **clone** it and modify the clone — **never** PUT/PATCH the original.
 
-**Pattern for SIEM prebuilt rules:**
+**Managed-first preference order:**
+1. Use the managed asset as-is (no change needed)
+2. Use the managed asset as-is AND reference it directly in a custom dashboard (embed by ID)
+3. Clone it with a `[{SLUG}]` prefix, make targeted changes to the clone, delete nothing from the original
+
+**Applies to all managed asset types:**
+
+| Asset type | Managed indicator | Clone strategy |
+|---|---|---|
+| SIEM detection rules | `immutable: true` or `rule_source.type: "prebuilt-rule"` | `rule_id = f"demo-{source_rule_id}"` |
+| ML anomaly detection jobs | `custom_settings.created_by: "ml-module-*"` | copy job JSON, rename `job_id` |
+| Kibana ML results dashboards | Installed by ML module | reference by `ref_id` in custom dashboard; only clone if layout change needed |
+| Integration package dashboards | Installed by Fleet EPR | reference or link from custom dashboard; clone only if content change needed |
+| Data views installed by packages | `namespaces: ["*"]` or package-managed | use directly; never delete or overwrite |
+| Ingest pipelines installed by packages | name matches `<pkg>-<version>.*` | add custom pipeline as a downstream processor; never overwrite the package pipeline |
+
+**Pattern for SIEM prebuilt rules (unchanged):**
 
 ```python
 # 1. GET the prebuilt rule to use as template
@@ -628,15 +641,9 @@ kb("POST", "/api/detection_engine/rules", clone, ok=(200, 201))
 - `GET /api/detection_engine/rules?rule_id={id}` → 200 means update (PUT with `version + 1`)
 - 404 means create (POST with `version: 1`)
 
-**Why:** Elastic-managed prebuilt rules have `immutable: true` and may be overwritten on
-the next detection rules package update, erasing any changes. Failing to modify them is
-reported as an error but the original is preserved. Cloned custom rules carry the engagement
-tag and version, survive package updates, and are deleted cleanly by teardown.
+**Why:** Elastic-managed assets may be overwritten on the next package update, erasing any changes. Cloned and custom assets carry the engagement tag, survive updates, and are deleted cleanly by teardown.
 
-**Applies to:** SIEM prebuilt detection rules, any Elastic-managed asset with an `immutable`
-or `managed_by` flag.
-
-**Applied to:** `skills/demo-deploy/SKILL.md` (step 13g), engagement `bootstrap.py` patterns.
+**Applied to:** `skills/demo-deploy/SKILL.md` (step 13g), `skills/demo-data-modeler/SKILL.md` (Path A), engagement `bootstrap.py` patterns.
 
 **Date:** 2026-04-22 | **Session:** post-mortem gap remediation
 
@@ -934,6 +941,65 @@ When `DEPLOY_MODE=terraform`, Agent Builder agents/tools and Workflows are gener
 Individual skills invoked directly (not via orchestrator) run a scoped subset covering their specific repo dependencies at minimum.
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+
+---
+
+## D-043: Integration-first data sourcing and asset-after-schema ordering
+
+**Status:** Active | **Applies to:** `skills/demo-data-modeler/SKILL.md`, `skills/demo-deploy/SKILL.md`, `skills/demo-script-template/SKILL.md`
+
+**Decision:** Three binding rules for all engagements:
+
+### Rule 1 — Agent-based integrations for Observability and Security; use package assets first
+
+For any scenario with an Observability or Security primary domain, data sources **must** come from Elastic Agent Fleet integrations (EPR packages), not Prometheus scrapers, custom DCGM/kube-state-metrics streams, or any other custom-named data stream that duplicates a shipped integration.
+
+- Correct: `metrics-kubernetes.pod-*`, `metrics-nginx.stubstatus-*`, `metrics-nvidia_gpu.stats-*`, `logs-system.syslog-*`
+- Incorrect: `metrics-k8s.state.prometheus-*`, `metrics-gpu.dcgm.prometheus-*`, any ad-hoc stream named after a Prometheus exporter
+
+**Package assets take precedence over custom-authored assets.** When a Fleet integration package is installed, it ships dashboards, detection rules, ML jobs, data views, alerts, and ingest pipelines. These must be used as the primary demo assets unless the SA explicitly specifies otherwise:
+
+- **Dashboards**: use the package's shipped dashboards; extend or supplement with custom panels only if the package dashboard does not cover a required demo scene
+- **Detection rules / ML jobs**: use the package's prebuilt rules and jobs (following D-032 clone-don't-modify for rules); do not author parallel custom rules for the same signal
+- **Data views**: use the package's installed data view; do not create a duplicate data view for the same index pattern
+- **Ingest pipelines**: use the package's pipeline; add a custom pipeline only as a downstream processor if engagement-specific enrichment is needed
+
+**Embeddable visualizations in custom dashboards:** When building a custom dashboard, scan for already-deployed Kibana assets that tell part of the story and embed them directly rather than re-creating equivalent visualizations from scratch:
+
+- **SLOs**: embed via `"type": "slo_overview"`, `"slo_alerts"`, `"slo_burn_rate"`, or `"slo_error_budget"` panel types with `"config": { "sloId": "<id>", "instanceId": "*" }`
+- **ML anomaly results**: embed the ML job's swimlane or heatmap via `"type": "vis"` with `"config": { "ref_id": "<ml-results-vis-id>" }` — retrieve the saved object ID with `GET /api/ml/results/anomaly_charts`
+- **Discover sessions / saved searches**: embed via `"type": "discover_session"` with `"config": { "ref_id": "<saved-search-id>" }`
+- **Other Lens / aggregation-based visualizations**: embed via `"type": "vis"` with `"config": { "ref_id": "<vis-id>" }` — look up IDs with `GET /api/saved_objects/_find?type=visualization`
+
+The probe sequence must include `GET /api/fleet/epm/packages/<name>` and `GET /api/fleet/epm/packages/<name>/assets` to discover what the installed package provides before any custom asset is authored for that domain.
+
+Exceptions: SA explicitly confirms (a) no Fleet integration exists for the technology, (b) the customer's actual architecture is Prometheus-native and the demo must mirror it, or (c) a specific package asset is inadequate for a required demo scene. Document the exception in the engagement's `{slug}-risks.md`.
+
+Custom search indices (e.g. `lg-clinical-corpus`, `cb-fraud-claims`) are always Path B and are not subject to Rule 1.
+
+### Rule 2 — Custom search mappings may be iterative
+
+Custom indices for search use cases (`strategy: "custom"`, Path B) are expected to evolve: author mapping → deploy → test query → refine. This is normal. No special gate applies beyond standard D-025 field-type compliance.
+
+### Rule 3 — Asset ordering: schema must exist before assets that query it
+
+**No dashboard panel, alerting rule, SLO query, workflow step, or Agent Builder tool that references an index may be authored or deployed until:**
+
+1. `GET /_index_template/<name>` confirms the template exists, **AND**
+2. `GET /_component_template/<name>@package` (for integration streams) or `GET /<index>/_mapping` (for custom indices) confirms the field schema, **AND**
+3. For integration streams with no live agent data yet: the component template field list serves as the schema source. For custom indices: at least one document must exist before dashboard authoring begins.
+
+**The mandatory probe sequence** (run at Step 2b of demo-deploy, before authoring any asset):
+```
+GET /_index_template/*                          # discover available templates
+GET /_component_template/<name>@package         # read integration field schema
+GET /_data_stream/<name>                        # confirm data stream exists
+GET /<index>/_mapping                           # for custom indices, confirm actual fields
+```
+
+Violating Rule 3 is the root cause of "Unknown column", "no such index", and "empty dashboard" failures. It is never acceptable to write a query against a field name that was not confirmed to exist via the above probes.
+
+**Date:** 2026-05-05 | **Session:** lenovo-gaiaas dashboard rebuild
 
 ---
 

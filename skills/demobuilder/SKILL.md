@@ -322,7 +322,7 @@ demo-script-template     | demo/{slug}-demo-script.md                 | platform
 demo-kibana-agent-design | demo/{slug}-agent-builder-spec.md          | script includes Agent Builder and script/audit changed
 demo-vulcan-generate     | data/{slug}-vulcan-queries.json            | ES|QL-heavy script; RAG/semantic search in scope; integrations needed
 demo-data-modeler        | data/{slug}-data-model.json                | script changed or Vulcan outputs changed
-demo-fleet-integrations  | deploy/{slug}-integrations-manifest.json   | integration index patterns in data model or discovery mentions Fleet
+demo-fleet-integrations  | deploy/{slug}-integrations-manifest.json   | any logs/metrics stream exists in data model (Path A/Path B contract)
 demo-ml-designer         | data/{slug}-ml-config.json                 | data-model changed and ML scenes in script
 demo-validator           | deploy/{slug}-demo-checklist.md            | always run last — regenerate each time
 ```
@@ -509,17 +509,21 @@ For each stage that needs to run, in order:
   and token-visibility guidance if Agent Builder / AI is in scope
 - Outputs: `{slug}-data-model.json`, `{slug}-data-model.md`, individual mapping files
 
-**Stage 5.5 — demo-fleet-integrations** *(conditional — Fleet/integration packages in scope)*
-- Skip if **all** of the following are true:
+**Stage 5.5 — demo-fleet-integrations** *(required when logs/metrics streams exist)*
+- Skip only if **all** of the following are true:
   1. `deploy/{slug}-integrations-manifest.json` exists AND data model and script are unchanged
-  2. No `logs-*.*` or `metrics-*.*` integration index patterns appear in `data/{slug}-data-model.json`
-  3. Discovery does not mention Kubernetes, Fleet, integration packages, or agent-based collection
+  2. `data/{slug}-data-model.json` contains no `logs-*` and no `metrics-*` data streams
 - Run if **any** of the following are true:
-  - Data model contains `logs-<integration>.*` or `metrics-<integration>.*` index patterns
+  - Data model contains any `logs-*` or `metrics-*` stream
   - `data/{slug}-vulcan-queries.json` has `integration_grounded: true`
   - Discovery mentions Kubernetes, NVIDIA GPU, APM, synthetics, or other named integrations
   - SA says "install the X integration", "use Fleet for log collection", "EPM package install",
     "I want the out-of-the-box dashboards", "set up the integration"
+- This stage enforces the hybrid contract:
+  - **Path A:** package-backed streams (`logs-<integration>.<dataset>-<namespace>`,
+    `metrics-<integration>.<dataset>-<namespace>`)
+  - **Path B:** fallback managed-template streams (`logs-demo.<dataset>-<namespace>`,
+    `metrics-demo.<dataset>-<namespace>`)
 - Read: `../demo-fleet-integrations/SKILL.md`
 - Inputs: `data/{slug}-data-model.json`, `demo/{slug}-discovery.json`, `demo/{slug}-demo-script.md`,
   `data/{slug}-vulcan-queries.json` (if present), `{engagement_dir}/.env` (for mode detection)

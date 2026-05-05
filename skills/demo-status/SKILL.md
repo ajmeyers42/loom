@@ -184,6 +184,65 @@ report the actual count without a failure — empty is expected:
   ✅  {p("fraud-escalations")}   0 docs  (empty — populated live by agent during demo)
 ```
 
+### Check 2b — ECS Baseline Field Population (logs/metrics/security)
+
+For each logs/metrics data stream in `{slug}-data-model.json`, sample documents and validate
+baseline fields needed for out-of-box UIs (not only custom dashboards):
+
+```json
+GET /{stream}/_search
+{
+  "size": 5,
+  "sort": [{ "@timestamp": "desc" }],
+  "_source": true
+}
+```
+
+**Metrics stream pass criteria (`metrics-*`):**
+- Every sampled doc has `@timestamp`
+- Every sampled doc has `event.dataset`
+- Every sampled doc has `host.name` (or explicitly documented container-only metric strategy)
+- Every sampled doc has at least one of `service.type` or `agent.type`
+
+**Logs stream pass criteria (`logs-*`):**
+- Every sampled doc has `@timestamp`
+- Every sampled doc has `event.dataset`
+- Every sampled doc has at least one identity field: `host.name` OR `container.id` OR `kubernetes.pod.name`
+
+**Security raw event pass criteria** (when sampled docs include security categories or stream is security-scoped):
+- `event.kind` present (`event` for raw events)
+- `event.category` and `event.type` present
+- At least one principal/entity field: `user.name` or `host.name`
+
+**Lowercase compliance (all sampled docs):**
+- Fail if any top-level field name contains uppercase letters
+- Warn if nested keys include uppercase letters (normalize via ingest rename pipeline)
+
+**Failures:**
+```
+❌  {stream} missing `host.name` in sampled metrics docs
+    → Infrastructure UI hosts/entities will be empty.
+    → Fix: add/verify default ingest pipeline mapping source host field to `host.name`
+
+❌  {stream} has uppercase field names (`DCGM_FI_DEV_GPU_UTIL`)
+    → ECS/tooling compatibility risk.
+    → Fix: rename at ingest to lowercase ECS fields and re-seed from clean deploy.
+```
+
+### Check 2c — Entity Discoverability Baseline (Infrastructure / Security)
+
+Confirm baseline discoverability from indexed data, independent of custom visualizations:
+
+- Metrics entities:
+  - `terms` agg on `host.name` (and `kubernetes.pod.name` / `container.id` when expected)
+  - Require at least one bucket for each expected entity dimension
+- Security entities:
+  - `terms` agg on `host.name` and `user.name` for security streams
+  - Require at least one populated entity bucket for whichever entity the scenario uses
+
+If buckets are empty while doc counts are non-zero, mark **NOT READY** — this indicates field
+population mismatch even though ingestion succeeded.
+
 ### Check 3 — ML Jobs
 
 Skip this section and note "No ml-config.json found" if the file is absent.
