@@ -52,7 +52,7 @@ silently: install the plugin per `docs/todo.md` — **include Security skills**,
 Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 `docs/runtimes/`. Do not fork skill content per IDE; only loading paths differ.
 
-**Deploy approval:** Before running **Stage 8 (demo-cloud-provision)** or **Stage 9 (demo-deploy)**
+**Deploy approval:** Before running **Stage 8 (demo-cloud-provision)**, **Stage 8b (demo-asset-verifier)**, or **Stage 9 (demo-bootstrap-generator)**
 against a **live** cluster, confirm the SA wants to provision or deploy **and** has **reviewed**
 `bootstrap.py`, `{slug}-platform-audit`, `{slug}-risks`, `{slug}-demo-checklist.md`, and any
 Kibana/ES files the script will apply — unless they state review is complete. **`bootstrap.py --dry-run`**
@@ -559,26 +559,28 @@ For each stage that needs to run, in order:
   from the prior engagement's workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
   no re-provisioning needed
 
-**Stage 9 — demo-deploy** *(optional — runs after validator if cluster target is known)*
-- **Requires explicit SA approval** to run generated `bootstrap.py` against a **live**
-  cluster **and** **human review** of `bootstrap.py`, `{slug}-platform-audit`, `{slug}-risks`,
-  `{slug}-demo-checklist.md`, and any committed `kibana-objects/` / `kibana/` imports the
-  script will execute — unless the user has clearly stated they already reviewed them.
-  **`bootstrap.py --dry-run`** and generating the script **do not** count as deploy.
-  See `docs/decisions.md` **D-024** and `AGENTS.md`.
+**Stage 8b — demo-asset-verifier** *(required before deployment — D-045)*
+- **Mandatory gate between planning and deployment.** No Terraform or Python deployment
+  artifacts are generated until this stage writes `deploy/asset-bundle/asset-schema.json`.
+- Skip if: `deploy/asset-bundle/asset-schema.json` exists AND data model, script, and platform audit are all unchanged since last run
+- Run if: `.env` exists AND Stage 7 returned go or conditional-go AND asset bundle is absent or stale
+- Read: `../demo-asset-verifier/SKILL.md`
+- Inputs: `{engagement_dir}/.env`, `data/{slug}-data-model.json`, `demo/{slug}-demo-script.md`, `demo/{slug}-platform-audit.json`
+- Outputs: `deploy/asset-bundle/asset-schema.json`, `deploy/asset-bundle/asset-index.json`, and all authored asset files per skill dispatch table in demo-asset-verifier
+- **Blockers (halt Stage 9):** Failed ES|QL validation, null viz-queried fields, version gate fail, disabled required feature. SA must resolve before continuing.
+
+**Stage 9 — demo-bootstrap-generator** *(optional — runs after asset verifier)*
+- **Requires explicit SA approval** before running Terraform apply or bootstrap-data.py
+  against a **live** cluster. `terraform plan` and `python3 bootstrap-data.py --dry-run`
+  do not require approval. See `docs/decisions.md` **D-024**.
 - Skip if: user has not requested deployment and no `.env` is present
-- Run if: `.env` exists in `{engagement_dir}` (from stage 8 or copied from another engagement)
-  AND user says "deploy", "build it", "set up the cluster", or "bootstrap" **after** review
-- Requires: `{engagement_dir}/.env` — stop and surface a clear message if missing
-- Read: `../demo-deploy/SKILL.md` (including the **Automation contract** — every **in-scope**
-  Kibana / Security / Observability asset must be created via APIs inside `bootstrap.py`,
-  with definitions sourced from `elastic/agent-skills` where applicable — not left as
-  manual UI steps)
-- Inputs: `{engagement_dir}/.env`, `{slug}-data-model.json`, `{slug}-ml-config.json` (if present),
-  `{slug}-demo-script.md` / checklist / any supplemental specs (dashboards, agents, Sec, etc.)
-- Outputs: `{engagement_dir}/bootstrap.py`, `{slug}-deploy-log.md` — deploy log must list **all**
-  resource classes created for **this** engagement (indices, ML, Kibana objects, rules,
-  agents, etc.) and must not claim “done” while required assets are still manual
+- Run if: `deploy/asset-bundle/asset-schema.json` exists (Stage 8b complete)
+  AND `.env` exists AND user says "deploy", "generate the terraform", or "generate the bootstrap" after reviewing Stage 8b outputs
+- Requires: `deploy/asset-bundle/asset-schema.json` — stop with clear message if missing (run Stage 8b first)
+- Read: `../demo-bootstrap-generator/SKILL.md` (routes to ECH, Serverless, or ECK variant based on `DEPLOYMENT_TYPE` in `.env`)
+- Inputs: `deploy/asset-bundle/asset-schema.json`, `deploy/asset-bundle/asset-index.json`, `{engagement_dir}/.env`
+- Outputs: `deploy/main.tf`, `deploy/providers.tf`, `deploy/{slug}.tfvars`, `deploy/bootstrap-data.py`
+- **Split (D-046):** `main.tf` = all infrastructure. `bootstrap-data.py` = enrich execute, seed data, field assertions, ELSER warmup, anomaly injection, manifest write only.
 
 ## Step 5: Deliver the Handoff Summary
 

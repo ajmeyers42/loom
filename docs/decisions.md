@@ -1,213 +1,37 @@
 # demobuilder — Architecture Decisions
 
-*Rationale for the choices baked into the pipeline. Updated as significant decisions are made.*
-*See `docs/postmortem.md` for the full session post-mortem that prompted many of these.*
+*Rationale and enforcement contracts for every binding decision in the pipeline.*
+*Updated as significant decisions are made.*
 
----
+**Format:** Each entry has:
+- **Status** — Active | Superseded (see D-NNN) | Informational
+- **Enforced by** — the specific mechanism that implements this decision at runtime. "Prose in SKILL.md" is NOT acceptable here. If enforcement is pending, it is flagged as such.
+- **Rationale** — why this decision was made
+- **Date / Session** — provenance
 
-## D-020: Default to latest GA for new stacks; validate version for existing
-
-**Decision:** When **creating** a new Elastic Cloud deployment or Serverless project for a
-demo, use the **latest generally available** stack version for that product **unless** the
-SA requests a specific version. When **using an existing** deployment, project, or cluster,
-**resolve and record** Elasticsearch and Kibana versions (e.g. `GET /`, `/api/status`, or
-diagnostic output) **before** producing scripts, data models, or plans. All guidance and
-automation must be **scoped to that version** and deployment type.
-
-**Rationale:** ES|QL, APIs, ML, Kibana embeddables, Agent Builder, and Workflows all vary
-by version; assuming “latest” on a customer’s 8.x cluster causes failed demos.
-
-**Applied to:** `skills/demobuilder/SKILL.md`, `skills/demo-cloud-provision/SKILL.md`,
-`skills/demo-platform-audit/SKILL.md`, `skills/demo-script-template/SKILL.md`, `AGENTS.md`,
-`.cursor/rules/demobuilder.mdc`, `README.md`.
-
-**Date:** 2026-04-20 | **Session:** version policy
-
----
-
-## D-021: Enterprise showcase; multi-input; search / Observability / Security / cross-solution
-
-**Decision:** Demos should **assume enterprise-level Elastic features** are in play when they
-address customer outcomes in the inputs — subject to platform audit, license, and version.
-**Inputs** may include discovery notes, diagnostic files, supplemental notes from the
-discovery team, and **architecture diagrams** illustrating current-state environments.
-The primary use case may be **search / analytics**, **Observability**, **Elastic Security**,
-or a **deliberate combination**; the pipeline must not default to “core search only” when
-artifacts point elsewhere. **Cross-solution** demos (e.g. unified data, correlated
-investigation) are acceptable when they match stated needs.
-
-**Rationale:** Pre-sales stories follow the customer’s domain; many engagements are
-Observability- or Security-led. Diagrams and team addenda are common and should be
-first-class context.
-
-**Applied to:** `skills/demobuilder/SKILL.md`, `skills/demo-discovery-parser/SKILL.md`,
-`skills/demo-script-template/SKILL.md`, `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`.
-
-**Date:** 2026-04-20 | **Session:** solution scope and inputs
-
----
-
-## D-022: Solution-first narrative in scripts and plans
-
-**Decision:** Unless the SA specifies otherwise, demo **scripts** and **plans** should
-structure the storyline **solution first**: lead with **outcomes and business value**
-linked to the customer’s **key asks** from discovery inputs, then describe **supporting
-Elastic capabilities** (data, queries, ML, Security/Observability apps, agents, etc.) that
-realize those outcomes. If primary goals or asks are **not clear** from artifacts, the agent
-should **ask the SA for guidance** rather than guessing the headline narrative.
-
-**Rationale:** Executives and business sponsors need the “why” before the “how”; technical
-depth still follows, but order matters for retention and credibility.
-
-**Applied to:** `skills/demo-script-template/SKILL.md`, `skills/demobuilder/SKILL.md`,
-`skills/demo-validator/SKILL.md`, `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`.
-
-**Date:** 2026-04-20 | **Session:** narrative arc
-
----
-
-## D-023: `DEMOBUILDER_ENGAGEMENTS_ROOT` — engagements outside the repo
-
-**Decision:** Per-customer engagement directories live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**.
-When **`DEMOBUILDER_ENGAGEMENTS_ROOT`** is unset, agents treat it as **`$HOME/engagements`**
-(a normal directory under the user profile — not cloud symlinks by default). The demobuilder git
-repository contains **no** customer workspaces under `engagements/` (only a tracked pointer
-[`engagements/README.md`](../engagements/README.md)).
-
-**Rationale:** Separates pipeline code from confidential demo assets; clones stay portable; the
-default path avoids broken Google Drive symlink layouts on some hosts.
-
-**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`, `docs/engagements-path.md`,
-`docs/todo.md`, `docs/runtimes/cursor.md`, `docs/runtimes/claude.md`, `skills/demobuilder/SKILL.md`,
-`skills/demo-cloud-provision/SKILL.md`, `skills/demo-deploy/SKILL.md`, `skills/demo-deploy/references/env-reference.md`,
-`skills/demo-status/SKILL.md`, `skills/demo-teardown/SKILL.md`, skill evals `files` paths, `.gitignore`,
-`.cursor/plans/2026citizensai_engagement_setup_d360eb16.plan.md`.
-
-**Date:** 2026-04-21 | **Session:** portable engagements root | **Updated:** 2026-04-21 — default `$HOME/engagements`
-
----
-
-## D-024: Kibana assets as engagement files; single `bootstrap.py` import; review before deploy
-
-**Decision:**
-
-1. **Artifacts in the workspace** — Per engagement, treat Kibana-side deliverables as **files
-   under the engagement folder**, e.g. `kibana-objects/{slug}-*.ndjson`, optional `kibana/workflows/*`,
-   `kibana/agent/*.json`, alongside declarative `elasticsearch/**` JSON if the SA keeps ES defs
-   as files (same pattern as reference demos). They are produced with **`elastic/agent-skills`**
-   and **export-first** authoring (**D-017**), then **versioned** in the workspace (or a
-   customer repo). **`bootstrap.py`** is the **only** deployment executable: it applies ES APIs,
-   bulk data, ML, then **imports** those Kibana files via Kibana APIs (`saved_objects/_import`,
-   Workflows, Agent Builder, etc.) — not a separate `deploy_kibana_*.py` beside it.
-
-2. **No cluster deploy until review** — **`demo-cloud-provision`** and **`demo-deploy`**
-   (including running `bootstrap.py` against a **live** cluster) run only after the SA has
-   **both** (a) explicitly approved provision/deploy for this session **and** (b) **reviewed**
-   the generated **`bootstrap.py`**, **`{slug}-platform-audit`**, **`{slug}-risks`**, demo
-   checklist, and any other analysis outputs they rely on. **`bootstrap.py --dry-run`** and
-   local inspection of committed assets do **not** require a cluster. Agents must not treat
-   “artifacts complete” as permission to mutate production or shared demo clusters without
-   that review step.
-
-**Rationale:** Reference engagements (e.g. BigBox-style repos) already store NDJSON and agent
-configs as files; the gap was automating import inside bootstrap. Separating **planning
-complete** from **deploy authorized** prevents half-reviewed scripts from hitting clusters.
-**`demo-kibana-builder`** (backlog) remains optional automation to **generate** NDJSON from
-the data model; committed exports remain valid without it.
-
-**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `skills/demobuilder/SKILL.md`,
-`skills/demo-deploy/SKILL.md`, `README.md`, `engagements/README.md`, `docs/todo.md`.
-
-**Date:** 2026-04-16 | **Session:** artifact layout + deploy gate
-
----
-
-## D-025: Deployable on Elastic; Elasticsearch datatypes and product conventions
-
-**Decision:** Every artifact the pipeline defines (indices, mappings, ingest, ML, Kibana saved
-objects, Agent Builder tools, Observability SLOs, Security rules, seed data shapes, ES|QL, and
-API payloads) must be **deployable** on a real Elastic stack via **documented APIs** and must
-**conform** to **Elastic datatypes and naming**, not generic or invented types.
-
-**Concrete expectations:**
-
-- **Mappings and documents:** Field types follow Elasticsearch mapping conventions (`keyword`,
-  `text`, `long`, `date`, `semantic_text`, `geo_point`, etc.); demo seed data matches those
-  mappings.
-- **Agent Builder ES|QL tools:** Parameter `type` values use **Elasticsearch field-style types**
-  accepted by the server (e.g. `keyword`, `text`, `integer`, `date`) — not abstract labels
-  like `string` unless the target stack’s API explicitly allows them. Validate with
-  `elastic/agent-skills` (`kibana/agent-builder`) and live `POST`/`PUT` when in doubt.
-- **Kibana / APIs:** Request bodies match the stack version’s OpenAPI or reference repos
-  (`elastic/workflows`, `elastic/kibana-agent-builder-sdk`); export-first for saved objects
-  (**D-017**).
-- **Platform audit:** If the customer cluster cannot support an artifact (version, license,
-  feature flag), the artifact is **not** promised — scope adjusts in the script and audit.
-
-**Rationale:** Demos fail in front of customers when types or payloads are “almost” right.
-Binding definitions to Elastic’s own contracts keeps bootstrap and skills honest.
-
-**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`,
-`docs/references-observability-slo.md`, `docs/references-kibana-apis.md`, `skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
-`skills/demo-deploy/references/serverless-differences.md`, `demo-platform-audit` outputs,
-`demo-data-modeler` / engagement `bootstrap.py` patterns.
-
-**Date:** 2026-04-16 | **Session:** datatype and deployability contract
-
----
-
-## D-026: Engagement tag on all tagged deploy assets
-
-**Decision:** Every API-created asset that supports **tags** (or equivalent list metadata) must
-include a **demobuilder** tag: `demobuilder:<engagement_id>`, where `<engagement_id>` is derived
-from **`INDEX_PREFIX`** (normalized: hyphens, underscores, and whitespace removed; lowercase) when
-the prefix is set, otherwise from **`DEMO_SLUG`** with the same normalization. Optional
-**`DEMO_ASSET_TAG`** in `.env` overrides the normalized value when a different label is needed.
-
-**Concrete expectations:**
-
-- **bootstrap.py** defines `demobuilder_tags()` (or equivalent) and merges the tag into SLOs,
-  alerting rules, ML jobs, Agent Builder entities, and any other payloads with a `tags` field
-  in scope — not only NDJSON import.
-- **Indices and templates** remain identified by **`p(name)`** / `INDEX_PREFIX` naming; tagging
-  applies where the product API supports it (Kibana/Observability/ML/Security surfaces), not as a
-  substitute for index naming.
-- **Saved objects:** Prefer exports that include tags, or post-import tagging when required by the
-  stack version.
-
-**Rationale:** Operators need a consistent way to filter and audit demo resources across
-solutions and to correlate assets with an engagement when cleaning up or handoff — without
-replacing prefix-based Elasticsearch scoping.
-
-**Applied to:** `AGENTS.md`, `.cursor/rules/demobuilder.mdc`, `README.md`,
-`skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
-`skills/demo-deploy/references/demobuilder-tagging.md`, `skills/demo-deploy/references/env-reference.md`,
-`skills/demo-teardown/SKILL.md`, `skills/demo-status/SKILL.md`, `skills/demo-status/demo_status.py`,
-`engagements/README.md`, engagement `bootstrap.py` patterns.
-
-**Date:** 2026-04-16 | **Session:** engagement tagging for discovery and cleanup
+> **Rule (D-042):** When a `references/` file and a `SKILL.md` prose rule conflict, the reference file wins. SKILL.md files describe process steps; `references/` files own constants, thresholds, and API shapes. This file owns *why* and *where*; `references/` files own *how* and *what*.
 
 ---
 
 ## D-001: Per-engagement `.env` file for credential isolation
 
-**Decision:** Each engagement workspace (`${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/`) holds its own `.env` file with cluster credentials. No global config.
+**Status:** Active  
+**Enforced by:** `demo-cloud-provision` writes `.env` to `{engagement_dir}/` on create; `demo-bootstrap-generator` reads `.env` from `{engagement_dir}/` and halts if missing. Copy workflow for shared clusters: `cp {slug1}/.env {slug2}/.env` then update 3 fields.
 
-**Rationale:** An SE running demos for Citizens Bank and IHG Club simultaneously — possibly on the same cluster — needs clean separation of credentials and namespace. A global config would require constant switching and risks cross-contamination.
+**Rationale:** An SE running demos for multiple customers simultaneously needs clean credential and namespace separation. A global config risks cross-contamination.
 
-**Implications:** The `p(name)` helper in `bootstrap.py` applies `INDEX_PREFIX` to every resource name, so indices, pipelines, templates, ML jobs, and Kibana index patterns all carry the engagement's namespace prefix. Copy workflow: `cp citizens-bank/.env ihg-club/.env` then update 3 fields (DEMO_SLUG, ENGAGEMENT, INDEX_PREFIX).
+**Concrete:** The `p(name)` helper in generated scripts applies `INDEX_PREFIX` to every index name, template name, and pipeline name so all resources carry the engagement namespace prefix.
 
 **Date:** 2026-04-15 | **Session:** initial build
 
 ---
 
-## D-002: Idempotent bootstrap.py with check-before-create
+## D-002: Idempotent deployment with check-before-create
 
-**Decision:** Every resource creation in `bootstrap.py` checks for existence first. `--step N` flag resumes from a specific step. Data load checks doc count before loading (90% threshold).
+**Status:** Active  
+**Enforced by:** `skills/demo-deploy/templates/bootstrap-template.py` — every step function checks existence before creating. `--step N` flag resumes from a specific step. Data load checks doc count before loading (90% threshold). These patterns are in the template and cannot be removed without breaking the template contract.
 
-**Rationale:** A failed deploy at step 9 shouldn't require tearing down steps 1–8. Demo environments are time-pressured — if something fails, you need to pick up where you left off, not start over.
-
-**Implications:** Scripts are longer (each step has a check + create path), but they're safe to re-run. The check-before-create pattern also means running bootstrap on a half-deployed cluster is safe.
+**Rationale:** A failed deploy at step 9 shouldn't require tearing down steps 1–8. Demo environments are time-pressured.
 
 **Date:** 2026-04-15 | **Session:** initial build
 
@@ -215,11 +39,10 @@ replacing prefix-based Elasticsearch scoping.
 
 ## D-003: Separate provision and deploy skills
 
-**Decision:** `demo-cloud-provision` and `demo-deploy` are distinct skills with a clean handoff via `.env`.
+**Status:** Active  
+**Enforced by:** Skill boundaries — `demo-cloud-provision` ends at `.env` write. `demo-bootstrap-generator` (and its variants) begin at `.env` read. Neither skill calls the other.
 
-**Rationale:** An SE might provision once and deploy many times (adding a second customer on the same cluster with a different INDEX_PREFIX). Or they might bring their own existing cluster and skip provisioning entirely. Combining the two would force unnecessary reprovisioning or complex conditional logic.
-
-**Implications:** `demo-cloud-provision` is optional. `demo-deploy` only needs a valid `.env` — it doesn't care how that `.env` was created.
+**Rationale:** An SE might provision once and deploy many times (different `INDEX_PREFIX` per customer on the same cluster). Combining the two forces unnecessary reprovisioning.
 
 **Date:** 2026-04-15 | **Session:** initial build
 
@@ -227,11 +50,10 @@ replacing prefix-based Elasticsearch scoping.
 
 ## D-004: `demo_critical_docs` as first-class concept in the data model
 
-**Decision:** The data model spec includes a `demo_critical_docs` array for each index: specific documents that must exist, be individually verified by `_id` or unique field, and produce specific demo behavior.
+**Status:** Active  
+**Enforced by:** `demo-data-modeler` Step 4 requires `demo_critical_docs` array in each index spec. `bootstrap-data.py` indexes demo_critical_docs individually (not in bulk) and verifies each by ID/field. `demo-validator` Step 2 lists them explicitly in the data layer checks.
 
-**Rationale:** A demo where the script says "here's merchant VND-0412 with 7 suspicious claims" and the cluster has none of those documents fails visibly in front of the customer. Bulk doc count statistics don't catch this. Named, individually verified documents are the safety net.
-
-**Implications:** `bootstrap.py` indexes demo_critical_docs individually (not in bulk), verifies each one, and reports specifically on their presence. `demo-status` spot-checks them as part of its readiness check. `demo-validator` lists them explicitly in the pre-demo checklist.
+**Rationale:** Bulk doc count statistics don't catch missing scenario-critical documents. A demo that depends on merchant VND-0412 having 7 suspicious claims fails visibly if those docs aren't there.
 
 **Date:** 2026-04-15 | **Session:** initial build
 
@@ -239,9 +61,10 @@ replacing prefix-based Elasticsearch scoping.
 
 ## D-005: Two-dimensional shard density metric
 
-**Decision:** `demo-diagnostic-analyzer` reports shard density on two axes: shards/GB of data AND (total shards / node count) / heap_GB_per_node.
+**Status:** Active  
+**Enforced by:** `demo-diagnostic-analyzer` SKILL.md Step 3 output — both axes are required in the current-state report.
 
-**Rationale:** Discovered during real-data validation against Deutsche Telekom SOC-T (152-node, 1.18PB cluster). The first metric alone rated DT as healthy (0.027 shards/GB) — which it was from a data-sizing perspective. But 211 shards/node with 30GB heap is a different signal worth surfacing. One metric without the other is misleading in opposite directions depending on cluster topology.
+**Rationale:** Single-axis shard/GB rated DT SOC-T as healthy (0.027 shards/GB) while 211 shards/node with 30GB heap is a separate signal. One metric misleads in opposite directions depending on cluster topology.
 
 **Thresholds:**
 - Shards/GB: <0.1 (>10GB avg) → healthy, 0.1–1 → monitor, 1–20 → elevated, >20 → many tiny shards
@@ -253,73 +76,64 @@ replacing prefix-based Elasticsearch scoping.
 
 ## D-006: Negative assertions in evals must specify scope
 
-**Decision:** Eval assertions that check for the *absence* of content (e.g., "no competitor mentions") must specify which section of the output is being checked, not the full document.
+**Status:** Informational  
+**Enforced by:** Eval authors must include `scope` qualifier on negative assertions ("not mentioned in talking points" not "not mentioned anywhere"). No runtime enforcement — code review check.
 
-**Rationale:** A skill may correctly mention a competitor in an internal "do not mention" instruction block for SE awareness — this is correct behavior. A blunt full-document assertion will falsely fail. Assertions like "not mentioned in talking points or scene narration" are precise; "not mentioned anywhere" is brittle.
-
-**Applied to:** `demo-script-template` evals, and as a general rule for all future negative assertions.
+**Rationale:** A skill may correctly mention a competitor in an internal "do not mention" instruction block for SE awareness. A blunt full-document assertion falsely fails.
 
 **Date:** 2026-04-15 | **Session:** post-mortem
 
 ---
 
-## D-007: elastic/agent-skills as the API integration layer
+## D-007: elastic/agent-skills as the execution layer for asset authoring
 
-**Decision:** `demo-cloud-provision` and `demo-deploy` delegate cloud and Kibana API calls to skills from `elastic/agent-skills` (https://github.com/elastic/agent-skills) rather than implementing API clients from scratch.
+**Status:** Active — extended by D-045  
+**Enforced by:** `demo-asset-verifier` SKILL.md Step 2 skill dispatch table — each asset class maps to a specific `elastic/agent-skills` skill call. Custom API code in generated scripts is only permitted for asset classes with no matching skill. The dispatch table in `demo-asset-verifier/SKILL.md` is the authoritative routing list.
 
-**Rationale:** The Elastic-maintained skills handle auth, error handling, and API version differences for Cloud, Kibana, and Elasticsearch APIs. Duplicating this in demobuilder skills would create maintenance debt and diverge from the maintained implementations.
+**Rationale:** The Elastic-maintained skills handle auth, error handling, and API version differences for Cloud, Kibana, and Elasticsearch APIs. Duplicating this in custom code creates maintenance debt and version drift.
 
-**Skills used:**
-| elastic/agent-skill | Used by |
+**Skill dispatch (non-exhaustive):**
+| Asset class | Skill to call |
 |---|---|
-| `cloud-setup` | demo-cloud-provision (prerequisite) |
-| `cloud-create-project` | demo-cloud-provision (serverless path) |
-| `cloud-manage-project` | demo-cloud-provision (reuse path), demo-teardown (delete project) |
-| `kibana-dashboards` | demo-deploy (if .ndjson doesn't exist), demo-kibana-builder (planned) |
-| `kibana-agent-builder` | demo-deploy (agent config creation) |
-| `kibana-connectors` | demo-deploy (Workflow email connectors) |
-| `elasticsearch-esql` | demo-status (spot-check queries) |
+| Kibana dashboards, Lens panels | `kibana/kibana-dashboards` |
+| Observability SLOs | `observability/manage-slos` |
+| Alerting rules (inc. SLO burn-rate) | `kibana/kibana-alerting-rules` |
+| Connectors (Slack, webhook, PD) | `kibana/kibana-connectors` |
+| Agent Builder agents + tools | `kibana/agent-builder` |
+| Vega / Vega-Lite visualizations | `kibana/kibana-vega` |
+| Security / SIEM detection rules | `security/detection-rule-management` |
+| Security sample data | `security/generate-security-sample-data` |
+| Alert triage + cases | `security/alert-triage`, `security/case-management` |
+| ES|QL query validation | `elasticsearch/elasticsearch-esql` |
+| Bulk file ingestion | `elasticsearch/elasticsearch-file-ingest` |
+| Workflow YAML authoring | `hive-workflows` skill + `hive-mind/patterns/workflows/` |
 
-**Gap:** No elastic/agent-skills exist yet for ML anomaly detection, Kibana Workflows (9.3), ingest pipelines, or index templates. These remain handled by `bootstrap.py` directly.
-
-**Date:** 2026-04-15 | **Session:** post-mortem
+**Date:** 2026-04-15 | **Session:** post-mortem — extended 2026-05-05
 
 ---
 
 ## D-008: demo-status and demo-teardown as lifecycle skills
 
-**Decision:** Add `demo-status` (pre-demo readiness pulse check) and `demo-teardown` (post-demo cleanup) to the skill set as first-class pipeline members.
-
-**Rationale:** The pipeline was missing bookends: a way to quickly verify a deployed demo is healthy before going live, and a way to cleanly remove everything afterward. Without `demo-status`, SEs have to manually check 6 different things. Without `demo-teardown`, demo clusters accumulate resources and billing continues after demos end.
-
-**Design principles:**
-- `demo-status` runs in <60 seconds, produces ✅/❌ per resource, gives paste-ready fix commands
-- `demo-teardown` is prefix-aware (only removes `{INDEX_PREFIX}*` resources on shared clusters), has `--dry-run`, generates a teardown log, offers to delete the cluster project if it was provisioned for this engagement only
+**Status:** Active  
+**Enforced by:** Skills exist and are registered in the orchestrator as post-deploy lifecycle operations. `demo-teardown` reads D-039 manifest as primary delete source.
 
 **Date:** 2026-04-15 | **Session:** post-mortem
 
 ---
 
-## D-009: Orchestrator references elastic/agent-skills explicitly and surfaces missing-plugin errors
+## D-009: Orchestrator surfaces missing-plugin errors clearly
 
-**Decision:** The `demobuilder` orchestrator notes the elastic/agent-skills dependency upfront and tells the SE clearly if those skills aren't installed rather than failing silently at stage 8.
-
-**Rationale:** An SE who completes stages 1–7 successfully and then hits a cryptic error at stage 8 because a dependency is missing will lose trust in the tool. A clear, actionable error message ("install elastic/agent-skills, see docs/todo.md") is better than a runtime failure.
+**Status:** Active  
+**Enforced by:** Orchestrator Step 0 dependency check — if `elastic/agent-skills` is not installed, the orchestrator outputs a clear install message referencing `docs/todo.md` before any pipeline stage runs.
 
 **Date:** 2026-04-15 | **Session:** post-mortem
 
 ---
 
-## D-010: docs/ directory for pipeline-level documentation
+## D-010: `docs/` directory for pipeline-level documentation
 
-**Decision:** Add a `docs/` directory to the demobuilder repo for pipeline-wide documentation: postmortem, decisions log, and user-action todo list.
-
-**Files:**
-- `docs/postmortem.md` — full session post-mortem with lessons learned
-- `docs/decisions.md` — this file; rationale for architectural choices
-- `docs/todo.md` — items requiring user action (installs, credentials, validations)
-
-**Rationale:** Pipeline-level knowledge was previously only in conversation history, which gets summarized and lost across context windows. These docs make it durable and accessible to any Claude session (or human) picking up the work cold.
+**Status:** Informational  
+**Enforced by:** Convention — no runtime enforcement.
 
 **Date:** 2026-04-15 | **Session:** post-mortem
 
@@ -327,35 +141,32 @@ replacing prefix-based Elasticsearch scoping.
 
 ## D-011: Feature flag verification applies to Serverless AND ECH
 
-**Decision:** `demo-cloud-provision` Step 4.5 verifies that Agent Builder and Kibana Workflows feature flags are enabled on **both Serverless and ECH deployments** before any build work begins.
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 1 probe sequence — Agent Builder and Workflows feature availability probed via `GET /api/agent_builder/agents` (404 = not enabled) and `GET /api/workflows` (404 = not enabled) before any asset authoring for those features begins.
 
-**Rationale:** From the first-gen postmortem: Agent Builder and Workflows are not enabled by default on new projects. Initially documented as Serverless-only, but confirmed to apply equally to ECH until these features reach GA. Workflows is expected to GA with Elastic 9.4 — at that point the Workflows check can be relaxed for ECH, but Agent Builder may still require a flag. Always verify both.
-
-**Applied to:** `demo-cloud-provision/SKILL.md` Step 4.5. `references/serverless-differences.md` Feature Flags section.
+**Rationale:** Agent Builder and Workflows are not enabled by default on new projects on either deployment type. Assuming they're available causes mid-demo failures.
 
 **Date:** 2026-04-15 | **Session:** first-gen review; corrected 2026-04-15
 
 ---
 
-## D-012: Serverless ML field names documented as hard requirement
+## D-012: Serverless ML field names probed before any query or dashboard
 
-**Decision:** `demo-ml-designer` documents the Serverless `.ml-anomalies-*` field name differences and requires a `GET .ml-anomalies-*/_mapping` check before writing any query or dashboard panel.
+**Status:** Active  
+**Enforced by:** `demo-ml-designer` SKILL.md requires `GET .ml-anomalies-*/_mapping` before writing any query. `demo-asset-verifier` Step 1 includes ML mapping probe when ML scenes are in scope.
 
-**Rationale:** From the first-gen postmortem: all four ML dashboard panels had to be corrected after deployment because `anomaly_score`/`@timestamp`/`store_id`/`sku` do not exist on Serverless — the actual fields are `record_score`/`timestamp`/`partition_field_value`/`by_field_value`. A 2-minute mapping check prevents hours of rework.
-
-**Applied to:** `demo-ml-designer/SKILL.md`. `references/serverless-differences.md`.
+**Rationale:** `anomaly_score`/`@timestamp`/`store_id`/`sku` do not exist on Serverless. The actual fields are `record_score`/`timestamp`/`partition_field_value`/`by_field_value`. A 2-minute mapping check prevents hours of rework.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
 
 ---
 
-## D-013: Workflow YAML reference required before writing any Workflow code
+## D-013: Workflow reference required before authoring any Workflow YAML
 
-**Decision:** `demo-deploy` requires the `elastic/workflows` and `elastic/kibana-agent-builder-sdk` repos to be in context before any Workflow YAML or Agent Builder API call is written. 30-minute escalation rule: if progress stalls on an undocumented API, surface it as a blocker immediately.
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 2 — when Workflows are in scope, the `hive-workflows` skill is called with `hive-mind/patterns/workflows/WORKFLOWS_API_REFERENCE.md` and `WORKFLOW_YAML_STEP_TYPES.md` passed as context inputs. No Workflow YAML is authored without these references loaded.
 
-**Rationale:** From the first-gen postmortem: Workflow debugging took ~3h and Agent Builder schema took ~2h because reference material was only found after problems were encountered. The `| first` Liquid filter, `_geo_distance` sort limitation, and `pattern` vs. `index` Agent Builder field were all documentable upfront.
-
-**Applied to:** `demo-deploy/SKILL.md`. `references/workflow-patterns.md`. `references/serverless-differences.md`.
+**Rationale:** Workflow debugging took ~3h in first-gen because reference material was only found after problems were encountered. The `| first` Liquid filter, `_geo_distance` sort limitation, and stale-read warning are all documentable upfront.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
 
@@ -363,236 +174,190 @@ replacing prefix-based Elasticsearch scoping.
 
 ## D-014: ELSER service body differs between Serverless and ECH
 
-**Decision:** `bootstrap.py` uses `"service": "elser"` on Serverless (no `model_id`) and `"service": "elasticsearch"` with explicit `model_id` on ECH/self-managed.
+**Status:** Active  
+**Enforced by:** `references/inference-config.md` — canonical config for both deployment types. `demo-bootstrap-ech` and `demo-bootstrap-serverless` Terraform patterns read from this reference file. `bootstrap-data.py` template reads from this reference file.
 
-**Rationale:** The actual working Serverless ELSER body uses `"service": "elser"` — the prior demobuilder implementation was using the wrong service name for Serverless, which would have caused step 8 to fail on every Serverless deploy.
-
-**Applied to:** `demo-deploy/SKILL.md`. `demo-ml-designer/SKILL.md`.
-
-**Date:** 2026-04-15 | **Session:** first-gen review
-
----
-
-## D-015: Test session cleanup at T-10min is a required checklist item
-
-**Decision:** The demo validator checklist includes a mandatory T-10min step to delete test agent sessions before going live.
-
-**Rationale:** From the first-gen postmortem: pre-demo testing populates the session history index with test conversation turns that appear during the live demo. A single `_delete_by_query` on `@timestamp < now-10m` fixes it in seconds; not doing it risks surfacing test data during the demo.
-
-**Applied to:** `demo-validator/SKILL.md`. `demo-deploy/SKILL.md` completion summary.
+**Concrete:** Serverless: `"service": "elser"` (no `model_id`). ECH 9.4+: `"service": "elastic"`, `model_id: ".elser-2"` (EIS, per D-028). `"service": "elasticsearch"` is never used for embeddings.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
 
 ---
 
-## D-016: KIBANA_API_KEY is a required .env field for all Kibana asset operations
+## D-015: T-10min session cleanup is a required checklist item
 
-**Decision:** `KIBANA_API_KEY` is a required `.env` field used for **all** Kibana asset operations (Agent Builder, Workflows, Dashboards, Connectors, Saved Objects import) across all deployment types. It is not a fallback from `ES_API_KEY`. `bootstrap.py` uses `KB_KEY` (read from `KIBANA_API_KEY`) for all `kb()` calls.
+**Status:** Active  
+**Enforced by:** `demo-validator` SKILL.md Step 4 output template includes the 10-minute `_delete_by_query` step as a mandatory non-removable checklist item.
 
-**Rationale:** API key privilege requirements for Kibana vs. Elasticsearch are under active product change. Keeping separate keys is the safe default until product confirms a unified approach. The first-gen added this field after hitting 401 responses mid-build — it is now a provisioning-time requirement rather than a discovered fix.
+**Rationale:** Pre-demo testing populates session history with test conversation turns that appear during the live demo.
 
-**Applied to:** `references/env-reference.md`. `demo-cloud-provision/SKILL.md` `.env` and `.env.example` templates. `demo-deploy/SKILL.md` bootstrap.py credential block.
+**Date:** 2026-04-15 | **Session:** first-gen review
+
+---
+
+## D-016: `KIBANA_API_KEY` is a required `.env` field
+
+**Status:** Active  
+**Enforced by:** `demo-bootstrap-generator` Step 0 `.env` validation — halts if `KIBANA_API_KEY` is missing or empty, regardless of deployment type. `references/env-reference.md` marks it as required. `demo-cloud-provision` writes it during provisioning.
+
+**Rationale:** API key privilege requirements for Kibana vs Elasticsearch are under active product change. Separate keys are the safe default. First-gen hit 401 responses mid-build when this was not required upfront.
 
 **Date:** 2026-04-15 | **Session:** first-gen review; elevated to required 2026-04-15
 
 ---
 
-## D-017: Export-first dashboard pattern; never hand-write Lens JSON
+## D-017: Export-first dashboard pattern; never hand-write Lens NDJSON
 
-**Decision:** Kibana dashboard saved objects must be exported from a working live panel. `migrationVersion` and `coreMigrationVersion` must be stripped before import or commit.
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 2 calls `kibana/kibana-dashboards` skill for all dashboard authoring. Hand-writing Lens JSON directly is not a valid path. If a dashboard must be authored from scratch without a live cluster, use `hive-mind/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md` as the format reference via the `kibana-dashboards` skill.
 
-**Rationale:** From the first-gen postmortem: hand-written Lens panels took ~3h due to format errors. The Serverless inline `embeddableConfig.attributes` format differs from all public examples and changes between versions. Export-first produces a valid template in minutes.
-
-**Applied to:** `demo-deploy/SKILL.md` Kibana step. `references/serverless-differences.md`.
-Engagement layout and import path: **D-024**.
+**Rationale:** Hand-written Lens panels took ~3h in first-gen due to format errors. The Serverless inline `embeddableConfig.attributes` format differs from all public examples and changes between versions. Export-first or skill-authored produces a valid template in minutes.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
 
 ---
 
-## D-018: ML datafeed geo_point workaround via runtime_mappings
+## D-018: ML datafeed `geo_point` workaround via `runtime_mappings`
 
-**Decision:** When the datafeed source index contains a `geo_point` field, `demo-ml-designer` adds a `runtime_mappings` shadow to prevent datafeed failure.
+**Status:** Active  
+**Enforced by:** `demo-ml-designer` SKILL.md datafeed config section — when the source index contains a `geo_point` field, a `runtime_mappings` shadow is added to the datafeed config.
 
-**Rationale:** ML datafeeds cannot natively consume geo_point fields. The first-gen hit this with `store_location` and fixed it with a runtime mapping that shadows the field as a keyword emitting an empty string.
-
-**Applied to:** `demo-ml-designer/SKILL.md` datafeed config section.
+**Rationale:** ML datafeeds cannot natively consume `geo_point` fields. The first-gen hit this with `store_location`. Runtime mapping shadows the field as a keyword emitting empty string.
 
 **Date:** 2026-04-15 | **Session:** first-gen review
 
 ---
 
-## D-019: Engagement collateral grouped under `engagements/` subfolder
+## D-019: Engagement collateral under `{slug}/` subfolder
 
-**Decision:** All per-engagement workspaces live under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`**
-(see **D-023**). The repo may keep a **pointer** at `engagements/README.md` only — not full
-engagement trees.
+**Status:** Active — see also D-023 and D-037  
+**Enforced by:** Orchestrator Step 1 `mkdir -p` pattern creates audience-scoped subfolders. All skill output path specs use subfolder paths.
 
-**Rationale:** `{slug}` is always one engagement (demo-specific). Pipeline code stays in the
-clone; customer data and `.env` files stay outside git on a path the SA controls (often synced
-“My Drive” or local disk).
-
-**Applied to:** `demobuilder/SKILL.md`, `demo-cloud-provision/SKILL.md`, `demo-deploy/SKILL.md`, `demo-status/SKILL.md`, `demo-teardown/SKILL.md`, `demo-deploy/references/env-reference.md`, `README.md`. `docs/todo.md` item 11 closed.
-
-**Date:** 2026-04-20 | **Session:** workspace organization | **Updated:** 2026-04-21 — engagements root via `DEMOBUILDER_ENGAGEMENTS_ROOT` (D-023)
+**Date:** 2026-04-20 | **Session:** workspace organization
 
 ---
 
-## D-027: ILM defaults to hot-only; tiered phases only when explicitly required
+## D-020: Default to latest GA for new stacks; validate version for existing
 
-**Decision:** The **default ILM posture for all generated scripts is hot-only** — a hot phase
-with `set_priority` and a `delete` phase. Warm, cold, and frozen phases are **only added when
-the engagement explicitly requires tiered storage** (e.g., the customer wants to demo
-hot-warm-cold cost tiering). Tier detection via `GET /_nodes` is run at bootstrap time to guard
-against applying unavailable phases, but it does not automatically opt-in to more phases.
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 0 — mandatory `GET /` and `GET {kibana}/api/status` on any existing cluster before any asset authoring begins. Result written to `asset-bundle/asset-schema.json` `platform.version`. `bootstrap-data.py` template Step 1 version gate warns if `.env ELASTIC_VERSION` disagrees with live cluster.
 
-Additional hard rules:
-- **No `rollover` on plain indices.** Rollover requires `index.lifecycle.rollover_alias` and
-  errors immediately on any index without a write alias
-  (`IllegalArgumentException: setting [index.lifecycle.rollover_alias] … is empty or not defined`).
-  Use age-based `delete` instead.
-- **`forcemerge` in hot requires `rollover`.** If rollover is absent, omit forcemerge too.
-- **Data streams:** rollover is always valid (the stream manages the write alias) and should be
-  used when the engagement calls for it.
+**Rationale:** ES|QL, APIs, ML, Kibana embeddables, Agent Builder, and Workflows all vary by version. Assuming "latest" on a customer's 8.x cluster causes failed demos.
 
-**Rationale:** Demo ECH clusters are almost always hot-only. Adding warm/cold/frozen phases by
-default clutters the policy, wastes SA time debugging ERROR-state indices, and obscures whether
-tiering is actually part of the demo story.
+**Date:** 2026-04-20 | **Session:** version policy
 
-**Applied to:** `bootstrap.py` (`step1_connectivity` tier detection, `step2_ilm` policy builder),
-`skills/demo-data-modeler/SKILL.md`.
+---
+
+## D-021: Enterprise showcase; multi-input; all solution areas in scope
+
+**Status:** Active  
+**Enforced by:** `demo-discovery-parser` and `demo-script-template` scope extraction — neither defaults to search-only. Cross-solution demos are valid when inputs support them. No runtime gate; delivery risk flagged by `demo-validator` if scope is narrower than inputs warrant.
+
+**Date:** 2026-04-20 | **Session:** solution scope and inputs
+
+---
+
+## D-022: Solution-first narrative in scripts and plans
+
+**Status:** Active  
+**Enforced by:** `demo-validator` Step 2 script narrative check — flags as delivery risk if script opens capability-first without an outcome hook for exec or mixed audiences.
+
+**Date:** 2026-04-20 | **Session:** narrative arc
+
+---
+
+## D-023: `DEMOBUILDER_ENGAGEMENTS_ROOT` — engagements outside the repo
+
+**Status:** Active  
+**Enforced by:** Orchestrator Step 1 path resolution — `{engagement_dir}` is always under `${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/`. Never under the demobuilder repo root. See `docs/engagements-path.md`.
+
+**Date:** 2026-04-21 | **Session:** portable engagements root
+
+---
+
+## D-024: `asset-bundle/` as the review gate; single deployment executable
+
+**Status:** Active — updated to reflect asset-bundle architecture  
+**Enforced by:** `demo-asset-verifier` outputs to `{engagement_dir}/deploy/asset-bundle/`. SA reviews `asset-bundle/` contents before `demo-bootstrap-generator` runs. `demo-bootstrap-generator` reads `asset-bundle/` as its primary input — it does not re-derive assets from prose. Cluster deploy requires explicit SA approval after review of `main.tf` / `bootstrap-data.py` and platform audit outputs.
+
+**Rationale:** Separating *planning complete* from *deploy authorized* prevents half-reviewed scripts from hitting clusters. The `asset-bundle/` directory replaces the prior `.ndjson`/`kibana-objects/` pattern with a single reviewed artifact set.
+
+**Date:** 2026-04-16 | **Session:** artifact layout + deploy gate — updated 2026-05-05
+
+---
+
+## D-025: Every artifact must be deployable on a real Elastic stack
+
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 1 schema probe gate (D-043 Rule 3) — no asset is authored against a field that wasn't confirmed by probe. `elasticsearch/elasticsearch-esql` skill validates every ES|QL query against the live cluster before it is stored in `asset-bundle/`. `demo-validator` Step 2 version alignment check flags unverified mappings as conditional-go.
+
+**Rationale:** Demos fail in front of customers when types or payloads are "almost" right. Binding definitions to Elastic's own contracts via live probes keeps scripts honest.
+
+**Date:** 2026-04-16 | **Session:** datatype and deployability contract
+
+---
+
+## D-026: Engagement tag on all tagged deploy assets
+
+**Status:** Active  
+**Enforced by:** `bootstrap-data.py` template defines `demobuilder_tags()` and `merge_tags()` helper functions at file top. These are called on every resource payload that accepts `tags`. Terraform resources use a `tags` local variable populated from the same formula. `references/demobuilder-tagging.md` is the canonical tag format spec.
+
+**Concrete:** Tag value = `demobuilder:{engagement_id}` where `engagement_id` = `INDEX_PREFIX` normalized (hyphens/underscores/whitespace removed, lowercase), else `DEMO_SLUG` normalized. `DEMO_ASSET_TAG` in `.env` overrides.
+
+**Date:** 2026-04-16 | **Session:** engagement tagging
+
+---
+
+## D-027: ILM defaults to hot-only; no `rollover` on plain indices
+
+**Status:** Active  
+**Enforced by:** `references/feature-compatibility.md` ILM section — Terraform ILM patterns and `bootstrap-data.py` template ILM step read from this reference. `demo-data-modeler` Step 2 ILM note cites this decision.
+
+**Hard rules (non-negotiable):**
+- Default: hot phase (`set_priority`) + `delete` phase only
+- Never `rollover` on plain indices — requires `index.lifecycle.rollover_alias`; errors immediately without it
+- `forcemerge` in hot also requires rollover; omit when rollover is absent
+- Warm/cold/frozen phases: only when engagement explicitly requires tiered storage AND those node roles exist on the target cluster
+- Data streams: `rollover` is valid and appropriate
 
 **Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
 
 ---
 
-## D-028: Use EIS for embeddings and reranking; reserve ML nodes for anomaly detection and DFA
+## D-028: Use EIS for embeddings and reranking; ML nodes for anomaly detection only
 
-**Decision:** All **text embedding** (sparse and dense) and **reranking** inference in
-demobuilder pipelines must use **Elastic Inference Service (EIS)** endpoints — i.e., inference
-endpoints created with `service: "elastic"` via `PUT /_inference/{task_type}/{id}`. Do **not**
-deploy embedding or reranking models directly on the deployment's ML nodes.
+**Status:** Active  
+**Enforced by:** `references/inference-config.md` — canonical service names and model IDs by deployment type. `demo-bootstrap-ech` and `demo-bootstrap-serverless` Terraform inference endpoint patterns read from this reference. `bootstrap-data.py` template ELSER step reads from this reference.
 
-ML nodes are reserved for:
-- **Anomaly detection** (ML jobs + datafeeds)
-- **Data frame analytics** (classification, regression, outlier detection)
-- Other tasks where local execution is architecturally necessary or explicitly requested
-
-**Rationale:** EIS routes inference to Elastic's managed inference infrastructure, keeping ML
-node resources free for jobs that cannot run externally. On demo ECH clusters, ML nodes are
-typically undersized; loading ELSER or reranker weights alongside anomaly jobs causes resource
-contention, slow model startup, and 408 timeouts during demos. EIS also scales independently of
-the cluster and eliminates the ELSER adaptive-allocation warm-up delay during the demo itself.
-
-**Implementation (9.x):**
-```json
-// Sparse embedding via EIS
-PUT /_inference/sparse_embedding/elser-eis
-{ "service": "elastic", "service_settings": { "model_id": ".elser-2" } }
-
-// Reranking via EIS
-PUT /_inference/rerank/rerank-eis
-{ "service": "elastic", "service_settings": { "model_id": "elastic-reranker-v1" } }
-```
-
-**Applied to:** `skills/demo-data-modeler/SKILL.md`, `bootstrap.py` step 5 (ELSER endpoint —
-migrate from `service: "elasticsearch"` to `service: "elastic"` when EIS is confirmed available
-on the target deployment).
+**Concrete:** EIS sparse embedding: `PUT /_inference/sparse_embedding/{id}` with `service: "elastic"`, `model_id: ".elser-2"` (ECH). Serverless: `service: "elser"`. Never `service: "elasticsearch"` for embeddings.
 
 **Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
 
 ---
 
-## D-030 — Versioning convention: `BOOTSTRAP_VERSION` as single source of truth across all versioned assets
+## D-029: Agent Builder: `configuration.skill_ids` for platform skills
 
-**Status:** Active | **Applies to:** `bootstrap.py`, `skills/demo-deploy/SKILL.md`
+**Status:** Active  
+**Enforced by:** `kibana/agent-builder` skill — it probes `GET /api/agent_builder/skills` before creating/updating agents. `references/kibana-api-registry.md` D-029 section contains the confirmed API shape. `demo-asset-verifier` Step 1 includes agent-builder skills probe when Agent Builder is in scope.
 
-**Context:** Elastic assets have inconsistent version support — some have a formal `version` API
-field, others only have `description` or `_meta`. Without a consistent convention, deployed assets
-are indistinguishable in UIs that don't show API-assigned IDs (e.g. the Workflows UI).
-
-**Decision:**
-- A single `BOOTSTRAP_VERSION = "X.Y.Z"` constant at the top of `bootstrap.py` is the source of truth
-- Bump it on any structural change to assets (new steps, changed queries, workflow edits, etc.)
-- Apply by asset type:
-
-| Asset type | Field | Format |
-|---|---|---|
-| Workflow YAML | `version` (string) | `"1.0.0"` |
-| Workflow description | `description` | `[{slug} v1.0.0] ...` prefix |
-| SIEM detection rules | `version` (integer) | `1` (matches major version) |
-| SIEM rule description | `description` | `[v1.0.0] ...` prefix |
-| All other assets (SLOs, ML jobs, tools, agents, dashboards) | `description` / `_meta` | `[v1.0.0] ...` prefix where practical |
-
-- The `name`/`rule_id` fields stay stable — used for idempotent lookup and deduplication
+**Concrete:** Platform skills go in `configuration.skill_ids`. Individual tools (custom ES|QL, index_search, workflow, platform.core.*) go in `configuration.tools[0].tool_ids`.
 
 **Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
 
 ---
 
-## D-031: Cluster-resident asset manifest — trusted source for teardown
+## D-030: `BOOTSTRAP_VERSION` as single source of truth across versioned assets
 
-**Decision:** `bootstrap.py` writes (and incrementally updates) a **manifest document** to the
-target Elasticsearch cluster in a `demobuilder-manifests` index. The document ID is the
-normalized engagement ID (same value as the `demobuilder:<id>` tag). The manifest captures
-every resource ID created — by type — so `teardown.py` reads it as the **single trusted source**
-of what to delete, rather than relying on hardcoded IDs that go stale across redeployments.
+**Status:** Active  
+**Enforced by:** `bootstrap-data.py` template has `BOOTSTRAP_VERSION = "X.Y.Z"` as the first constant. Terraform `locals.bootstrap_version`. Both are updated on any structural asset change. Version is embedded in asset descriptions as `[v{version}] ...` prefix.
 
-**Manifest index:** `demobuilder-manifests` (no prefix — shared across all engagements on the
-cluster, never deleted by teardown). Document shape:
+**Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
 
-```json
-{
-  "engagement_id": "cbfraud",
-  "slug": "2026citizens-ai",
-  "bootstrap_version": "1.0.0",
-  "deployed_at": "2026-04-22T...",
-  "es_version": "9.4.0",
-  "assets": {
-    "ilm_policies": [...],
-    "ingest_pipelines": [...],
-    "component_templates": [...],
-    "index_templates": [...],
-    "indices": [...],
-    "data_streams": [...],
-    "inference_endpoints": [{"task_type": "sparse_embedding", "id": "cb-elser"}],
-    "ml_jobs": [...],
-    "ml_datafeeds": [...],
-    "enrich_policies": [...],
-    "kibana": {
-      "space_id": "...",
-      "data_views": [...],
-      "slos": [{"id": "...", "name": "..."}],
-      "alerting_rules": [{"id": "...", "name": "..."}],
-      "dashboards": [{"id": "...", "title": "..."}],
-      "connectors": [{"id": "...", "name": "..."}],
-      "tags": [{"id": "...", "name": "..."}],
-      "workflows": [{"id": "...", "name": "..."}],
-      "agent_tools": [{"id": "...", "name": "..."}],
-      "agents": [{"id": "...", "name": "..."}],
-      "siem_rules": [{"rule_id": "...", "name": "..."}]
-    }
-  }
-}
-```
+---
 
-**Bootstrap** — upserts the manifest after each major step via
-`POST /demobuilder-manifests/_doc/{engagement_id}`. A partial deploy can be cleaned up
-because the manifest reflects what was actually created up to that point.
+## D-031: Cluster-resident asset manifest
 
-**Teardown** — reads the manifest at step 1 via
-`GET /demobuilder-manifests/_doc/{engagement_id}`. Falls back to a hardcoded inventory
-if the manifest is not found (with a warning). The `demobuilder-manifests` index itself
-is **never** deleted — it is a durable audit log.
-
-**Rationale:** IDs assigned by Kibana (alerting rules, SLOs, dashboards, connectors,
-workflows, Agent Builder entities) are not deterministic. Hardcoding them in `teardown.py`
-at generation time breaks the moment a re-deploy assigns new IDs. A cluster-resident
-manifest stays fresh automatically because bootstrap writes it.
-
-**Applied to:** `skills/demo-deploy/SKILL.md` (manifest write step),
-`skills/demo-teardown/SKILL.md` (manifest read step),
-`skills/demo-deploy/references/asset-manifest.md` (schema reference).
+**Status:** Superseded — see D-039  
+**Enforced by:** See D-039.
 
 **Date:** 2026-04-22 | **Session:** post-mortem gap remediation
 
@@ -600,477 +365,207 @@ manifest stays fresh automatically because bootstrap writes it.
 
 ## D-032: Managed assets preferred; clone before modifying; never patch originals
 
-**Decision:** Elastic-managed / prebuilt assets should be **used as-is wherever they serve the demo story** — they are the preferred deliverable over custom-authored equivalents. When a demo requires adapting a managed asset, the pipeline must **clone** it and modify the clone — **never** PUT/PATCH the original.
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 1 — `GET /api/fleet/epm/packages/{name}/assets` enumerates what each installed package already ships before any custom asset is authored for that domain. Package-shipped assets go into `asset-bundle/` as-is (referenced by ID). Custom assets are authored only for scenes or signals the package does not cover. `security/detection-rule-management` skill implements the D-032 clone pattern natively.
 
 **Managed-first preference order:**
-1. Use the managed asset as-is (no change needed)
-2. Use the managed asset as-is AND reference it directly in a custom dashboard (embed by ID)
-3. Clone it with a `[{SLUG}]` prefix, make targeted changes to the clone, delete nothing from the original
-
-**Applies to all managed asset types:**
-
-| Asset type | Managed indicator | Clone strategy |
-|---|---|---|
-| SIEM detection rules | `immutable: true` or `rule_source.type: "prebuilt-rule"` | `rule_id = f"demo-{source_rule_id}"` |
-| ML anomaly detection jobs | `custom_settings.created_by: "ml-module-*"` | copy job JSON, rename `job_id` |
-| Kibana ML results dashboards | Installed by ML module | reference by `ref_id` in custom dashboard; only clone if layout change needed |
-| Integration package dashboards | Installed by Fleet EPR | reference or link from custom dashboard; clone only if content change needed |
-| Data views installed by packages | `namespaces: ["*"]` or package-managed | use directly; never delete or overwrite |
-| Ingest pipelines installed by packages | name matches `<pkg>-<version>.*` | add custom pipeline as a downstream processor; never overwrite the package pipeline |
-
-**Pattern for SIEM prebuilt rules (unchanged):**
-
-```python
-# 1. GET the prebuilt rule to use as template
-existing = kb("GET", f"/api/detection_engine/rules?rule_id={source_rule_id}", ok=(200,))
-# 2. Strip read-only/managed fields (id, created_at, updated_at, immutable, etc.)
-clone = {k: v for k, v in existing.items()
-         if k not in ("id", "created_at", "updated_at", "updated_by", "created_by",
-                      "immutable", "rule_source", "revision")}
-# 3. Assign demo-specific identity and tagging
-clone["rule_id"]     = f"demo-{source_rule_id}"       # stable ID for idempotency
-clone["name"]        = f"[{SLUG}] {existing['name']}" # prefixed for UI clarity
-clone["description"] = f"[v{BOOTSTRAP_VERSION}] Clone of '{existing['name']}' — {purpose}"
-clone["tags"]        = merge_tags(clone.get("tags", []))
-clone["version"]     = 1
-# 4. POST as a new custom rule
-kb("POST", "/api/detection_engine/rules", clone, ok=(200, 201))
-```
-
-**Custom rules we author from scratch:** upsert by `rule_id` —
-- `GET /api/detection_engine/rules?rule_id={id}` → 200 means update (PUT with `version + 1`)
-- 404 means create (POST with `version: 1`)
-
-**Why:** Elastic-managed assets may be overwritten on the next package update, erasing any changes. Cloned and custom assets carry the engagement tag, survive updates, and are deleted cleanly by teardown.
-
-**Applied to:** `skills/demo-deploy/SKILL.md` (step 13g), `skills/demo-data-modeler/SKILL.md` (Path A), engagement `bootstrap.py` patterns.
+1. Use managed asset as-is — write its ID to `asset-bundle/asset-index.json`
+2. Reference managed asset in a custom dashboard (embed by ID)
+3. Clone with `[{SLUG}]` prefix — only when content modification is required
 
 **Date:** 2026-04-22 | **Session:** post-mortem gap remediation
 
 ---
 
-## D-033: API baseline is Elastic 9.4+; remove pre-9.x compatibility shims
+## D-033: API baseline is Elastic 9.4+; no pre-9.x shims
 
-**Decision:** The demobuilder pipeline targets **Elastic 9.4 ECH and Serverless** as the
-minimum baseline. Pre-9.x compatibility shims, fallback API shapes, and 8.x-era workarounds
-are **removed** from all generated scripts and skill guidance.
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 0 version gate — probes `GET /` and halts if version < 9.4 unless `SKIP_VERSION_CHECK=true`. `bootstrap-data.py` template Step 1 contains the same gate as a second check at execution time.
 
-**Rationale:**
-- Serverless auto-updates — it is always aligned with this baseline.
-- ECH version is still validated at step 1 connectivity check (D-020); if the live version
-  is below 9.4, bootstrap should **warn and halt** rather than attempt a degraded deploy.
-- Accumulating compat shims adds complexity and is a source of silent failures when the
-  shim is wrong for a new version.
-
-**Baseline assumptions (9.4+):**
-- **ELSER / embeddings:** EIS (`service: "elastic"`) on ECH; `service: "elser"` on Serverless
-  (D-028). `service: "elasticsearch"` for local ML node inference is not used for embeddings.
-- **ILM:** Full 9.x ILM API — no 8.x-era `include_type_name` or deprecated params.
-- **Workflows:** Supported on both ECH 9.4+ and Serverless. Feature-flag check still required
-  until GA (D-011).
-- **Agent Builder:** v0.2.0 shape (D-029) — `configuration.skill_ids`, `index_search` tool
-  type, `workflow` tool type. No legacy 9.0–9.3 payload shapes.
-- **Alerting rules:** 9.x `windows` array schema for SLO burn-rate rules.
-- **Data views API:** `POST /api/data_views/data_view` (9.x shape, no `index-pattern` type).
-- **Inference GET response:** `{"endpoints": [...]}` wrapper (9.x shape).
-
-**ECH version gate in bootstrap.py step 1:**
-```python
-major, minor = (int(x) for x in version.split(".")[:2])
-if (major, minor) < (9, 4):
-    print(f"  ⛔ Cluster version {version} is below 9.4 baseline (D-033).")
-    print(f"     Update the cluster or set SKIP_VERSION_CHECK=true in .env to override.")
-    sys.exit(1)
-```
-
-**Applied to:** `skills/demo-deploy/SKILL.md`, `skills/demo-teardown/SKILL.md`,
-`skills/demo-data-modeler/SKILL.md`, engagement `bootstrap.py` patterns.
+**Concrete:** Bootstrap halts on clusters below 9.4. All Terraform resources and `bootstrap-data.py` patterns target 9.4 API shapes only. See `references/feature-compatibility.md` for version-specific behavior table.
 
 **Date:** 2026-04-22 | **Session:** post-mortem gap remediation
 
 ---
 
-## D-034: hive-mind as pattern reference library; adopt where better with no gaps
+## D-034: hive-mind as pattern reference library
 
-**Decision:** The local `elastic/hive-mind` clone is a **reference library** for
-demobuilder. When `hive-mind` provides a pattern, API reference, or skill that is
-demonstrably better than demobuilder's current guidance **and** does not introduce a gap
-in demobuilder's capabilities, the demobuilder skill should **reference or adopt** the
-hive-mind pattern rather than maintaining a parallel implementation.
+**Status:** Superseded — see D-041 and D-045  
+**Enforced by:** See D-041 (currency gate) and D-045 (asset authoring via skills that use hive-mind patterns).
 
-**Adoption boundaries:**
-- hive-mind **patterns** (`patterns/workflows/`, `patterns/dashboards/`, `patterns/agent-builder/`,
-  `patterns/deployment/`, `patterns/data/`) → Reference from demobuilder skills; do not copy verbatim.
-- hive-mind **skills** (`skills/hive-sa-coaching/`, `skills/hive-token-optimization/`) → May be
-  referenced or adapted; demobuilder-specific overlays in demobuilder skill files.
-- hive-mind **does not replace** demobuilder's pipeline decisions (`docs/decisions.md`),
-  engagement tagging (D-026), asset manifest (D-031), ILM defaults (D-027), or any ECH-specific
-  patterns not present in hive-mind.
+**Date:** 2026-04-21 | **Session:** hive-mind comparison
 
-**Reference paths (default):**
-- hive-mind root: `../hive-mind` relative to demobuilder root, or `HIVE_MIND_PATH` env var
-- Currency checked at pipeline start (Step 0 in demobuilder/SKILL.md)
+---
 
-**Rationale:** hive-mind confirmed the Workflows DELETE endpoint, search-by-name pattern,
-stale-read warning, dashboard stable UUIDs, probe-based feature detection, and agent-builder
-A2A coordinator pattern — all of which demobuilder had discovered the hard way or missed
-entirely. Maintaining alignment means future demobuilder builds benefit from hive-mind
-improvements without manual re-discovery.
+## D-035: Demo ideation as Stage 0 in the pipeline
 
-**Applied to:** `skills/demobuilder/SKILL.md`, `skills/demo-deploy/SKILL.md`,
-`skills/demo-deploy/references/workflow-patterns.md`.
+**Status:** Active  
+**Enforced by:** Orchestrator Step 0b skip condition — ideation is skipped only when discovery notes, diagnostic, or prior pipeline outputs (`{slug}-discovery.json`, `{slug}-ideation.md`) already exist. No fallback to a "default demo" shape.
 
 **Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
 
 ---
 
-## D-035: Demo Ideation as Stage 0 in the demobuilder pipeline
+## D-036: Token visibility as standard feature for Agent Builder engagements
 
-**Decision:** A new **demo-ideation** stage (Stage 0) is added to the demobuilder pipeline,
-running **before** `demo-discovery-parser` when the SA does not have a clear demo direction,
-no discovery notes, or is at a hackathon / exploratory phase. It produces a frozen
-`{slug}-ideation.md` contract that flows into `demo-script-template` as the primary
-narrative source.
-
-**The ideation stage implements the hive-mind SA coaching methodology** from
-`hive-mind/skills/hive-sa-coaching/` and uses the **Demo Archetypes gallery** from
-`hive-mind/skills/hive-sa-coaching/references/DEMO_ARCHETYPES.md`:
-- AI Search + Assistant
-- Operational Triage Console
-- Customer Support Intelligence
-- E-Commerce with Analytics
-- Domain Expert Advisor
-
-**Skip condition:** If discovery notes, a diagnostic file, or prior pipeline outputs
-(`{slug}-discovery.json`, `{slug}-ideation.md`) already exist, ideation is skipped.
-
-**Output contract** (`{slug}-ideation.md`) includes:
-- Chosen archetype + rationale
-- Top 3 wow moments
-- Main demo paths (happy paths with user actions and expected outcomes)
-- Elastic capability map (2-4 capabilities, outcome-first)
-- Data strategy (starter vs custom, volume minimum)
-- Operational transparency flag (token visibility — see D-036)
-- Workflow automation proposals if applicable
-- Build path (Quick / Customized / Custom Data / Full Custom) with time estimate
-
-**Rationale:** The pipeline previously assumed discovery notes would always be provided
-upfront. In practice, many engagements start with "I have a meeting next week — what
-should I show?" This stage answers that before committing to a build direction.
-
-**Applied to:** `skills/demobuilder/SKILL.md` (Step 0b and Stage 0),
-`skills/demo-ideation/SKILL.md` (new skill), `skills/demo-script-template/SKILL.md` (Step 1b).
+**Status:** Active  
+**Enforced by:** `demo-data-modeler` Step 5c — `{prefix}agent-sessions` index included in `build_order` when Agent Builder is in scope. Opt-out via `INCLUDE_TOKEN_VISIBILITY=false` in `.env`.
 
 **Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
 
 ---
 
-## D-036: Token visibility as a standard demo feature for Agent Builder engagements
+## D-037: Audience-scoped subfolders within the engagement directory
 
-**Decision:** Any demo that includes **Elastic Agent Builder** must include an **AI Cost +
-Usage dashboard** as a standard deliverable, unless the SA explicitly opts out
-(`INCLUDE_TOKEN_VISIBILITY=false` in `.env`).
-
-**What is included:**
-1. **`{prefix}agent-sessions` index** — engagement-scoped, schema compatible with hive-mind
-   Group B token tracking. Hot-only ILM, delete after 90 days (D-027).
-2. **30-60 synthetic session documents** — covering 7-14 days of realistic AI agent usage,
-   realistic cost distribution ($0.02–$2.50/session), multiple models and agents.
-3. **ES|QL dashboard panels** — daily spend, cost by model, sessions by agent, average cost
-   per query, cache efficiency. Dashboard ID is stable (deterministic UUID from slug + "ai-usage").
-4. **A demo scene** in `{slug}-demo-script.md` titled "AI Cost + Usage — Operational Transparency"
-   with talking points for budget owners, IT governance, and CTO audiences.
-
-**Rationale:** Enterprises buying AI-powered solutions increasingly ask: "What does it cost
-to operate?" and "Who can see the usage?" The ability to show operational transparency and
-AI cost governance is a differentiated capability that transforms a demo from a feature
-showcase into a platform story. It lands especially well with finance and IT leadership.
-
-**Index schema:** See `skills/token-visibility/SKILL.md` for the full mapping, cost formula,
-and ES|QL queries. The schema is intentionally compatible with hive-mind Group B so SAs
-can compare their own session patterns against the demo data.
-
-**Applied to:** `skills/demo-data-modeler/SKILL.md` (Step 5c), `skills/demo-deploy/SKILL.md`
-(Step 13j), `skills/demo-script-template/SKILL.md` (token visibility scene), `skills/token-visibility/SKILL.md`.
-
-**Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
-
----
-
-## D-029 — Agent Builder: skills vs. tools — use `configuration.skill_ids` for platform skills
-
-**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `bootstrap.py` step 8f
-
-**Context:** Agent Builder 9.4 introduced a Skills catalog (`GET /api/agent_builder/skills`) alongside
-the existing custom tools API. Skills are platform capability bundles (system instructions + tool_ids)
-that are linked to an agent via `configuration.skill_ids` — a sibling field to `configuration.tools`
-in the agent PUT/POST body. This is distinct from `configuration.tools[].tool_ids` which lists
-individual tool IDs (custom and platform.core.*).
-
-**Decision:**
-- Platform skills (`data-exploration`, `visualization-creation`, etc.) go in `configuration.skill_ids`
-- Individual tools (custom ES|QL, index_search, workflow, platform.core.*) go in `configuration.tools[0].tool_ids`
-- Agent instructions should reference both skills and tools explicitly by name
-- Skills endpoint: `GET /api/agent_builder/skills` — always probe to confirm available skill IDs before deploying
-
-**API shape confirmed on 9.4:**
-```json
-{
-  "configuration": {
-    "instructions": "...",
-    "tools": [{"tool_ids": ["custom-tool-id", "platform.core.search"]}],
-    "skill_ids": ["data-exploration", "visualization-creation"]
-  }
-}
-```
-
-**Date:** 2026-04-22 | **Session:** Citizens Bank 9.4 deployment
-
----
-
-## D-037: Engagement folder reorganization — audience-scoped subfolders
-
-**Status:** Active | **Applies to:** All pipeline skills, `scripts/inventory.py`, `docs/pipeline.md`
-
-**Context:** As the demobuilder pipeline grew to 15+ output files per engagement, all artifacts
-landed flat in `{slug}/`. AEs and SDRs had to navigate technical data model files to find the
-team alignment doc. SEs looking for deployment scripts had to scroll past customer-facing docs.
-Confusion about which files to share externally vs. keep internal was increasing.
-
-**Decision:** Organize all engagement outputs into four audience-scoped subfolders under `{slug}/`:
+**Status:** Active  
+**Enforced by:** Orchestrator Step 1 `mkdir -p` pattern creates all four subdirectories. Every skill output path spec uses the appropriate subfolder. No skill writes files to the engagement root except `.env` and `.env.example`.
 
 | Folder | Audience | Contents |
-|--------|----------|----------|
-| `opportunity/` | AE, SDR, SA | Customer-facing docs + team alignment gate (confirmation, gaps, brief, MEDDPIC summary) |
-| `demo/` | SA | Design intelligence: discovery JSON, diagnostic outputs, platform audit, demo script, agent spec |
-| `data/` | SA, engineer | Data model, ML config, Vulcan outputs, `mappings/`, `pipelines/`, `seed/` |
-| `deploy/` | SA | `bootstrap.py`, `teardown.py`, provision log, deploy log, checklists, risks, Kibana objects |
-
-**Exception:** `.env` and `.env.example` remain at the **engagement root** (not in a subfolder).
-They are sourced by scripts using `source {engagement_dir}/.env` which assumes the root convention.
-Moving them into a subfolder would break all shell-level sourcing patterns.
-
-**Rationale:**
-- AEs and SDRs open `opportunity/` and find exactly what they need for the team call — no scrolling past ML config files.
-- When sharing a confirmation doc externally, the SA sends `opportunity/{slug}-confirmation.md` without needing to filter.
-- `deploy/` is the boundary for scripts that touch live clusters — clearly separated from the planning artifacts.
-- `data/` groups everything an engineer needs to build or debug the data layer, including sub-directories for mappings and pipelines.
-
-**Migration for existing engagements:** Move files manually or re-run the relevant pipeline stages.
-The orchestrator will create subfolders automatically on any new engagement. `scripts/inventory.py`
-searches `{subfolder}/{filename}` patterns when falling back to file scan.
-
-**Applied to:** All 15 skill `SKILL.md` files, `skills/demobuilder/SKILL.md` (orchestrator),
-`scripts/inventory.py` `STAGE_OUTPUTS`, `docs/pipeline.md` workspace layout section.
+|---|---|---|
+| `opportunity/` | AE, SDR, SA | Customer-facing docs, team alignment gate |
+| `demo/` | SA | Discovery JSON, diagnostic, platform audit, script, agent spec |
+| `data/` | SA, engineer | Data model, ML config, Vulcan outputs, mappings, pipelines, seed |
+| `deploy/` | SA | `bootstrap-data.py`, `main.tf`, teardown, checklist, risks, `asset-bundle/` |
 
 **Date:** 2026-05-01 | **Session:** Engagement folder reorganization
 
 ---
 
-## D-038: Terraform deploy mode via `DEPLOY_MODE` env var
+## D-038: Terraform deploy mode via `DEPLOY_MODE` env var; Terraform-first
 
-**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-teardown/SKILL.md`, `skills/demo-cloud-provision/SKILL.md`
+**Status:** Active  
+**Enforced by:** `demo-bootstrap-generator` SKILL.md routes to ECH or Serverless Terraform variant when `DEPLOY_MODE=terraform` (default). Python mode (`DEPLOY_MODE=python`) is the legacy fallback for toolchain issues only. New engagements use Terraform.
 
-**Decision:** `bootstrap.py` generation is augmented with a **Terraform path** selected by `DEPLOY_MODE=terraform` in `.env`. When active:
-
-- **Layer 1 (cloud provisioning):** `ec_deployment` / `ec_elasticsearch_project` via `terraform-provider-ec` replaces the Elastic Cloud API calls in `demo-cloud-provision`.
-- **Layer 2 (stack resources):** Generated `deploy/main.tf` + `deploy/{slug}.tfvars` + `deploy/providers.tf` cover all Terraform-manageable resources: ILM/DSL, ingest pipelines, component templates, index templates, indices, data streams, enrich policies (create only), ML jobs/datafeeds, inference endpoints, Kibana spaces, connectors, alerting rules, NDJSON saved objects import, Agent Builder agents/tools, Workflows (`kibana_agentbuilder_agent`, `kibana_agentbuilder_tool`, `kibana_agentbuilder_workflow` are confirmed resources in `elasticstack` provider as of 2026-05).
-- **Layer 3 (data + ops):** `deploy/bootstrap-data.py` (Python) handles what Terraform cannot: enrich policy execution + polling, bulk seed data ingestion, ELSER warm-up, anomaly injection, and D-039 manifest write.
-- `terraform plan` serves as the reviewable deployment artifact at the D-024 approval gate.
-- `terraform destroy` is the primary teardown mechanism; `teardown.py` handles data indices + manifest cleanup.
-- Terraform state stored in `deploy/terraform.tfstate` (local default; configurable to S3/GCS). State file is gitignored.
-- `DEPLOY_MODE=python` (default) keeps existing `bootstrap.py` behavior unchanged. New engagements should use `terraform` once the path is validated end-to-end.
-
-**Provider currency:** Before generating HCL, validate `elasticstack` and `ec` provider versions against latest GitHub releases (D-041).
-
-**Reference:** `skills/demo-deploy/references/terraform-patterns.md`
+**Layer split:**
+- **Terraform (`main.tf`):** ILM/DSL, ingest pipelines, component templates, index templates, indices, data streams, inference endpoints, ML jobs/datafeeds, enrich policies (create only), Kibana spaces, connectors, alerting rules, saved objects import, Agent Builder agents/tools, Workflows
+- **Python (`bootstrap-data.py`):** Enrich policy execution + polling, bulk seed data ingestion, ELSER warm-up, anomaly injection, D-039 manifest write
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
 
 ---
 
-## D-039: Dynamic asset manifest replaces D-031 static schema
+## D-039: Dynamic asset manifest — trusted source for teardown
 
-**Status:** Active — supersedes D-031 | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-teardown/SKILL.md`, `skills/demo-fleet-integrations/SKILL.md`
-
-**Decision:** The D-031 manifest schema used fixed category keys (`ilm_policies`, `ingest_pipelines`, etc.). This schema is replaced with an **open-list format**:
-
-- **`assets.elasticsearch`**: flat list of `{"type": "...", "id": "..."}` records; any new asset type is a new entry, no schema migration needed.
-- **`assets.kibana.by_space`**: dict keyed by `space_id`, each value a list of `{"type": "...", "id": "..."}` records. Multi-space engagements work naturally; teardown iterates spaces to scope deletes.
-- Extra fields (`name`, `task_type`, `version`, etc.) are carried as additional keys on the same record object.
-
-New Python helpers: `_manifest_add_es(type, id, **meta)` and `_manifest_add_kibana(space_id, type, id, **meta)` replace the old `_manifest_add()`.
-
-Teardown uses a **dispatch table** keyed on `type` (see `skills/demo-deploy/references/teardown-dispatch.md`) rather than iterating hardcoded inventory lists. New asset types require only a handler entry in the dispatch table.
-
-**Reference:** `skills/demo-deploy/references/asset-manifest.md`, `skills/demo-deploy/references/teardown-dispatch.md`
+**Status:** Active — supersedes D-031  
+**Enforced by:** `bootstrap-data.py` template defines `_manifest_add_es(type, id, **meta)` and `_manifest_add_kibana(space_id, type, id, **meta)` helpers. These are called after every resource creation. `demo-teardown` reads the manifest at `GET /demobuilder-manifests/_doc/{engagement_id}` as the primary delete source. The manifest index is never deleted.
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
 
 ---
 
-## D-040: Agent Builder and Workflows are supported in Terraform mode
+## D-040: Agent Builder and Workflows supported in Terraform mode
 
-**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`
-
-**Decision:** As of 2026-05, `elastic/terraform-provider-elasticstack` includes confirmed resources for Agent Builder and Workflows:
-- `elasticstack_kibana_agentbuilder_agent`
-- `elasticstack_kibana_agentbuilder_tool`
-- `elasticstack_kibana_agentbuilder_workflow`
-
-When `DEPLOY_MODE=terraform`, Agent Builder agents/tools and Workflows are generated as Terraform resources in `main.tf`. This supersedes the earlier assumption that these would require Python. Skills still use Python for complex agent configuration that cannot be expressed declaratively (e.g. probe-based skip logic, conditional tool wiring based on runtime feature detection).
+**Status:** Active  
+**Enforced by:** `demo-bootstrap-ech` and `demo-bootstrap-serverless` Terraform patterns include `elasticstack_kibana_agentbuilder_agent`, `elasticstack_kibana_agentbuilder_tool`, and `elasticstack_kibana_agentbuilder_workflow` resources. Complex conditional tool wiring that cannot be expressed declaratively uses Python in `bootstrap-data.py`.
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
 
 ---
 
-## D-041: Pipeline-wide Reference Currency Gate replaces D-034
+## D-041: Pipeline-wide Reference Currency Gate
 
-**Status:** Active — supersedes D-034 | **Applies to:** `skills/demobuilder/SKILL.md` Step 0
-
-**Decision:** The narrow D-034 currency check (demobuilder + hive-mind only) is replaced by a **pipeline-wide Reference Currency Gate** covering all 8 external repositories used by the pipeline. The gate runs at **Step 0 of the orchestrator** before any pipeline stage starts.
-
-**Registry:** `skills/demo-deploy/references/reference-repos.md` is the authoritative list of all repos, their default paths, env var overrides, check methods, scope conditions, and blocking rules.
-
-**Rules:**
-- **Blocking**: Only `elastic/demobuilder` itself causes a pipeline halt if stale (ask SA before continuing).
-- **Warn-and-continue**: All other repos (hive-mind, agent-skills, workflows, kibana-agent-builder-sdk, vulcan, Terraform providers). Note stale state, recommend pull/update, proceed unless SA objects.
-- **Scope-conditional**: Terraform providers only checked when `DEPLOY_MODE=terraform`; `workflows` and `kibana-agent-builder-sdk` repos only when those features are in demo scope; vulcan only when demo-vulcan-generate is in scope.
-- **Missing optional repo**: Log `⏭ not installed — skipping`. Never error.
-
-Individual skills invoked directly (not via orchestrator) run a scoped subset covering their specific repo dependencies at minimum.
+**Status:** Active — supersedes D-034  
+**Enforced by:** Orchestrator Step 0 — runs currency checks for all repos in `references/reference-repos.md` before any pipeline stage. Only `elastic/demobuilder` is blocking; all others warn-and-continue.
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
 
 ---
 
-## D-043: Integration-first data sourcing and asset-after-schema ordering
+## D-042: Reference file authority — `references/` files win over SKILL.md prose
 
-**Status:** Active | **Applies to:** `skills/demo-data-modeler/SKILL.md`, `skills/demo-deploy/SKILL.md`, `skills/demo-script-template/SKILL.md`
+**Status:** Active  
+**Enforced by:** SKILL.md files are stripped of inline constants, thresholds, and API shapes and replaced with `→ see references/{file}.md`. When a value in a reference file conflicts with text in a SKILL.md, the reference file wins. This is enforced by removing inline copies — a decision in prose is not an enforcement mechanism.
 
-**Decision:** Three binding rules for all engagements:
+**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
 
-### Rule 1 — Agent-based integrations for Observability and Security; use package assets first
+---
 
-For any scenario with an Observability or Security primary domain, data sources **must** come from Elastic Agent Fleet integrations (EPR packages), not Prometheus scrapers, custom DCGM/kube-state-metrics streams, or any other custom-named data stream that duplicates a shipped integration.
+## D-043: Integration-first data sourcing; schema gate before any asset authoring
 
-- Correct: `metrics-kubernetes.pod-*`, `metrics-nginx.stubstatus-*`, `metrics-nvidia_gpu.stats-*`, `logs-system.syslog-*`
-- Incorrect: `metrics-k8s.state.prometheus-*`, `metrics-gpu.dcgm.prometheus-*`, any ad-hoc stream named after a Prometheus exporter
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` is a hard gate — Step 1 (probe) must complete and write `asset-bundle/asset-schema.json` before Step 2 (author assets) begins. No asset that queries an index may be authored until that index's field schema is confirmed in `asset-schema.json`. This is structural: `demo-bootstrap-generator` reads `asset-schema.json` as a required input and halts if it's absent or empty.
 
-**Package assets take precedence over custom-authored assets.** When a Fleet integration package is installed, it ships dashboards, detection rules, ML jobs, data views, alerts, and ingest pipelines. These must be used as the primary demo assets unless the SA explicitly specifies otherwise:
+**Three binding rules:**
 
-- **Dashboards**: use the package's shipped dashboards; extend or supplement with custom panels only if the package dashboard does not cover a required demo scene
-- **Detection rules / ML jobs**: use the package's prebuilt rules and jobs (following D-032 clone-don't-modify for rules); do not author parallel custom rules for the same signal
-- **Data views**: use the package's installed data view; do not create a duplicate data view for the same index pattern
-- **Ingest pipelines**: use the package's pipeline; add a custom pipeline only as a downstream processor if engagement-specific enrichment is needed
+**Rule 1 — Agent-based integrations for Obs/Sec; use package assets first:**
+- Observability/Security data comes from Fleet integrations (EPR packages), not Prometheus scrapers
+- Package-shipped assets (dashboards, rules, ML jobs, data views) are used as-is unless inadequate for a required demo scene. Custom assets fill gaps only.
+- Probe sequence: `GET /api/fleet/epm/packages/{name}` + `GET /api/fleet/epm/packages/{name}/assets` before authoring any custom asset for that domain
 
-**Embeddable visualizations in custom dashboards:** When building a custom dashboard, scan for already-deployed Kibana assets that tell part of the story and embed them directly rather than re-creating equivalent visualizations from scratch:
+**Rule 2 — Custom search mappings may be iterative:**
+- Custom indices for search use cases may evolve. No special gate beyond D-025 field-type compliance.
 
-- **SLOs**: embed via `"type": "slo_overview"`, `"slo_alerts"`, `"slo_burn_rate"`, or `"slo_error_budget"` panel types with `"config": { "sloId": "<id>", "instanceId": "*" }`
-- **ML anomaly results**: embed the ML job's swimlane or heatmap via `"type": "vis"` with `"config": { "ref_id": "<ml-results-vis-id>" }` — retrieve the saved object ID with `GET /api/ml/results/anomaly_charts`
-- **Discover sessions / saved searches**: embed via `"type": "discover_session"` with `"config": { "ref_id": "<saved-search-id>" }`
-- **Other Lens / aggregation-based visualizations**: embed via `"type": "vis"` with `"config": { "ref_id": "<vis-id>" }` — look up IDs with `GET /api/saved_objects/_find?type=visualization`
-
-The probe sequence must include `GET /api/fleet/epm/packages/<name>` and `GET /api/fleet/epm/packages/<name>/assets` to discover what the installed package provides before any custom asset is authored for that domain.
-
-Exceptions: SA explicitly confirms (a) no Fleet integration exists for the technology, (b) the customer's actual architecture is Prometheus-native and the demo must mirror it, or (c) a specific package asset is inadequate for a required demo scene. Document the exception in the engagement's `{slug}-risks.md`.
-
-Custom search indices (e.g. `lg-clinical-corpus`, `cb-fraud-claims`) are always Path B and are not subject to Rule 1.
-
-### Rule 2 — Custom search mappings may be iterative
-
-Custom indices for search use cases (`strategy: "custom"`, Path B) are expected to evolve: author mapping → deploy → test query → refine. This is normal. No special gate applies beyond standard D-025 field-type compliance.
-
-### Rule 3 — Asset ordering: schema must exist before assets that query it
-
-**No dashboard panel, alerting rule, SLO query, workflow step, or Agent Builder tool that references an index may be authored or deployed until:**
-
-1. `GET /_index_template/<name>` confirms the template exists, **AND**
-2. `GET /_component_template/<name>@package` (for integration streams) or `GET /<index>/_mapping` (for custom indices) confirms the field schema, **AND**
-3. For integration streams with no live agent data yet: the component template field list serves as the schema source. For custom indices: at least one document must exist before dashboard authoring begins.
-
-**The mandatory probe sequence** (run at Step 2b of demo-deploy, before authoring any asset):
+**Rule 3 — Schema must exist before assets that query it:**
 ```
-GET /_index_template/*                          # discover available templates
-GET /_component_template/<name>@package         # read integration field schema
-GET /_data_stream/<name>                        # confirm data stream exists
-GET /<index>/_mapping                           # for custom indices, confirm actual fields
+GET /_index_template/*
+GET /_component_template/{name}@package   # integration streams
+GET /{index}/_mapping                      # custom indices
 ```
-
-Violating Rule 3 is the root cause of "Unknown column", "no such index", and "empty dashboard" failures. It is never acceptable to write a query against a field name that was not confirmed to exist via the above probes.
+No dashboard panel, alerting rule, SLO query, workflow step, or Agent Builder tool that references an index may be authored until these probes confirm the field schema. Violating Rule 3 is the root cause of "Unknown column", "no such index", and "empty dashboard" failures.
 
 **Date:** 2026-05-05 | **Session:** lenovo-gaiaas dashboard rebuild
 
 ---
 
-## D-042: Reference file authority — canonical sources for pipeline constants and configuration
+## D-044: All mapped fields in custom indices must be populated at seed time
 
-**Status:** Active | **Applies to:** All skills and generated scripts
+**Status:** Active  
+**Enforced by:** `bootstrap-data.py` template — `assert_viz_fields_populated(index, viz_fields)` is called after every `_bulk_index` for a custom index. Raises `RuntimeError` if any viz-queried field has nulls, halting the bootstrap before any dashboard creation step runs. `demo-data-modeler` Step 4 requires the field population checklist table before the data model is finalized.
 
-**Decision:** The following files under `skills/demo-deploy/references/` are the **canonical sources** for their respective domains. Skills and generated scripts cite them rather than hardcoding values. Updates to these files propagate automatically to all downstream consumers.
+**Rules:**
+1. Every viz-queried field must be non-null in 100% of seed documents
+2. Every mapped field must have a non-null value (use sentinels: `"none"`, `"unknown"`, `0.0` for fields with no business value)
+3. Derived fields (`risk_label`, `on_track`, etc.) computed and stored at seed time — never deferred to query time
+4. `bootstrap-data.py` validation gate runs `POST /{index}/_count {"query": {"exists": {"field": "{field}"}}}` for every viz-queried field after seeding
 
-| File | Domain |
-|------|--------|
-| `reference-repos.md` | External repo registry (paths, check methods, scope conditions) |
-| `pipeline-constants.md` | Numeric thresholds, special index names, UUID5 namespace, header values, token visibility defaults |
-| `feature-compatibility.md` | Version gates, feature availability by deployment type, ILM vs DSL rules |
-| `inference-config.md` | ELSER/reranker service names, model IDs, task types by deployment type |
-| `kibana-api-registry.md` | Kibana API paths, feature probe endpoints, auth requirements |
-| `teardown-dispatch.md` | Deletion ordering, asset-type → API path dispatch table |
-| `terraform-patterns.md` | HCL patterns for Terraform mode generation |
-| `env-reference.md` | All `.env` variable definitions and the `.env-sample` template |
-| `asset-manifest.md` | Manifest schema, Python helpers, and teardown inventory pattern |
+**Anti-pattern:** `tf-entity-store` deployed with `risk_label` null in all seed docs → `Unknown column [risk_label]` from ES|QL → broken panel rendering propagated to neighboring panels in the same dashboard.
 
-When a value in these files conflicts with text in a `SKILL.md` or `docs/decisions.md`, the reference file wins. Update the SKILL or decision text to point to the reference file.
-
-**Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
+**Date:** 2026-05-05 | **Session:** ThermoFisher PM demo — null field audit
 
 ---
 
-## D-043: Data views are time-axis declarations — one per (index, time-semantic) pair
+## D-043b: Data views are time-axis declarations — one per (index, time-semantic) pair
 
-**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-data-modeler/SKILL.md`, all `bootstrap.py` and Terraform data view creation
-
-**Decision:** A Kibana data view is not just an index alias — its `timeFieldName` is the declaration of which date field the dashboard time picker controls for `formBased` (aggregation) layers that reference it. Different visualizations over the same index may have different time semantics (e.g., "when was this risk score calculated?" vs. "when is the project deadline?"). Each distinct time-semantic requires its own data view.
+**Status:** Active  
+**Enforced by:** `demo-data-modeler` Step 4b — required output is a `data_views` section inventorying every date field per index with its semantic meaning. Multiple time semantics on one index require multiple data views. This is checked by `demo-validator` Step 2 data layer checks.
 
 **Rules:**
-
-1. **One data view per (index, time-semantic) pair.** Never create a single catch-all data view and assume it serves all visualizations over that index.
-
-2. **Naming convention:** Primary data view uses the index name directly. Secondary data views append the semantic intent: `{index-pattern}-deadline`, `{index-pattern}-start`, etc.
-
-3. **`formBased` layers:** `timeFieldName` controls the automatic time filter. Aligning the data view to the visualization's intent is mandatory — a mismatch silently returns the wrong time slice without any error.
-
-4. **`textBased` (ES|QL) layers:** `timeFieldName` does NOT inject a time filter automatically. The query must include `WHERE {field} >= ?_tstart AND {field} <= ?_tend` with the semantically correct field. This provides per-visualization time-field flexibility regardless of the data view's declared time field.
-
-5. **Seed data:** Every document in an index used by a time-filtered dashboard MUST have a non-null value in the relevant date field at seed time. A null date field makes the document invisible when any time filter is active.
-
-6. **Evaluate at data model time:** When `demo-data-modeler` produces index definitions, it MUST inventory every date field per index, state the semantic meaning of each, and propose data views accordingly. Do not defer this to bootstrap or dashboard build time.
-
-**Anti-pattern to avoid:** Creating `tf-portfolio-projects` with `timeFieldName: updated_at`, then building a "Projects by Deadline" visualization using a `formBased` layer — the dashboard time picker will filter on `updated_at` (last status refresh) not `target_completion` (the deadline), producing wrong results with no visible error.
-
-**Reference:** `skills/demo-deploy/references/kibana-api-registry.md` → "Data View Time Semantics — Architectural Rule"
+1. One data view per (index, time-semantic) pair
+2. `formBased` layers: `timeFieldName` controls automatic time filter — must match visualization intent
+3. `textBased` (ES|QL) layers: `timeFieldName` does NOT inject a time filter automatically; query must include `WHERE {field} >= ?_tstart AND {field} <= ?_tend`
+4. Seed data must populate every `timeFieldName` field with a non-null value
 
 **Date:** 2026-05-05 | **Session:** ThermoFisher PM demo — dashboard time picker alignment
 
 ---
 
-## D-044: All mapped fields in custom indices must be populated at seed time
+## D-045: demo-asset-verifier is the mandatory gate between planning and deployment
 
-**Status:** Active | **Applies to:** `skills/demo-deploy/SKILL.md`, `skills/demo-data-modeler/SKILL.md`, all `bootstrap.py` seed data generation
+**Status:** Active  
+**Enforced by:** `demo-bootstrap-generator` halts with a clear error if `deploy/asset-bundle/asset-schema.json` does not exist. The orchestrator routes Stage 5 (new) to `demo-asset-verifier` before Stage 6 (new) `demo-bootstrap-generator`. There is no path from planning artifacts directly to Terraform/Python generation.
 
-**Decision:** Every field that appears in a custom index mapping must be populated with a non-null value in every seed document, unless a specific `null` value has explicit business meaning AND is documented in the data model. An empty custom index with null fields is not deployable.
+**Rationale:** The prior `demo-deploy` skill tried to do everything: read prose, probe APIs (sometimes), design assets, and generate scripts in one pass. This allowed schema probe to be skipped silently and custom code to be written from memory instead of confirmed facts. Splitting into a verification gate and a generation step makes skipping the probe structurally impossible.
 
-**Rules:**
+**Date:** 2026-05-05 | **Session:** demobuilder postmortem and refactor
 
-1. **Every viz-queried field must be confirmed populated before bootstrap deploys vizzes.** At minimum: any field named in a `WHERE`, `STATS`, `BY`, `SUM`, `AVG`, `MAX`, `MIN` clause must exist in the index mapping AND have non-null values in every document.
+---
 
-2. **Every mapped field must have a non-null value.** If a field is in the mapping and has no known value at seed time, either remove it from the mapping or populate it with a meaningful default (e.g., `"none"`, `"unknown"`, `0.0`). A `null` value stored in `_source` is invisible to ES|QL and causes `Unknown column` errors.
+## D-046: `bootstrap-data.py` is for data operations only
 
-3. **Derived fields must be computed at seed time, not deferred.** Fields like `risk_label` that are derived from another field (e.g., `risk_score`) must be computed and stored during seeding — never left null with the expectation that a query will derive them at read time. ES|QL does not store computed values.
+**Status:** Active  
+**Enforced by:** `demo-bootstrap-ech` and `demo-bootstrap-serverless` skill specs explicitly list what belongs in `main.tf` vs `bootstrap-data.py`. Any infrastructure API call (index create, template create, ILM, inference endpoint, ML job, Kibana space, dashboard, rule, SLO, agent, workflow) is a Terraform resource. Python is limited to: enrich policy execution+polling, bulk data indexing, ELSER warm-up, anomaly injection, D-039 manifest write.
 
-4. **bootstrap.py validation gate:** After seeding each index, run `POST /{index}/_count` with `"query": {"exists": {"field": "{field}"}}` for every field used by a visualization and assert the count matches the total document count. Fail the step if any viz-queried field has nulls.
+**Rationale:** A 900-line bootstrap.py mixing infrastructure creation with data operations is the root cause of inconsistent deployments. Terraform manages infrastructure state; Python handles what Terraform structurally cannot.
 
-**Anti-pattern that caused this rule:** `tf-entity-store` was deployed with `risk_label` absent from the mapping and null in all 5 seed documents. The viz `tf-viz-d3-highrisk` queried `risk_label == "HIGH"` and received `Unknown column [risk_label]` from ES|QL, causing the panel to render as a broken empty canvas. Additionally, a neighboring panel in the same dashboard (`tf-viz-d3-vendors`) rendered as broken even though its own data was valid, because Kibana propagates panel error state within a dashboard view.
+**Date:** 2026-05-05 | **Session:** demobuilder postmortem and refactor
 
-**Date:** 2026-05-05 | **Session:** ThermoFisher PM demo — null field audit
+---
+
+## D-047: hive-mind patterns are template inputs to skill calls, not standalone reading tasks
+
+**Status:** Active  
+**Enforced by:** `demo-asset-verifier` Step 2 skill dispatch — when calling a skill for a given asset class, the relevant hive-mind pattern file is passed as a context input to that skill call. It is not a separate "read before proceeding" prose instruction. Example: calling `hive-workflows` skill includes `hive-mind/patterns/workflows/WORKFLOWS_API_REFERENCE.md` as an explicit input.
+
+**Rationale:** "Read hive-mind X before doing Y" in a SKILL.md is a prose instruction that may or may not be followed depending on context window state. Passing the pattern as a direct input to the skill call makes it structurally present during authoring.
+
+**Date:** 2026-05-05 | **Session:** demobuilder postmortem and refactor

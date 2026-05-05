@@ -20,37 +20,16 @@ Everything you produce must be valid, runnable Elasticsearch configuration — n
 not placeholders. An SE should be able to take your output, run it against a cluster, and
 have a working data layer.
 
-**Deployability (D-025):** Every field type, API body, and pipeline processor you write must
-be valid for the **resolved target stack version**. Generic or invented types are not
-acceptable — use `keyword`, `text`, `date`, `semantic_text`, etc. as the stack requires.
+**Deployability:** → **D-025**. Use Elasticsearch field types only. Generic or invented types are not acceptable.
 
 ## Step 0: Resolve the Target Stack Version
 
-**Baseline: 9.4+ (D-033).** All generated artifacts use **9.4 ECH / Serverless API shapes**.
-Pre-9.4 compatibility shims are not generated. If the engagement's cluster is confirmed to be
-below 9.4, flag it as a blocker in `{slug}-risks.md` and do not proceed to artifact generation
-until the cluster is updated.
+**Baseline: 9.4+ → D-033.** Read version from `demo/{slug}-platform-audit.json` (`platform.version`, `platform.version_verified`), then `demo/{slug}-current-state.json`, then `.env ELASTIC_VERSION` (informational only). If version is unverified, flag it as a risk and do not proceed.
 
-**Confirm the live version** before authoring any mapping, template, or pipeline:
-
-1. **`demo/{slug}-platform-audit.json`** — read `platform.version` and `platform.version_verified`
-2. **`demo/{slug}-current-state.json`** — read `version` (from diagnostic analyzer output)
-3. **`.env`** — read `ELASTIC_VERSION` (informational; treat as unverified unless also in audit)
-4. **Ask the SA** — if none of the above are available, ask before proceeding
-
-If the version is unverified (no live `GET /` or diagnostic), state this explicitly in the
-data model output header and flag it as a risk in `deploy/{slug}-risks.md`.
-
-**9.4 API shapes to use (D-033):**
-- **Inference endpoints:** EIS (`service: "elastic"`, `model_id: ".elser-2"`) for ECH;
-  `service: "elser"` for Serverless. Do not use `service: "elasticsearch"` for embeddings (D-028).
-- **Inference GET response:** `{"endpoints": [...]}` wrapper — unwrap before reading `service`.
-- **ILM:** Hot-only by default; never `rollover` on plain indices (D-027).
-- **Data views:** `POST /api/data_views/data_view` (9.x shape).
-- **Agent Builder:** v0.2.0 shape — `configuration.skill_ids` and typed tool list (D-029).
-- **Alerting rules:** 9.x `windows` array schema for SLO burn-rate rules.
-
-See `docs/decisions.md` **D-025**, **D-033** and `skills/demo-deploy/references/serverless-differences.md`.
+**API shapes for 9.4+ → see `references/feature-compatibility.md` and `references/inference-config.md`:**
+- Inference: → D-028. ECH: `service: "elastic"`. Serverless: `service: "elser"`. Never `service: "elasticsearch"` for embeddings.
+- ILM: → D-027. Hot-only default; never `rollover` on plain indices.
+- Agent Builder: → D-029. `configuration.skill_ids` + typed tool list.
 
 ## Step 0b: Check for Vulcan Outputs (optional fast path)
 
@@ -163,27 +142,9 @@ On indices where dynamic mapping is acceptable (e.g., enrichment lookup tables),
 - Small lookup/metadata indices (< 1GB): 1 primary shard
 - Default replica count: 1 (adjust based on platform audit output)
 
-**ILM (see D-027):**
-- **Default: hot-only.** Generate a hot phase (`set_priority`) + `delete` phase unless the
-  engagement explicitly requires tiered storage as part of the demo story.
-- **Plain indices (non-data-stream):** never use `rollover` — requires `index.lifecycle.rollover_alias`
-  and ERRORs immediately on any index without a write alias. `forcemerge` in hot also requires
-  rollover; omit it too.
-- **Data streams:** `rollover` is valid and appropriate when the engagement calls for it.
-- **Warm/cold/frozen phases:** only include when (a) the engagement requires it AND (b) those
-  node roles are present on the target cluster (`GET /_nodes?filter_path=nodes.*.roles`).
-- Lookup/seed data indices: no ILM needed.
+**ILM → D-027.** See `references/feature-compatibility.md` for canonical patterns. Hot-only default (`set_priority` + `delete`). Never `rollover` on plain indices. Warm/cold/frozen only when explicitly required by engagement scope AND node roles confirmed present. Lookup/seed indices: no ILM.
 
-**Inference endpoints (see D-028):**
-- Use **EIS** (`service: "elastic"`) for all text embedding and reranking inference — never
-  deploy these models on the cluster's ML nodes.
-- Reserve ML nodes for anomaly detection jobs, data frame analytics, and tasks that require
-  local execution.
-- EIS sparse embedding: `PUT /_inference/sparse_embedding/{id}` with `service: "elastic"`,
-  `model_id: ".elser-2"`
-- EIS reranking: `PUT /_inference/rerank/{id}` with `service: "elastic"`,
-  `model_id: "elastic-reranker-v1"`
-- Map `semantic_text` fields to the EIS inference endpoint id, not a local `.elser-*` deployment.
+**Inference endpoints → D-028.** See `references/inference-config.md` for canonical config by deployment type. Always EIS (`service: "elastic"` on ECH, `service: "elser"` on Serverless). Never deploy embedding models on ML nodes. ML nodes are for anomaly detection and data frame analytics only.
 
 ## Step 3: Design the Ingest Pipelines
 
@@ -282,14 +243,7 @@ is generated by a separate script), but the schema and value constraints:
 specific field values existing. Enumerate every document that must be present for a
 scenario to work.
 
-**Field population requirement (D-044) — mandatory for every custom index:**
-
-For every field in the mapping:
-
-1. **Every field must have a non-null value in every seed document.** Null fields are invisible to ES|QL. A field present in the mapping but null in `_source` causes `Unknown column` errors in visualizations.
-2. **Derived fields must be computed at seed time.** If a field is derived from another (e.g., `risk_label` from `risk_score`, `on_track` from `days_behind_plan`), compute the value and store it during seeding. Do not defer derivation to query time.
-3. **If a field has no meaningful value for a specific document, use a sentinel.** For keyword arrays with no items, store `["none"]`. For optional scores with no reading, store `0.0`. Document the sentinel in the data model.
-4. **At the end of the sample data spec, produce a field population checklist** — a table of every (index, field) pair used by any viz query with a confirmation that it will be non-null in all seed docs.
+**Field population → D-044.** Every mapped field must have a non-null value in every seed document. Derived fields (`risk_label`, `on_track`, etc.) computed and stored at seed time — never deferred to query time. Use sentinels for fields with no business value (`"none"`, `"unknown"`, `0.0`). Produce a field population checklist table at end of Step 4 (required output — demo-validator C-3 checks it).
 
 | Index | Field | Viz that queries it | Seed value / derivation |
 |---|---|---|---|

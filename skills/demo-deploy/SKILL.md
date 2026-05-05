@@ -1,21 +1,35 @@
 ---
 name: demo-deploy
+status: DEPRECATED — replaced by demo-asset-verifier + demo-bootstrap-generator
 description: >
-  Generates a `bootstrap.py` deployment script from the demobuilder pipeline outputs and
-  executes it against the target cluster specified in the engagement's .env file. Creates
-  whatever Elasticsearch and Kibana-side resources the **demo script, data model, platform
-  audit, and validator** scope for that engagement — search, Observability, Security,
-  hybrid, ML, semantic search, Agent Builder, etc. Provisions Kibana and related APIs
-  via automation (no default “finish in the UI”) for every asset class that is in scope.
-  Idempotent — safe to re-run if a step fails. Per-engagement .env isolates credentials.
-  Completion via manual UI is only acceptable when the platform audit documents a hard blocker.
+  DEPRECATED as of 2026-05-05. This skill has been split into two focused agents:
 
-  ALWAYS use this skill when the user says "deploy the demo", "run the bootstrap",
-  "set up the cluster", "load the data", "execute the deployment", or "it's ready to
-  build — deploy it". Also trigger when demo-validator returns go/conditional-go and
-  the user wants to proceed to actual deployment. Requires a .env file in the workspace
-  (run demo-cloud-provision first if one doesn't exist).
+  - demo-asset-verifier (Agent A): schema probing + asset authoring via elastic/agent-skills
+  - demo-bootstrap-generator (Agent B): Terraform + bootstrap-data.py generation
+
+  Use demo-asset-verifier → demo-bootstrap-generator instead of this skill.
+  This file is retained as a reference during the transition.
+
+  If the orchestrator routes here, redirect to demo-asset-verifier immediately.
 ---
+
+> ⛔ **DEPRECATED — DO NOT USE FOR NEW ENGAGEMENTS**
+>
+> This skill has been replaced by the two-stage deployment pipeline:
+>
+> **Stage 8b:** `demo-asset-verifier` — schema probe + asset authoring via elastic/agent-skills
+> **Stage 9:** `demo-bootstrap-generator` — Terraform HCL + bootstrap-data.py generation
+>
+> Read `../demo-asset-verifier/SKILL.md` instead.
+> See `docs/decisions.md` D-045, D-046, D-047 for rationale.
+>
+> This file is retained as a reference for understanding the prior bootstrap.py
+> structure during the transition period. It will be removed once demo-bootstrap-ech
+> and demo-bootstrap-serverless are validated end-to-end.
+
+---
+
+
 
 # Demo Deploy
 

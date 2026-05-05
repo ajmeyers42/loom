@@ -36,6 +36,47 @@ Collect everything available for this engagement:
 Note which files are missing — a missing data model or ML config means those items can't
 be verified automatically and must be marked as manual checks.
 
+## Step 1b: Mechanical Decision Compliance Check
+
+Before building the readiness checklist, run this binary compliance check against
+the pipeline outputs for this engagement. These are **pass/fail** — not judgment calls.
+A FAIL on any item is a **no-go blocker** regardless of other readiness status.
+
+| # | Decision | How to check | Pass condition | Fail action |
+|---|---|---|---|---|
+| C-1 | **D-033: Version gate** | Read `demo/{slug}-platform-audit.json` → `platform.version_verified` AND `asset-bundle/asset-schema.json` → `platform.version_gate_passed` | Both `true`; version ≥ 9.4 | NO-GO — version unverified or below 9.4 |
+| C-2 | **D-043: Schema probe ran** | Check `deploy/asset-bundle/asset-schema.json` exists and has `confirmed_schemas` entries | File exists, at least one schema entry for every index in data model | NO-GO — re-run demo-asset-verifier |
+| C-3 | **D-044: Field population** | Check `deploy/asset-bundle/asset-index.json` for any `"all_non_null_confirmed": false` | No false entries | NO-GO — fix null fields and re-run demo-asset-verifier |
+| C-4 | **D-025: ES|QL validation** | Check `deploy/asset-bundle/asset-index.json` for any `"validation_status": "failed"` queries | No failed queries | NO-GO — fix queries and re-run demo-asset-verifier |
+| C-5 | **D-045: Asset bundle exists** | Check `deploy/asset-bundle/asset-index.json` exists | File present | NO-GO — run demo-asset-verifier |
+| C-6 | **D-046: Infrastructure in Terraform** | Check `deploy/main.tf` or `deploy/main-serverless.tf` exists if deployment was generated | File present OR deployment not yet generated (allowed) | NO-GO if deployment generated but only `bootstrap.py` exists — must re-run demo-bootstrap-generator |
+| C-7 | **D-026: Engagement tags** | Search `deploy/main.tf` and `deploy/bootstrap-data.py` for `demobuilder:` tag string | Present in at least one resource in `main.tf` AND in `demobuilder_tags()` function in `bootstrap-data.py` | WARN — re-run demo-bootstrap-generator |
+| C-8 | **D-032: Managed assets checked** | Check `deploy/asset-bundle/asset-index.json` for any entry with `source: "package"` | At least one package-sourced entry if Fleet packages are installed for the demo domain (Obs/Sec) | WARN — demo-asset-verifier may have skipped package probe |
+| C-9 | **D-022: Solution-first narrative** | Read `demo/{slug}-demo-script.md` — does Scene 1 or the intro lead with business outcome before feature capabilities? | Yes, or demo is developer/technical audience where capability-first is appropriate | DELIVERY RISK for exec/mixed audiences |
+| C-10 | **D-015: T-10min cleanup** | Check `deploy/{slug}-demo-checklist.md` for `_delete_by_query` cleanup step | Present in "10 Minutes Before" section | WARN — add manually to checklist |
+
+**Output a compliance table before the readiness checklist:**
+
+```
+── Decision Compliance Check ──────────────────────────────────────────
+  C-1  D-033 Version gate          ✅ PASS  (9.4.2, verified)
+  C-2  D-043 Schema probe          ✅ PASS  (5 schemas confirmed)
+  C-3  D-044 Field population      ✅ PASS  (no null viz-queried fields)
+  C-4  D-025 ES|QL validation      ✅ PASS  (12/12 queries passed)
+  C-5  D-045 Asset bundle          ✅ PASS  (asset-index.json present)
+  C-6  D-046 Terraform infra       ✅ PASS  (main.tf present)
+  C-7  D-026 Engagement tags       ✅ PASS
+  C-8  D-032 Managed assets        ⚠  WARN  (no package entries — verify if Obs/Sec in scope)
+  C-9  D-022 Solution-first        ✅ PASS
+  C-10 D-015 T-10min cleanup       ✅ PASS
+
+  Overall compliance: PASS (1 warning — see C-8)
+──────────────────────────────────────────────────────────────────────
+```
+
+If any C-1 through C-6 is FAIL: set overall go/no-go to **NO-GO** immediately.
+Warnings (C-7 through C-10) contribute to risk register, not no-go.
+
 ## Step 2: Build the Verification Matrix
 
 For each component in the demo, define what "ready" looks like:
