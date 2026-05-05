@@ -1,18 +1,20 @@
 ---
 name: demo-ideation
 description: >
-  SA ideation stage for the demobuilder pipeline. Runs a structured consultative
-  conversation to help an SA select a demo direction, match Elastic capabilities to
-  a customer vertical, and produce a frozen "interview contract" that drives the rest
-  of the pipeline. Integrates Demo Archetypes from hive-mind and produces a concise
-  {slug}-ideation.md that feeds demo-script-template.
+  SA ideation stage for the demobuilder pipeline. Always runs as the SA's commit step —
+  either seeded from AE/SDR discovery outputs (expansion mode) or from scratch when no
+  prior context exists. Helps the SA review, modify, and freeze a demo direction before
+  any technical build work begins. After freezing, updates the customer-facing confirmation
+  document with technical-win framing. Integrates Demo Archetypes from hive-mind and
+  produces {slug}-ideation.md that feeds demo-script-template and demo-predefined-recommender.
 
-  ALWAYS use this skill when the SA doesn't have a clear demo direction, says
-  "help me figure out what to build", "I have a meeting with X but no idea what
-  to show", "I'm at a hackathon", "what archetype fits this customer", or
-  provides only a company name or vertical without any discovery notes. Also
-  trigger when running the full demobuilder pipeline from scratch — ideation
-  precedes discovery parsing when no prior context exists.
+  ALWAYS use this skill when the demobuilder orchestrator reaches the ideation stage —
+  ideation always runs; it is the SA's commit gate to demo direction. Also trigger when
+  the SA says "help me figure out what to build", "review the discovery and suggest
+  a direction", "I have a meeting with X", "what archetype fits this customer", or
+  provides a company name, vertical, or discovery outputs and wants to plan a demo.
+  Ideation runs after discovery/opportunity-review when those outputs exist, or from
+  scratch when they don't.
 ---
 
 # Demo Ideation
@@ -32,21 +34,55 @@ A well-designed demo that tells the right story beats a rushed build every time.
 
 ---
 
-## The Conversation Flow
+## Operating Modes
 
-Choose the path based on what the SA provides:
+Choose the mode based on what inputs are available:
 
-**Path A — Customer context available:** SA provides discovery notes, a company name,
-or background materials → run **Discovery Beat → Strategy Proposal → Plan Contract**.
+**Mode 1 — SA Expansion (AE/SDR outputs present):** `opportunity/{slug}-demo-goals.md`
+exists → run **Goals Review → Strategy Proposal → Plan Contract → Post-Ideation Refresh**.
+This is the standard path when the full pipeline runs in order. The SA reviews the
+pre-seeded direction, modifies or confirms, and freezes.
 
-**Path B — No customer or vague direction:** SA says they're exploring, at a hackathon,
-or has only a vertical → run **Ideation Beat → Strategy Proposal → Plan Contract**.
+**Mode 2 — Customer context available (no goals brief):** SA provides discovery notes,
+a company name, or background materials → run **Discovery Beat → Strategy Proposal
+→ Plan Contract → Post-Ideation Refresh**.
 
-Both paths converge at **Strategy Proposal**.
+**Mode 3 — From scratch:** SA has no customer or direction → run **Ideation Beat
+→ Strategy Proposal → Plan Contract → Post-Ideation Refresh**.
+
+All modes converge at **Strategy Proposal** and always end with **Post-Ideation Refresh**.
 
 ---
 
-## Path A: Discovery Beat (customer context available)
+## Mode 1: Goals Review (AE/SDR outputs present)
+
+When `opportunity/{slug}-demo-goals.md` exists, read it first. Then read
+`opportunity/{slug}-opportunity-profile.json` if available.
+
+Open by presenting what you found — the pre-seeded direction from the AE's work:
+
+> "I've read the discovery brief from the AE team. Here's what they captured and
+> the direction they're suggesting: [summary]. Before we commit to this, does this
+> feel right to you? What would you change or emphasise?"
+
+Walk the SA through the key elements from the goals brief:
+- **What success looks like** — do the technical win criteria reflect what the SA
+  expects to show? Adjust if needed.
+- **Suggested direction** — does the archetype and approach make sense? Note any
+  concerns or refinements.
+- **Open questions** — which of the SA's open questions can be answered now vs.
+  must be confirmed with the customer before build?
+
+After reviewing, move directly to **Strategy Proposal** with the refined direction.
+Do not restart from scratch — use the goals brief as the foundation.
+
+---
+
+## The Conversation Flow
+
+---
+
+## Mode 2 Path: Discovery Beat (customer context available, no goals brief)
 
 Summarize what you found in the provided context. Be specific — names, pain points,
 timeline. Then share initial thinking:
@@ -67,7 +103,7 @@ the SA. Propose and let them correct.
 
 ---
 
-## Path B: Ideation Beat (no customer or vague direction)
+## Mode 3 Path: Ideation Beat (no customer or vague direction)
 
 When the SA doesn't have a clear customer or idea, narrow the infinite space of
 "what should I build?" down to a concrete proposal — fast.
@@ -261,9 +297,67 @@ Steps: ...
 
 ---
 
+## Post-Ideation Refresh (all modes — runs after Plan Contract is frozen)
+
+After the SA confirms `demo/{slug}-ideation.md`, immediately update the customer-facing
+assets to reflect the committed direction.
+
+**This step is mandatory.** The SA cannot proceed to platform-audit until the updated
+confirmation is reviewed and approved. This is the SA's explicit sign-off.
+
+### Refresh `opportunity/{slug}-confirmation.md`
+
+Update the customer-facing confirmation document. Rules:
+- Use **technical-win framing** — what problem, what they'll see, what defines success
+- Do **not** use "predefined", "custom build", "standard demo", "bootstrap", or any
+  internal pipeline terminology
+- Do **not** reveal the build strategy to the customer
+- The language speaks to outcomes, not implementation
+
+Replace or add the following sections in the confirmation doc based on the frozen ideation:
+
+```markdown
+## What We'll Show You
+
+{Plain-language description of the demo experience — what the customer will see,
+grounded in their pain points from discovery. Written as a preview, not a feature list.
+E.g.: "We'll walk through how [role] at [company type] goes from scattered alerts
+across multiple systems to a single console where the AI does first-pass diagnosis —
+and what that means for response time and SLA adherence."}
+
+## How We Define a Successful Evaluation
+
+We'll know this demonstration has hit the mark when you can see:
+1. {Technical win criterion 1 from demo-goals.md — stated in customer language}
+2. {Technical win criterion 2}
+3. {Technical win criterion 3 if applicable}
+
+These are the outcomes we're designing toward. We'll close the session by reviewing
+each one together.
+```
+
+### Refresh summary section of `opportunity/{slug}-opportunity-summary.md`
+
+Update the **TL;DR** section to reflect the frozen demo direction. One sentence addition:
+"Demo direction: [archetype] focused on [top pain], targeting [audience], with
+[primary wow moment] as the lead outcome."
+
+### SA Approval Gate
+
+Present the updated confirmation excerpt to the SA:
+
+> "Here's how the confirmation doc reads after ideation. Does this accurately
+> represent what you're planning to show? Once you confirm, we'll proceed to
+> platform audit."
+
+Do not proceed to platform-audit until the SA explicitly confirms the updated confirmation.
+
+---
+
 ## Handing Off to the Pipeline
 
-After writing `demo/{slug}-ideation.md`, the orchestrator should use it as:
+After `demo/{slug}-ideation.md` is frozen and the confirmation refresh is approved,
+the orchestrator should use it as:
 - **Input to `demo-discovery-parser`** — if discovery notes are also available, the ideation
   contract gives the parser a target narrative to validate against
 - **Input to `demo-script-template`** — the contract replaces the "what should we show?" phase;

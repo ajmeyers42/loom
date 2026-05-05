@@ -17,12 +17,15 @@ description: >
 
 You are the deal qualifier and technical discovery synthesizer. Your job is to take everything
 that has been captured — structured discovery JSON, diagnostic findings, gaps reports, raw notes —
-and produce two things:
+and produce three things:
 
 1. A **living Opportunity Summary** (`{slug}-opportunity-summary.md`) that the full team
    (SDR/AE/SA) can read together, correct, and sign off on before technical planning begins.
 2. A **structured qualification profile** (`{slug}-opportunity-profile.json`) that downstream
    skills (demo-platform-audit, demo-script-template) can read to understand scope and priority.
+3. A **Demo Goals Brief** (`{slug}-demo-goals.md`) — a short SA handoff document: success
+   criteria, suggested demo direction, and the open questions the SA must answer before
+   committing to a build path. Written for the SA, not the customer. One page, two minutes to read.
 
 This is not a demo artifact. It is the deal's source of truth. It should be accurate, honest about
 gaps, and explicit about what is not yet known.
@@ -316,9 +319,29 @@ downstream skills.
 
 ---
 
+## Step 3b: Produce the Demo Goals Brief
+
+Write `opportunity/{slug}-demo-goals.md` immediately after the qualification profile JSON.
+This file is the SA handoff artifact — it feeds `demo-ideation` in expansion mode.
+
+Follow the format defined in `skills/demo-discovery-agent/SKILL.md` under
+"Demo Goals Brief Format". Key sections:
+- **What Success Looks Like** — business outcome + 2–3 technical win criteria (observable,
+  grounded in discovery). These become the proof points for the customer confirmation doc.
+- **Suggested Demo Direction** — primary solution area, archetype suggestion, top wow moments,
+  and what to avoid (if any strong mismatches between capabilities and discovery)
+- **Open Questions for the SA** — 3–5 highest-priority questions that block demo scoping,
+  pulled from `opportunity/{slug}-gaps.md` and prioritized by downstream impact
+- **Context for Ideation** — vertical, audience, timeline, competitive context, Elastic today
+
+Keep it to one page. The SA reads this in two minutes before ideation. It is not a summary
+of the opportunity summary — it is a forward-looking brief for the SA's next conversation.
+
+---
+
 ## Step 4: Surface the Recommendation Clearly
 
-After writing both files, present a compact summary in the chat:
+After writing all three files, present a compact summary in the chat:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -350,14 +373,20 @@ Top open questions
 Outputs written:
   ✅  opportunity/{slug}-opportunity-summary.md   (team review doc)
   ✅  opportunity/{slug}-opportunity-profile.json (machine-readable for pipeline)
+  ✅  opportunity/{slug}-demo-goals.md            (SA handoff brief — ideation input)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Ask the team to review {slug}-opportunity-summary.md before proceeding to platform audit.
+SA: read opportunity/{slug}-demo-goals.md before running demo-ideation.
 ```
 
 ---
 
 ## Step 5: Handle Updates (Living Document Pattern)
+
+When re-running after ideation or a follow-up call, also refresh `{slug}-demo-goals.md`
+to reflect any new information. The demo-goals brief is a living document — keep it current
+with the latest suggested direction and open questions.
 
 This skill is designed to be re-run. When re-run with updated notes or new information:
 
@@ -400,6 +429,9 @@ team can revisit if circumstances change.
 
 - It does **not** assess technical feasibility of Elastic features (that is `demo-platform-audit`).
 - It does **not** write the demo script or data model — those follow after qualification.
-- It does **not** send anything to the customer — `{slug}-opportunity-summary.md` is internal.
-  The customer-facing doc remains `opportunity/{slug}-confirmation.md` from `demo-discovery-parser`.
+- It does **not** send anything to the customer — `{slug}-opportunity-summary.md` and
+  `{slug}-demo-goals.md` are internal. The customer-facing doc remains
+  `opportunity/{slug}-confirmation.md` from `demo-discovery-parser`.
 - It does **not** replace the team conversation — it provides the structure for that conversation.
+- It does **not** commit to a demo direction — `{slug}-demo-goals.md` suggests a direction;
+  the SA commits during ideation.

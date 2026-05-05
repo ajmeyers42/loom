@@ -569,3 +569,58 @@ No dashboard panel, alerting rule, SLO query, workflow step, or Agent Builder to
 **Rationale:** "Read hive-mind X before doing Y" in a SKILL.md is a prose instruction that may or may not be followed depending on context window state. Passing the pattern as a direct input to the skill call makes it structurally present during authoring.
 
 **Date:** 2026-05-05 | **Session:** demobuilder postmortem and refactor
+
+---
+
+## D-048: AE/SDR discovery agent as a distinct pipeline entry point
+
+**Status:** Active  
+**Enforced by:** `demo-discovery-agent` skill boundary — the skill runs only Stages 1 (discovery-parser), 2 (diagnostic-analyzer, optional), and 2b (opportunity-review). It explicitly does not call demo-script-template, demo-platform-audit, demo-data-modeler, demo-asset-verifier, or any build stage. Any orchestrator invocation that reaches a build stage must route through the SA entry point (demobuilder), not demo-discovery-agent.
+
+**Rationale:** Mixing AE/SDR discovery work with SA build work in a single pipeline run creates confusion about who drives what and when. The AE agent produces the intelligence package; the SA agent builds the demo. Clean separation prevents AEs from inadvertently triggering build stages and prevents SAs from skipping discovery structure.
+
+**Date:** 2026-05-05 | **Session:** two-agent pipeline split
+
+---
+
+## D-049: Predefined vs. custom decision gate is mandatory before scripting
+
+**Status:** Active  
+**Enforced by:** Stage 3b (`demo-predefined-recommender`) in the demobuilder orchestrator. This stage runs after platform-audit and before demo-script-template on every engagement. It is not optional — if `{slug}-ideation.md` exists, the recommender always evaluates predefined fit. The orchestrator does not route to Stage 4 (script-template) without a `custom_required: true` decision recorded in the pipeline state. Predefined path produces `{slug}-predefined-recommendation.md` and ends the pipeline.
+
+**Rationale:** Building a full custom demo when a standard Elastic demo already serves the customer's needs wastes build time and increases the risk of deployment failures. The gate forces an explicit evaluation and decision before any technical build work begins.
+
+**Date:** 2026-05-05 | **Session:** two-agent pipeline split
+
+---
+
+## D-050: Ideation always runs as SA commit step; post-ideation assets refreshed with technical-win framing
+
+**Status:** Active  
+**Enforced by:** `demo-ideation` SKILL.md (expansion mode) and `demobuilder` orchestrator Step 0b. Ideation runs in one of three modes depending on available inputs (Mode 1: pre-seeded from demo-goals.md; Mode 2: from discovery context; Mode 3: from scratch). In all modes, the skill does not exit until `{slug}-ideation.md` is frozen and the SA has approved the updated `opportunity/{slug}-confirmation.md`. The orchestrator does not proceed to platform-audit without this approval. `demo-script-template` requires `{slug}-ideation.md` as a required input (not optional).
+
+**Post-ideation refresh rule:** After ideation freezes, `opportunity/{slug}-confirmation.md` is updated using technical-win framing — what problem, what they will see, what defines success. Internal pipeline terminology ("custom build", "predefined", "bootstrap", "standard demo") must not appear in the customer-facing confirmation document at any point.
+
+**Rationale:** The prior ideation stage was "optional if no direction." This allowed build work to begin without an explicit SA commit, leading to scripts that diverged from what the SA intended to show. Making ideation mandatory and gating platform-audit on SA approval of the updated confirmation closes this gap. The technical-win framing rule ensures the customer always receives outcome-focused communication regardless of internal build strategy.
+
+**Date:** 2026-05-05 | **Session:** two-agent pipeline split
+
+---
+
+## D-051: Vignette-based demo structure required for all custom demo scripts
+
+**Status:** Active  
+**Enforced by:** `demo-script-template` SKILL.md preamble — the skill reads `references/demo2win-conventions.md` before authoring any scene. `demo-validator` compliance check C-11 (to be added): verifies that `{slug}-demo-script.md` contains an "Opening Punch" section, 3–5 scene blocks with "Can stand alone: yes" and "Skip signal" fields, and a "Value Confirmation Close" section. Scripts missing any of these three structural elements are flagged as non-conformant.
+
+**Three required rules (per `references/demo2win-conventions.md`):**
+1. **Opening punch** — business problem statement before any product is shown; names a role, states a consequence, grounded in discovery
+2. **Vignette structure** — 3–5 self-contained scenes, each independently skippable/reorderable, each with its own setup/product moment/payoff
+3. **Value confirmation close** — explicitly ties the ending back to the opening punch using outcome language; not a feature recap
+
+The full Demo2Win methodology (Tell-Show-Tell, Limbic Opening, Visual Roadmaps) is optional depth for SAs. The three rules above are the minimum enforced by demobuilder.
+
+**Reference:** [Demo2Win®](https://www.2winglobal.com/programs/demo2win/) by 2Win! Global
+
+**Rationale:** Demos that lack an opening punch and a value close leave the audience with feature impressions, not business conviction. Vignette independence allows SAs to adapt for time and audience without the whole script breaking. These structural rules are the minimum needed to produce a demo that advances a deal rather than just informing the buyer.
+
+**Date:** 2026-05-05 | **Session:** two-agent pipeline split

@@ -141,6 +141,33 @@ demobuilder-specific decisions; use hive-mind for upstream pattern reference.
 - `demo-status` — quick pre-demo readiness pulse check (connectivity, doc counts, ML state, ELSER latency)
 - `demo-teardown` — post-demo cleanup; removes all demo resources prefix-aware
 
+## Entry Points
+
+Two distinct starting points exist for the demobuilder pipeline. Choose based on who is running it:
+
+### AE/SDR Entry Point — 
+
+**Who uses this:** AE or SDR who has discovery notes and wants to structure them and hand
+off a brief to the SA. This is the early-funnel pipeline.
+
+Read  and execute it. This skill runs three stages:
+discovery parsing, optional diagnostic analysis, and opportunity review. It produces the
+full discovery package plus  as the SA handoff brief.
+
+The AE/SDR pipeline ends at . The SA picks up from there.
+
+Trigger phrases: "parse these notes", "qualify this deal", "structure the discovery",
+"hand off to SA", "what do we know about [company]".
+
+### SA Entry Point —  (this skill)
+
+**Who uses this:** SA who is building or planning the demo. Can start from AE outputs
+( and ) or from scratch.
+
+This is the primary pipeline — proceed through the stages below.
+
+---
+
 ## Step 0: Reference Currency Gate (D-041 — before any pipeline work)
 
 Before starting or continuing any pipeline for an engagement, verify that all external
@@ -187,23 +214,26 @@ dashboard stable UUIDs, inference config changes) are documented in reference re
 Running against a stale clone means the agent works from outdated guidance. This check
 adds ~10 seconds and prevents hours of debugging.
 
-## Step 0b: Ideation Gate (optional — precedes discovery when direction is unclear)
+## Step 0b: Ideation (always runs — SA commit gate)
 
-If the SA provides **only a company name, vertical, or vague direction** (no discovery notes,
-no diagnostic, no prior pipeline outputs), run the ideation stage before continuing:
+Ideation **always runs** before platform-audit. It is the SA’s explicit commit to demo direction.
+No technical build work (script-template, data-modeler, asset-verifier) begins until
+`{slug}-ideation.md` is frozen and the post-ideation confirmation refresh is approved (D-050).
 
-- Read: `../demo-ideation/SKILL.md`
-- Inputs: SA's description of the customer, vertical, or situation
-- Outputs: `{slug}-ideation.md` — frozen demo direction contract
+**Operating mode selection:**
 
-The ideation stage produces a `{slug}-ideation.md` that feeds directly into
-`demo-script-template` as the primary narrative contract. If discovery notes are also
-available, run `demo-discovery-parser` first, then pass both to `demo-script-template`.
+| Condition | Mode |
+|---|---|
+| `opportunity/{slug}-demo-goals.md` exists | **Mode 1 — SA Expansion:** pre-seeded from AE/SDR outputs |
+| Discovery notes or `{slug}-discovery.json` exist but no goals brief | **Mode 2 — Customer context** |
+| No prior context | **Mode 3 — From scratch** |
 
-**Skip ideation if:**
-- Discovery notes or a diagnostic file are already provided (proceed to Step 1 / Stage 1)
-- The SA specifies exactly what they want to build
-- The engagement already has a `{slug}-discovery.json` or `{slug}-ideation.md` in `{engagement_dir}`
+- Read: `skills/demo-ideation/SKILL.md`
+- Outputs: `demo/{slug}-ideation.md` (frozen) + updated `opportunity/{slug}-confirmation.md`
+- **Gate:** SA must approve the updated confirmation before pipeline continues to Step 3
+
+**Skip condition:** Only skip if `demo/{slug}-ideation.md` already exists in `{engagement_dir}`
+**and** the SA explicitly confirms the existing contract is still current. Do not skip silently.
 
 ## Step 1: Identify the Engagement and Set the Engagement Directory
 
@@ -463,11 +493,24 @@ For each stage that needs to run, in order:
 - **Blocker check:** If overall_status is RED, surface the blocking features before
   proceeding. Auto-adjust scope: remove blocked features from the script brief, continue.
 
-**Stage 4 — demo-script-template**
+**Stage 3b — demo-predefined-recommender** *(required — D-049)*
+- **Decision gate: predefined vs. custom build.** Every engagement must make this decision
+  explicitly before scripting begins.
+- Read: `../demo-predefined-recommender/SKILL.md`
+- Inputs: `demo/{slug}-ideation.md` (required), `opportunity/{slug}-opportunity-profile.json`,
+  `demo/{slug}-platform-audit.json`, `skills/demo-predefined-recommender/references/standard-demos.md`
+- **PREDEFINED path:** Produces `opportunity/{slug}-predefined-recommendation.md` and
+  updates `opportunity/{slug}-confirmation.md`. **Pipeline ends here.** Do not run Stage 4+.
+- **CUSTOM path:** Sets `custom_required: true`, proceeds to Stage 4.
+- Skip if: `{slug}-ideation.md` is missing — halt and run Stage 0b first.
+
+**Stage 4 — demo-script-template** *(custom path only — skip if predefined was recommended)*
 - Skip if: `demo/{slug}-demo-script.md` exists AND platform-audit hasn't changed AND ideation hasn't changed
 - Read: `../demo-script-template/SKILL.md`
-- Inputs: `{slug}-discovery.json`, `{slug}-platform-audit.json`, `{slug}-ideation.md` (if exists — takes priority for wow moments and archetype)
-- Outputs: `{slug}-demo-script.md`, `{slug}-demo-brief.md`
+- **Before authoring:** read `skills/demo-script-template/references/demo2win-conventions.md` (D-051)
+- Inputs: `{slug}-discovery.json`, `{slug}-platform-audit.json`, `{slug}-ideation.md` (required — takes priority for wow moments and archetype)
+- Outputs: `{slug}-demo-script.md`, `{slug}-demo-brief.md`, `{slug}-live-script.md`
+- Script must include: opening punch, 3–5 self-contained vignettes, value confirmation close
 
 **Stage 4b — demo-kibana-agent-design** *(conditional — Agent Builder only)*
 - Skip if: `demo/{slug}-demo-script.md` does not include Agent Builder / custom agents / tools /

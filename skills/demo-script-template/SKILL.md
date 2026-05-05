@@ -19,6 +19,16 @@ description: >
 
 # Demo Script Template
 
+**Before authoring any scene, read `references/demo2win-conventions.md`.**
+Every custom demo script must conform to the three structural rules defined there:
+1. **Opening punch** — business problem statement before any product is shown
+2. **Vignette structure** — 3–5 self-contained scenes, each independently skippable
+3. **Value confirmation close** — ties the ending back to the opening punch in outcome language
+
+Scripts that skip any of these three elements are non-conformant and will fail `demo-validator`.
+
+---
+
 You are writing a demo script for an Elastic pre-sales SE. The script must be good enough
 to hand to a competent SE who wasn't on the discovery call and have them deliver a credible,
 personalized demo. That means: every scene is grounded in something the customer actually
@@ -125,10 +135,16 @@ customer's "do you have this in stock?" question. Ground the story in what they 
 
 ## Step 3: Design the Scenes
 
-**Order:** Early scenes should establish **outcome and value** (what Elastic delivers for
-their asks); middle and later scenes expose **how** (queries, indices, ML, agents, rules,
-integrations). Avoid opening with infrastructure unless the audience is purely technical and
-the SA asked for that shape.
+**Structure: opening punch → 3–5 vignettes → value confirmation close.**
+This is the required structure per `references/demo2win-conventions.md` (D-051).
+Scene count: 3 minimum, 5 maximum vignettes (not including the opening and close).
+
+**Vignette independence:** Every scene must be independently skippable. If the SA
+needs to drop a scene for time, the next scene must still make sense. Include a
+`**Skip signal:**` note in each scene explaining when to skip it and what the impact is.
+
+**Order:** Early scenes establish **outcome and value**; middle and later scenes expose
+**how**. Avoid opening with infrastructure unless the audience is purely technical.
 
 Each scene must answer three questions before you write it:
 1. **What pain point does this address?** (from `pain_points` in the discovery JSON)
@@ -136,19 +152,15 @@ Each scene must answer three questions before you write it:
 3. **What is the single wow moment?** (the thing they'll mention when they recap the demo)
 
 Scene design rules:
-- **First scene earns trust.** It should be the most immediately relatable pain point with
-  the most visceral proof — live data streaming, a query that returns in milliseconds, a
-  before/after contrast. Don't open with architecture slides.
-- **Build complexity gradually.** Start with data visibility, add intelligence, then add
-  automation/AI. Each scene should feel like a natural escalation of the previous one.
-- **One feature per scene.** A scene that tries to show ELSER and ML anomaly detection and
-  Agent Builder is a scene that shows nothing. Pick one. The other gets its own scene.
-- **Exec pivot points.** At natural scene breaks, give the exec contact a one-sentence
-  operational framing of what they just saw before moving on. This keeps them engaged.
-- **Platform-constrained features:** If the platform audit marks a feature as
-  `setup_required`, include a pre-demo setup note at the top of the scene. If it's
-  `upgrade_required`, replace the live scene with a narrative description or a reference
-  to a recording/screenshot, and note it explicitly.
+- **First vignette earns trust.** The most immediately relatable pain point with the most
+  visceral proof — live data, a query in milliseconds, a before/after contrast.
+- **One feature per vignette.** A scene showing ELSER + ML anomaly + Agent Builder shows
+  nothing. Pick one. The others get their own scenes.
+- **Exec pivot points.** At scene breaks, give the exec one sentence of operational framing
+  before moving to the next scene. Keep execs in the room.
+- **Platform-constrained features:** If the platform audit marks a feature `setup_required`,
+  include a pre-demo setup note. If `upgrade_required`, use a narrative or screenshot, not
+  a live scene.
 
 ## Step 4: Write the Script
 
@@ -173,19 +185,29 @@ customer. This is for the SE, not the customer.]
 [The person at the center of the demo. Name, role, the scenario they face. 2–4 sentences.
 This thread is woven through every scene.]
 
-## Opening ([N] min) — [Presenter]
-[The one-sentence framing that anchors the whole demo. Should reference something the
-customer said verbatim. The architecture diagram or setup screen, if any.]
+## Opening Punch ([N] min) — [Presenter]
+[Required per D-051. The business problem statement before any product is shown.
+Name a specific role, state a consequence, ground in discovery. 30–60 seconds to deliver.
+No keyboard action during the opening punch. See references/demo2win-conventions.md Rule 1.]
+
+**Opening punch (deliver before touching the keyboard):**
+*"[Role at customer] is dealing with [specific problem]. Right now, [consequence — time,
+money, risk, missed opportunity]. Today we're going to show you how that changes."*
 
 **Talking points:**
-- [Tight, specific. Attribute to discovery where possible: "You mentioned X — here's what
-  changes when Elastic sits between Y and Z."]
+- [Ground in discovery: "You mentioned X — here's what changes when Elastic addresses it."]
 
 ---
 
 ## Scene [N]: [Name] — [Feature] ([N] min)
 **Pain point addressed:** [label from discovery pain_points]
 **Presenter:** [Name]
+**Can stand alone:** yes [required — verify this is true before publishing script]
+**Skip signal:** [when to skip this scene and what the audience impact is]
+
+**Setup** (30 sec — audience grounding):
+[One or two sentences that re-establish the scenario. An audience member who just joined
+should be able to follow from here. This is what makes the vignette self-contained.]
 
 **Story:** [1–2 sentences connecting this scene to the human story thread]
 
@@ -238,15 +260,25 @@ and governance stakeholders. Skip if audience is purely technical/developer-focu
 
 ---
 
-## Close ([N] min) — [Presenter]
+## Value Confirmation Close ([N] min) — [Presenter]
+[Required per D-051. Ties back to the opening punch. Not a feature recap — an outcome
+confirmation. See references/demo2win-conventions.md Rule 3.]
 
-**Stack recap:** [One sentence — the complete picture of what they saw, in plain language]
+**Echo the punch:**
+*"We started today talking about [the specific problem from the opening punch]."*
 
-**Next steps:**
-[Specific asks — not generic "let's talk next steps". Pull from next_steps in discovery JSON.
-"Tom, you mentioned a slice of Smartstore transaction data — is there a sanitized set we
-could use for a POC?" "Balajee, which is the stronger first pilot — inventory accuracy for
-associates, or shrink anomaly monitoring for supply chain?"]
+**Connect to what they saw:**
+*"What you just saw was [plain-language description of the demo journey — not a feature list].
+[Role] can now [specific outcome]."*
+
+**Technical win statement:**
+*"[The explicit proof point from the technical win criteria in demo-goals.md].
+That's what a successful evaluation looks like: [criteria 1], [criteria 2]."*
+
+**Next steps (specific, not generic):**
+[Name the person and the action. Pull from next_steps in discovery JSON.
+"[Name], you mentioned [specific thing from discovery]. The logical next step is [specific action].
+Can we [specific ask with timeframe]?"]
 
 ---
 
