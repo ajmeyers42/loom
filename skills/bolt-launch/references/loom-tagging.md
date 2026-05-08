@@ -10,7 +10,7 @@ Use exactly **one** string in each `tags` array (merge with any engagement-speci
 in the payload):
 
 ```text
-demobuilder:<engagement_id>
+loom:<engagement_id>
 ```
 
 **`<engagement_id>`** (lowercase, no hyphens or underscores):
@@ -27,10 +27,10 @@ is empty, use `demo`.
 
 | `.env` | `<engagement_id>` | Tag |
 | --- | --- | --- |
-| `INDEX_PREFIX=cb-` | `cb` | `demobuilder:cb` |
-| `INDEX_PREFIX=2026citizens-ai` | `2026citizensai` | `demobuilder:2026citizensai` |
-| `INDEX_PREFIX=` and `DEMO_SLUG=citizens-bank` | `citizensbank` | `demobuilder:citizensbank` |
-| `DEMO_ASSET_TAG=acme_poc` | `acmepoc` | `demobuilder:acmepoc` |
+| `INDEX_PREFIX=cb-` | `cb` | `loom:cb` |
+| `INDEX_PREFIX=2026citizens-ai` | `2026citizensai` | `loom:2026citizensai` |
+| `INDEX_PREFIX=` and `DEMO_SLUG=citizens-bank` | `citizensbank` | `loom:citizensbank` |
+| `DEMO_ASSET_TAG=acme_poc` | `acmepoc` | `loom:acmepoc` |
 
 ## Why `INDEX_PREFIX` first when set
 
@@ -40,7 +40,7 @@ blank (dedicated cluster), **`DEMO_SLUG`** identifies the engagement.
 
 ## Where to apply
 
-Include **`demobuilder:<engagement_id>`** in `tags` (or product-specific metadata) for every
+Include **`loom:<engagement_id>`** in `tags` (or product-specific metadata) for every
 **create** payload that supports it, including when not exhaustive:
 
 - Observability **SLOs**
@@ -56,7 +56,7 @@ do not invent index-level tags unless the product documents a supported field.
 **Saved objects (NDJSON import):** API `tags` on other assets do not apply. After import, run
 **`kibana/apply_loom_tags.py`** (engagement-local script; Citizens POC includes it): it creates a
 **tag** saved object (`type: tag`, id `loom-<engagement_id>`) and **PUT**s each NDJSON object
-with a `references` entry to that tag. **`demo_status.py`** warns if the reference is missing.
+with a `references` entry to that tag. **`wind_pulse.py`** warns if the reference is missing.
 Alternatively, re-export NDJSON from Kibana after tagging once in the UI.
 
 ## Bootstrap helper (Python)
@@ -75,7 +75,7 @@ def _engagement_id_for_tag() -> str:
     return s or "demo"
 
 def loom_tags() -> list[str]:
-    return [f"demobuilder:{_engagement_id_for_tag()}"]
+    return [f"loom:{_engagement_id_for_tag()}"]
 
 # Example: merge into an existing tags list
 # body["tags"] = sorted(set((body.get("tags") or []) + loom_tags()))

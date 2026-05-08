@@ -90,7 +90,7 @@ DEPLOY_MODE=python
 INDEX_PREFIX=
 
 # ── Loom tagging (D-026) ────────────────────────────
-# Optional. Overrides the engagement id used in demobuilder:<id> tags on SLOs, rules, ML jobs,
+# Optional. Overrides the engagement id used in loom:<id> tags on SLOs, rules, ML jobs,
 # Agent Builder, etc. If unset, the id is derived from INDEX_PREFIX (normalized) or DEMO_SLUG.
 # DEMO_ASSET_TAG=
 
@@ -130,8 +130,8 @@ PROVISIONED_BY=loom
 ### New cluster per demo (recommended for isolation)
 
 ```bash
-# Each demo gets its own cluster — no prefix needed ($DEMOBUILDER_ENGAGEMENTS_ROOT set)
-$DEMOBUILDER_ENGAGEMENTS_ROOT/
+# Each demo gets its own cluster — no prefix needed ($LOOM_ENGAGEMENTS_ROOT set)
+$LOOM_ENGAGEMENTS_ROOT/
 ├── {slug-A}/.env    → https://cluster-A.es.io  INDEX_PREFIX=
 ├── {slug-B}/.env    → https://cluster-B.es.io  INDEX_PREFIX=
 └── {slug-C}/.env    → https://cluster-C.es.io  INDEX_PREFIX=
@@ -141,13 +141,13 @@ $DEMOBUILDER_ENGAGEMENTS_ROOT/
 
 ```bash
 # One cluster, all demos on it — prefix separates namespaces
-$DEMOBUILDER_ENGAGEMENTS_ROOT/
+$LOOM_ENGAGEMENTS_ROOT/
 ├── {slug-A}/.env    → https://shared.es.io  INDEX_PREFIX=a-
 ├── {slug-B}/.env    → https://shared.es.io  INDEX_PREFIX=b-
 └── {slug-C}/.env    → https://shared.es.io  INDEX_PREFIX=c-
 
 # Copy workflow for a new demo on the same cluster:
-ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
 cp "$ROOT/{slug-A}/.env" "$ROOT/{slug-B}/.env"
 # Then edit {slug-B}/.env:
 #   DEMO_SLUG={slug-B}
@@ -218,7 +218,7 @@ KIBANA_SPACE_PATH=/s/<DEMO_SLUG>
 KIBANA_SOLUTION=es   # es | oblt | security
 
 INDEX_PREFIX=<optional-e.g.-cb->
-# DEMO_ASSET_TAG=<optional-override-for-demobuilder:-tags>
+# DEMO_ASSET_TAG=<optional-override-for-loom:-tags>
 # INCLUDE_TOKEN_VISIBILITY=true
 
 CLUSTER_NAME=<loom-slug-YYYYMMDD>

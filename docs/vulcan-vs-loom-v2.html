@@ -368,7 +368,7 @@
         <tr class="ok"><td>Kibana breadth (dashboards, rules, SLOs, spaces, workflows)</td><td>Unchanged &mdash; no Kibana object generation in Vulcan</td></tr>
         <tr class="ok"><td>Discovery &rarr; qualification (MEDDPIC gate)</td><td>Unchanged &mdash; thread-qualify and thread-audit remain loom-only</td></tr>
         <tr class="ok"><td>ML / anomaly detection</td><td>Unchanged &mdash; weave-train, datafeed configs, anomaly injection remain loom-only</td></tr>
-        <tr class="ok"><td>Engagement lifecycle &amp; credentials</td><td>Unchanged &mdash; DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/, .env isolation remain</td></tr>
+        <tr class="ok"><td>Engagement lifecycle &amp; credentials</td><td>Unchanged &mdash; LOOM_ENGAGEMENTS_ROOT/{slug}/, .env isolation remain</td></tr>
         <tr class="ok"><td>LLM provider flexibility</td><td>Unchanged &mdash; delegated to agent runtime; not relevant to loom&rsquo;s model</td></tr>
         <tr class="ok"><td>Currency / update mechanism</td><td>Unchanged &mdash; D-034 Step 0 check remains; now also covers Vulcan repo if present</td></tr>
       </tbody>
@@ -385,7 +385,7 @@
     item not yet delivered.
   </div>
 
-  <p class="footer">elastic/vulcan &middot; elastic/demobuilder &middot; April 2026 &middot; commit 1ab9f56</p>
+  <p class="footer">elastic/vulcan &middot; elastic/loom &middot; April 2026 &middot; commit 1ab9f56</p>
 </div>
 </div><!-- end delta tab -->
 
@@ -394,7 +394,7 @@
 <div class="page">
 
   <h1>Vulcan vs Loom &mdash; Before</h1>
-  <p class="subtitle">Initial comparison · elastic/vulcan · elastic/demobuilder · April 2026</p>
+  <p class="subtitle">Initial comparison · elastic/vulcan · elastic/loom · April 2026</p>
 
   <div class="stats">
     <div class="stat warn"><div class="stat-value">4</div><div class="stat-label">Adopt from Vulcan</div></div>
@@ -507,13 +507,13 @@
       <tr class="ok"><td>Kibana breadth</td><td>Spaces, dashboards, SLOs, alerting, SIEM rules, Workflows, Cases, Connectors</td><td>Not present</td></tr>
       <tr class="ok"><td>Discovery &rarr; qualification</td><td>MEDDPIC gate, platform audit, pipeline stops if not_qualified</td><td>Not present</td></tr>
       <tr class="ok"><td>ML / anomaly detection</td><td>weave-train, datafeed configs, anomaly injection</td><td>Not present</td></tr>
-      <tr class="ok"><td>Engagement lifecycle</td><td>DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/, .env per customer</td><td>Not present</td></tr>
+      <tr class="ok"><td>Engagement lifecycle</td><td>LOOM_ENGAGEMENTS_ROOT/{slug}/, .env per customer</td><td>Not present</td></tr>
       <tr class="ok"><td>LLM provider flexibility</td><td>Delegated to agent runtime</td><td>Not present</td></tr>
       <tr class="ok"><td>Currency / update mechanism</td><td>D-034 Step 0 currency check</td><td>Not present</td></tr>
     </tbody>
   </table></div>
 
-  <p class="footer">Initial comparison &middot; elastic/vulcan &middot; elastic/demobuilder &middot; April 2026</p>
+  <p class="footer">Initial comparison &middot; elastic/vulcan &middot; elastic/loom &middot; April 2026</p>
 </div>
 </div><!-- end before tab -->
 
@@ -522,7 +522,7 @@
 <div class="page">
 
   <h1>Vulcan vs Loom &mdash; After</h1>
-  <p class="subtitle">Post-adoption state &middot; elastic/vulcan &middot; elastic/demobuilder &middot; April 2026 &middot; commit 1ab9f56</p>
+  <p class="subtitle">Post-adoption state &middot; elastic/vulcan &middot; elastic/loom &middot; April 2026 &middot; commit 1ab9f56</p>
 
   <div class="stats">
     <div class="stat blue"><div class="stat-value">3</div><div class="stat-label">Fully integrated</div></div>
@@ -636,13 +636,13 @@
       <tr class="ok"><td>Kibana breadth</td><td>Spaces, dashboards (stable UUIDs), SLOs, alerting, SIEM rules (clone-not-modify D-032), Workflows, Cases, Connectors</td><td>Not present</td></tr>
       <tr class="ok"><td>Discovery &rarr; qualification</td><td>warp-listen &rarr; thread-qualify (MEDDPIC) &rarr; thread-audit; stops if not_qualified</td><td>Not present</td></tr>
       <tr class="ok"><td>ML / anomaly detection</td><td>weave-train, datafeed configs, bootstrap steps 11&ndash;12 deploy, step 14 injects anomalies</td><td>Not present</td></tr>
-      <tr class="ok"><td>Engagement lifecycle</td><td>DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/, .env per customer, multi-session persistence</td><td>Not present</td></tr>
+      <tr class="ok"><td>Engagement lifecycle</td><td>LOOM_ENGAGEMENTS_ROOT/{slug}/, .env per customer, multi-session persistence</td><td>Not present</td></tr>
       <tr class="ok"><td>LLM provider flexibility</td><td>Delegated to agent runtime (Cursor / Claude Code)</td><td>Not present</td></tr>
       <tr class="ok"><td>Currency / update mechanism</td><td>D-034 Step 0 currency check; now covers Vulcan repo if present</td><td>Not present</td></tr>
     </tbody>
   </table></div>
 
-  <p class="footer">Post-adoption state &middot; elastic/vulcan &middot; elastic/demobuilder &middot; April 2026 &middot; commit 1ab9f56</p>
+  <p class="footer">Post-adoption state &middot; elastic/vulcan &middot; elastic/loom &middot; April 2026 &middot; commit 1ab9f56</p>
 </div>
 </div><!-- end after tab -->
 

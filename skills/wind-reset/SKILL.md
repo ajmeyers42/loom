@@ -28,7 +28,7 @@ Safety is the priority. The script never touches system indices, `.kibana`, or a
 not explicitly named in the data model's resource list. Shared clusters are protected by
 the prefix requirement.
 
-**Discovery:** Deployments should tag demo resources with **`demobuilder:<engagement_id>`**
+**Discovery:** Deployments should tag demo resources with **`loom:<engagement_id>`**
 (**`docs/decisions.md` D-026**) so operators can filter in Kibana; teardown remains driven by
 **`INDEX_PREFIX`** and the data model inventory, not tag-only deletes.
 

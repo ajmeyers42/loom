@@ -341,7 +341,7 @@ API Key: configured ✅
 **KIBANA_SPACE_PATH:** /s/{slug} (created in Step 4.1)
 
 ## To reuse this cluster for another demo:
-ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
 cp "$ROOT/{slug}/.env" "$ROOT/{other-slug}/.env"
 # Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
 

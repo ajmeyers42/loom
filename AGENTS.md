@@ -5,7 +5,7 @@ This repository is meant to be driven by an **assistant** (Cursor, Claude Code, 
 ## Canonical behavior
 
 1. **Orchestrator:** Read and follow [`skills/loom/SKILL.md`](skills/loom/SKILL.md). Sub-skills live alongside it under [`skills/`](skills/).
-2. **Outputs:** Write all engagement artifacts under **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** (`{slug}` = one engagement). If **`DEMOBUILDER_ENGAGEMENTS_ROOT`** is unset, default to **`$HOME/engagements`** (see [`docs/engagements-path.md`](docs/engagements-path.md)). The git repo holds pipeline code only (`skills/`, `docs/`), not customer workspaces. Only ask the SA for a different root if they need a non-default path.
+2. **Outputs:** Write all engagement artifacts under **`$LOOM_ENGAGEMENTS_ROOT/{slug}/`** (`{slug}` = one engagement). If **`LOOM_ENGAGEMENTS_ROOT`** is unset, default to **`$HOME/engagements`** (see [`docs/engagements-path.md`](docs/engagements-path.md)). The git repo holds pipeline code only (`skills/`, `docs/`), not customer workspaces. Only ask the SA for a different root if they need a non-default path.
 3. **Execution:** Run terminal commands, API calls, and skill workflows **on behalf of the SA** when they agree — scripts in this repo are **backends**, not the SA’s homework.
 4. **Approvals:** Do **not** run `bolt-spin` or `bolt-launch` (create/spend cloud resources, mutate clusters, run `bootstrap.py` against a **live** cluster) until the SA has **explicitly** asked to provision or deploy **and** has **reviewed** the generated **`bootstrap.py`**, **`{slug}-platform-audit`**, **`{slug}-risks`**, **`{slug}-demo-checklist.md`**, and any other analysis outputs the deploy depends on. Generating or editing those artifacts, or running **`bootstrap.py --dry-run`**, does **not** require cluster access. See `docs/decisions.md` **D-024**.
 
@@ -21,7 +21,7 @@ This repository is meant to be driven by an **assistant** (Cursor, Claude Code, 
    version, and **product conventions** from `elastic/agent-skills` and reference repos — not
    invented types or generic JSON. See `docs/decisions.md` **D-025**.
 
-9. **Engagement tagging (D-026):** Every asset with a `tags` field must carry `demobuilder:<engagement_id>` — see **`skills/bolt-launch/references/loom-tagging.md`** for the full spec, helper functions, and NDJSON post-import tagging.
+9. **Engagement tagging (D-026):** Every asset with a `tags` field must carry `loom:<engagement_id>` — see **`skills/bolt-launch/references/loom-tagging.md`** for the full spec, helper functions, and NDJSON post-import tagging.
 
 ## Runtime-specific setup
 

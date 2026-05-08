@@ -80,7 +80,7 @@ OpenAPI disagree with a first guess, trust the stack and **`elastic/agent-skills
 reference behavior.
 
 **Engagement tagging (`docs/decisions.md` D-026):** Generated **`bootstrap.py`** and API payloads
-must merge **`demobuilder:<engagement_id>`** into every resource that supports **`tags`**
+must merge **`loom:<engagement_id>`** into every resource that supports **`tags`**
 (SLOs, alerting rules, ML jobs, Agent Builder entities, etc.). Derive `<engagement_id>` per
 **`skills/bolt-launch/references/loom-tagging.md`** (`INDEX_PREFIX` normalized, else
 `DEMO_SLUG`; optional **`DEMO_ASSET_TAG`** override).
@@ -179,7 +179,7 @@ overrides, scope conditions, and blocking rules. Summary below.
 
 | Repo | Check | Scope | Blocking? |
 |------|-------|-------|-----------|
-| `elastic/demobuilder` (this repo) | `git fetch origin && git status` | Always | **Yes** |
+| `elastic/loom` (this repo) | `git fetch origin && git status` | Always | **Yes** |
 | `elastic/hive-mind` | `git fetch origin && git status` on `../hive-mind` or `HIVE_MIND_PATH` | Always | Warn only |
 | `elastic/agent-skills` | Plugin version vs latest GitHub release | Always | Warn only |
 | `elastic/workflows` | `git fetch origin && git status` on `WORKFLOWS_REPO_PATH` | Agent Builder / Workflows in scope | Warn only |
@@ -240,7 +240,7 @@ No technical build work (script-template, data-modeler, asset-verifier) begins u
 **Determine `{engagement_dir}` first, then derive the slug from it.**
 
 **Path-first resolution (preferred):** If the user provides a path to discovery
-documents or files that are already inside a folder under `DEMOBUILDER_ENGAGEMENTS_ROOT`
+documents or files that are already inside a folder under `LOOM_ENGAGEMENTS_ROOT`
 (e.g., `~/engagements/2026acmecorp/discovery/notes.md`), the **parent of that
 discovery folder is `{engagement_dir}`**:
 
@@ -261,7 +261,7 @@ customer name, derive slug and engagement_dir from the user's prompt:
 slug           = lowercase-hyphenated form of customer name
                  "Citizens Bank" → citizens-bank
                  "Deutsche Telekom SOC-T" → dt-soct
-engagement_dir = "${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/"
+engagement_dir = "${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/"
 ```
 
 > **Important:** `{engagement_dir}` is always a folder under `~/engagements/` (or the
@@ -634,7 +634,7 @@ When all stages are complete, produce a structured handoff:
  DEMOBUILDER COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 Workspace: $DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/  (default: ~/engagements/{slug}/)
+📁 Workspace: $LOOM_ENGAGEMENTS_ROOT/{slug}/  (default: ~/engagements/{slug}/)
 
 ARTIFACT SUMMARY
 ────────────────

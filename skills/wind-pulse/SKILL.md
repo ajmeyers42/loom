@@ -27,14 +27,14 @@ a specific remediation for any failure.
 
 ## Step 0: Inventory script (run first)
 
-Use the repo script **`skills/wind-pulse/demo_status.py`** so **every Kibana saved object
+Use the repo script **`skills/wind-pulse/wind_pulse.py`** so **every Kibana saved object
 exported in NDJSON** is checked (not only dashboards by title search). From the engagement
 workspace:
 
 ```bash
-cd "${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
-python3 "$DEMOBUILDER_REPO/skills/wind-pulse/demo_status.py"
-# or: python3 /path/to/loom/skills/wind-pulse/demo_status.py --engagement-dir .
+cd "${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
+python3 "$DEMOBUILDER_REPO/skills/wind-pulse/wind_pulse.py"
+# or: python3 /path/to/loom/skills/wind-pulse/wind_pulse.py --engagement-dir .
 ```
 
 **What it validates**
@@ -43,7 +43,7 @@ python3 "$DEMOBUILDER_REPO/skills/wind-pulse/demo_status.py"
 |--------|--------|
 | `kibana-objects/**/*.ndjson`, `kibana/**/*.ndjson` | `GET /api/saved_objects/{type}/{id}` for **each** line (dashboard, lens, index-pattern, etc.) |
 | `{slug}-data-model.json` | Doc counts for listed data streams / indices (`p(name)`) |
-| Observability SLOs | List with `perPage=500`, filter tags **`demobuilder:<engagement_id>`** (**D-026**) |
+| Observability SLOs | List with `perPage=500`, filter tags **`loom:<engagement_id>`** (**D-026**) |
 | Optional `kibana/status-expected.json` | Extra **`slo_ids`** via GET-by-id (see `references/status-expected.example.json`) |
 | Agent | `AGENT_BUILDER_AGENT_ID` or default from `kibana/deploy_fraud_assistant_agent.py` |
 | Workflows + alerting | `GET /api/alerting/rules/_find` for **`DEMO_STATUS_WORKFLOW_RULE_NAME`** (default **Invoke an Agent**); `GET /api/workflows` — **404** often means set **`KIBANA_SPACE_PATH`** to the Space where Workflows is enabled |
@@ -355,7 +355,7 @@ Capture `took` (milliseconds).
 
 **Do not rely on `_find` by title alone** — that can miss objects or match the wrong space.
 
-**Primary:** **`demo_status.py`** (Step 0) — parses **every** line in `kibana-objects/*.ndjson`
+**Primary:** **`wind_pulse.py`** (Step 0) — parses **every** line in `kibana-objects/*.ndjson`
 (and `kibana/**/*.ndjson`) and calls **`GET /api/saved_objects/{type}/{id}`** for each. That
 includes **dashboards**, **Lens**, **index-patterns**, **search** sessions, **maps**, etc.,
 exactly as exported for the engagement.
@@ -367,7 +367,7 @@ exactly as exported for the engagement.
 **Workflows:** **`GET /api/workflows`** — if **404**, Workflows is not enabled (note and skip).
 If **200**, confirm **`AGENT_BUILDER_WORKFLOW_ID`** appears when that env var is set.
 
-**SLOs:** Prefer the **loom tag** filter in **`demo_status.py`**; add optional
+**SLOs:** Prefer the **loom tag** filter in **`wind_pulse.py`**; add optional
 **`kibana/status-expected.json`** for explicit **`slo_ids`** on noisy shared clusters.
 
 **Supplemental (optional):** `_find` by title for a quick human spot-check, or
@@ -375,7 +375,7 @@ If **200**, confirm **`AGENT_BUILDER_WORKFLOW_ID`** appears when that env var is
 requires it.
 
 **Pass criteria:**
-- **`demo_status.py`** reports **OK** for every NDJSON object, tagged SLOs, and agent (and
+- **`wind_pulse.py`** reports **OK** for every NDJSON object, tagged SLOs, and agent (and
   workflow id when configured).
 
 **Failures:**
@@ -553,7 +553,7 @@ Key endpoints used in this skill:
 | Start datafeed | `POST {ES_URL}/_ml/datafeeds/{datafeed_id}/_start` |
 | ELSER endpoint | `GET {ES_URL}/_inference/sparse_embedding/{p("elser-v2-endpoint")}` |
 | Semantic query | `POST {ES_URL}/{p(semantic_index)}/_search` |
-| Kibana saved objects (inventory) | `GET {KB_URL}/api/saved_objects/{type}/{id}` (per NDJSON line) — see `demo_status.py` |
+| Kibana saved objects (inventory) | `GET {KB_URL}/api/saved_objects/{type}/{id}` (per NDJSON line) — see `wind_pulse.py` |
 | Kibana saved objects (ad hoc) | `GET {KB_URL}/api/saved_objects/_find?type=dashboard&...` |
 
 ## What Good Looks Like

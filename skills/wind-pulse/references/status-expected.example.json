@@ -3,5 +3,5 @@
     "citizens_poc_ack_48h",
     "citizens_poc_res_10d"
   ],
-  "_comment": "Optional: copy to kibana/status-expected.json in the engagement. GET-by-id checks run for ids not already confirmed via the demobuilder: tag list (useful on busy shared projects)."
+  "_comment": "Optional: copy to kibana/status-expected.json in the engagement. GET-by-id checks run for ids not already confirmed via the loom: tag list (useful on busy shared projects)."
 }

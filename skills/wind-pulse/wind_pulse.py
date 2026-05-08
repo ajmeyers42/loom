@@ -6,21 +6,21 @@ Reads `{engagement}/.env`, then validates:
   • Elasticsearch: cluster health, data model indices / data streams (doc counts)
   • Kibana saved objects: every object listed in `kibana-objects/*.ndjson` (and optional
     `kibana/**/*.ndjson`) via GET /api/saved_objects/{type}/{id}
-  • Observability SLOs: all SLOs whose tags include demobuilder:<engagement_id> (D-026)
+  • Observability SLOs: all SLOs whose tags include loom:<engagement_id> (D-026)
   • Agent Builder: agent id from AGENT_BUILDER_AGENT_ID or parsed from kibana/deploy_fraud_assistant_agent.py
   • ML jobs: state + datafeed state from {slug}-ml-config.json (if present)
   • ELSER: inference endpoint allocation from {slug}-data-model.json (if present)
   • Workflows: GET /api/workflows + GET /api/alerting/rules/_find for "Invoke an Agent" (or
     DEMO_STATUS_WORKFLOW_RULE_NAME); 404 on /api/workflows often means wrong KIBANA_SPACE_PATH
-  • Saved-object tag ref (D-026): each NDJSON object should reference tag id demobuilder:<slug>
+  • Saved-object tag ref (D-026): each NDJSON object should reference tag id loom:<slug>
     — run kibana/apply_loom_tags.py after import if missing
 
 Output format: SKILL.md Step 3 spec with ✅/❌/⚠️ symbols and a FIX COMMANDS block.
 
 Usage:
   cd ~/engagements/{slug}
-  python3 /path/to/loom/skills/wind-pulse/demo_status.py
-  python3 .../demo_status.py --engagement-dir /path/to/engagement
+  python3 /path/to/loom/skills/wind-pulse/wind_pulse.py
+  python3 .../wind_pulse.py --engagement-dir /path/to/engagement
 
 Optional env overrides:
   DEMO_STATUS_SKIP_NDJSON=1  — skip saved-object line-by-line checks (not recommended)
@@ -265,7 +265,7 @@ def main() -> None:
 
     slug = os.environ.get("DEMO_SLUG", "?")
     prefix = os.environ.get("INDEX_PREFIX", "").strip()
-    tag_needle = f"demobuilder:{engagement_id_for_tag()}"
+    tag_needle = f"loom:{engagement_id_for_tag()}"
 
     print(BAR)
     print(f" DEMO STATUS — {slug}")

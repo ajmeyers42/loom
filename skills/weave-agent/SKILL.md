@@ -103,7 +103,7 @@ Reference: `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`.
 
 ## Step 6: Output
 
-Write **`demo/{slug}-agent-builder-spec.md`** in the engagement `demo/` subfolder (`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/demo/`) containing:
+Write **`demo/{slug}-agent-builder-spec.md`** in the engagement `demo/` subfolder (`$LOOM_ENGAGEMENTS_ROOT/{slug}/demo/`) containing:
 
 - Prerequisites (Kibana URL, privileges — link [permissions doc](https://www.elastic.co/docs/explore-analyze/ai-features/agent-builder/permissions) if needed).
 - Navigation (Agents, **AI Agent** button — per get-started doc for the deployment type).

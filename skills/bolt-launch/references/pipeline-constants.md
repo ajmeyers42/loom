@@ -52,7 +52,7 @@ def stable_id(name: str) -> str:
 | Constant | Value | Used in |
 |----------|-------|---------|
 | Manifest index name | `loom-manifests` | `bootstrap-data.py`, `teardown.py`, `weave-fleet`, `weave-pipe` |
-| Manifest document ID | normalized engagement ID (same as `demobuilder:<id>` tag value) | All manifest operations |
+| Manifest document ID | normalized engagement ID (same as `loom:<id>` tag value) | All manifest operations |
 
 The `loom-manifests` index is never prefixed with `INDEX_PREFIX` and is never deleted by teardown. It is a cluster-wide registry of all engagements deployed to that cluster.
 

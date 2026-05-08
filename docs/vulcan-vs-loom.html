@@ -154,7 +154,7 @@
 
   <!-- Header -->
   <h1>Vulcan vs Loom</h1>
-  <p class="subtitle">elastic/vulcan &middot; elastic/demobuilder &middot; April 2026</p>
+  <p class="subtitle">elastic/vulcan &middot; elastic/loom &middot; April 2026</p>
 
   <!-- Stats -->
   <div class="stats">
@@ -312,7 +312,7 @@
         <tr class="row-ok"><td>Kibana breadth</td><td>Spaces (disabledFeatures: []), dashboards (stable UUIDs), SLOs, alerting, SIEM rules (clone-not-modify D-032), Workflows, Cases, Connectors.</td><td>Not present</td></tr>
         <tr class="row-ok"><td>Discovery &rarr; qualification</td><td>warp-listen &rarr; thread-qualify (MEDDPIC gate) &rarr; thread-audit (feasibility matrix). Stops pipeline if not_qualified.</td><td>Not present</td></tr>
         <tr class="row-ok"><td>ML / anomaly detection</td><td>weave-train generates anomaly detection jobs + datafeeds. bootstrap.py steps 11&ndash;12 deploy; step 14 injects demo anomalies.</td><td>Not present</td></tr>
-        <tr class="row-ok"><td>Engagement lifecycle</td><td>DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/ per engagement. .env isolates credentials. engagement_dir is the single output root (D-019/D-023).</td><td>Not present</td></tr>
+        <tr class="row-ok"><td>Engagement lifecycle</td><td>LOOM_ENGAGEMENTS_ROOT/{slug}/ per engagement. .env isolates credentials. engagement_dir is the single output root (D-019/D-023).</td><td>Not present</td></tr>
         <tr class="row-ok"><td>LLM provider flexibility</td><td>Delegated to agent runtime (Cursor/Claude Code). No LLM management layer needed in-repo.</td><td>Not present</td></tr>
         <tr class="row-ok"><td>Currency / update mechanism</td><td>D-034: currency check (git fetch + status) on loom + hive-mind at pipeline start (Step 0).</td><td>Not present</td></tr>
       </tbody>
@@ -391,7 +391,7 @@
   </div>
 
   <p class="footer">
-    Analysis based on elastic/vulcan and elastic/demobuilder &middot; April 2026
+    Analysis based on elastic/vulcan and elastic/loom &middot; April 2026
   </p>
 
 </div>

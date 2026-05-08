@@ -265,10 +265,10 @@
 
 ---
 
-## D-023: `DEMOBUILDER_ENGAGEMENTS_ROOT` — engagements outside the repo
+## D-023: `LOOM_ENGAGEMENTS_ROOT` — engagements outside the repo
 
 **Status:** Active  
-**Enforced by:** Orchestrator Step 1 path resolution — `{engagement_dir}` is always under `${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/`. Never under the loom repo root. See `docs/engagements-path.md`.
+**Enforced by:** Orchestrator Step 1 path resolution — `{engagement_dir}` is always under `${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/`. Never under the loom repo root. See `docs/engagements-path.md`.
 
 **Date:** 2026-04-21 | **Session:** portable engagements root
 
@@ -301,7 +301,7 @@
 **Status:** Active  
 **Enforced by:** `bootstrap-data.py` template defines `loom_tags()` and `merge_tags()` helper functions at file top. These are called on every resource payload that accepts `tags`. Terraform resources use a `tags` local variable populated from the same formula. `references/loom-tagging.md` is the canonical tag format spec.
 
-**Concrete:** Tag value = `demobuilder:{engagement_id}` where `engagement_id` = `INDEX_PREFIX` normalized (hyphens/underscores/whitespace removed, lowercase), else `DEMO_SLUG` normalized. `DEMO_ASSET_TAG` in `.env` overrides.
+**Concrete:** Tag value = `loom:{engagement_id}` where `engagement_id` = `INDEX_PREFIX` normalized (hyphens/underscores/whitespace removed, lowercase), else `DEMO_SLUG` normalized. `DEMO_ASSET_TAG` in `.env` overrides.
 
 **Date:** 2026-04-16 | **Session:** engagement tagging
 
@@ -465,7 +465,7 @@
 ## D-041: Pipeline-wide Reference Currency Gate
 
 **Status:** Active — supersedes D-034  
-**Enforced by:** Orchestrator Step 0 — runs currency checks for all repos in `references/reference-repos.md` before any pipeline stage. Only `elastic/demobuilder` is blocking; all others warn-and-continue.
+**Enforced by:** Orchestrator Step 0 — runs currency checks for all repos in `references/reference-repos.md` before any pipeline stage. Only `elastic/loom` is blocking; all others warn-and-continue.
 
 **Date:** 2026-05-02 | **Session:** Bootstrap to Terraform investigation
 

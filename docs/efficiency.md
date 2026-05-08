@@ -84,7 +84,7 @@ parallel execution. If your runtime does, run the pairs above as concurrent suba
 merge their outputs before moving to the next dependent stage.
 
 **subprocess CLIs as lightweight subagents:**
-- `demo_status.py` (in `skills/wind-pulse/`) runs as a subprocess — it checks cluster health
+- `wind_pulse.py` (in `skills/wind-pulse/`) runs as a subprocess — it checks cluster health
   without loading the full pipeline context into the conversation.
 - `scripts/inventory.py` reads engagement state instantly without an AI session at all.
 - `bootstrap.py` and `teardown.py` run entirely outside the AI context.
@@ -99,7 +99,7 @@ Use these as the first line of investigation before opening a full agent chat.
 |--------|---------|-------------|
 | `scripts/inventory.py` | Show all engagements and stage status | Before starting a session; morning check |
 | `scripts/inventory.py <slug> -v` | Full stage-by-stage status for one engagement | Picking up mid-pipeline |
-| `skills/wind-pulse/demo_status.py` | Live cluster health check | Pre-demo verification |
+| `skills/wind-pulse/wind_pulse.py` | Live cluster health check | Pre-demo verification |
 | `{engagement_dir}/bootstrap.py --dry-run` | Validate deploy script without cluster changes | Before any live run |
 | `{engagement_dir}/teardown.py --dry-run` | Preview what teardown would delete | Before cleanup |
 
@@ -112,7 +112,7 @@ python3 /path/to/loom/scripts/inventory.py
 python3 /path/to/loom/scripts/inventory.py 2026CitizensAI -v
 
 # Check cluster health (requires .env)
-cd ~/engagements/2026CitizensAI && python3 /path/to/demo_status.py
+cd ~/engagements/2026CitizensAI && python3 /path/to/wind_pulse.py
 ```
 
 Running these before opening Cursor/Claude means you come into the AI session already knowing
@@ -128,5 +128,5 @@ no "let me check" round-trips.
 | Pipeline-state file | ~500–2000 tokens/session | Single JSON read replaces 10+ file scans |
 | Context pruning | 30–60% context reduction | Raw inputs dropped after parsing |
 | Model routing | 50–80% cost on extraction stages | Fast model for parsing, full model for design |
-| CLI pre-session | Eliminates full sessions for status | `inventory.py` and `demo_status.py` |
+| CLI pre-session | Eliminates full sessions for status | `inventory.py` and `wind_pulse.py` |
 | Subagent parallelism | Wall-clock time, not token cost | Parallel stages where dependencies allow |

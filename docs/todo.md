@@ -3,7 +3,7 @@
 *Generated from the post-mortem and current skill review. Updated as items are resolved.*
 *Last updated: 2026-05-01*
 
-For **agent behavior** (orchestrator path, `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs, deploy approvals), see
+For **agent behavior** (orchestrator path, `$LOOM_ENGAGEMENTS_ROOT` outputs, deploy approvals), see
 [`AGENTS.md`](../AGENTS.md), [`docs/engagements-path.md`](../docs/engagements-path.md), and [`docs/runtimes/`](../docs/runtimes/).
 
 ---
@@ -41,7 +41,7 @@ Before `bolt-spin` can create any serverless project, the `cloud-setup` skill ne
 **Action:** Pick one demo (Citizens Bank is the best-validated). Engagement root defaults to **`~/engagements`** (see [`docs/engagements-path.md`](../docs/engagements-path.md)):
 ```bash
 cd /path/to/loom
-ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
 set -a && source "$ROOT/citizens-bank/.env" && set +a
 python3 "$ROOT/citizens-bank/deploy/bootstrap.py" --dry-run
 # Review output, then:
@@ -161,21 +161,21 @@ GET .ml-anomalies-*/_mapping
 ```
 The Serverless field names differ from documentation: use `record_score`, `timestamp`, `partition_field_value`, `by_field_value`. See `skills/bolt-launch/references/serverless-differences.md`.
 
-### 16. Update `skills/wind-pulse/demo_status.py` for D-037 subfolder layout
+### 16. Update `skills/wind-pulse/wind_pulse.py` for D-037 subfolder layout
 
-The `demo_status.py` helper script still resolves Kibana saved objects from `kibana-objects/*.ndjson`
+The `wind_pulse.py` helper script still resolves Kibana saved objects from `kibana-objects/*.ndjson`
 (old flat layout). After D-037, those files live under `deploy/kibana-objects/`. The script will
 silently find zero saved objects on any engagement created after the reorganization.
 
-**Action:** Update the glob patterns in `demo_status.py` to search `deploy/kibana-objects/` and
+**Action:** Update the glob patterns in `wind_pulse.py` to search `deploy/kibana-objects/` and
 `deploy/kibana/**/*.ndjson` instead of the root-level paths. Verify against a live engagement.
 
 ---
 
 ## ✅ Resolved
 
-- **Workspace root convention** — Engagement workspaces live under **`~/engagements/{slug}/`** by default (or **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** if set) outside the repo. See `docs/decisions.md` D-019, D-023 and [`docs/engagements-path.md`](../docs/engagements-path.md).
+- **Workspace root convention** — Engagement workspaces live under **`~/engagements/{slug}/`** by default (or **`$LOOM_ENGAGEMENTS_ROOT/{slug}/`** if set) outside the repo. See `docs/decisions.md` D-019, D-023 and [`docs/engagements-path.md`](../docs/engagements-path.md).
 - **Engagement folder reorganization (D-037)** — All pipeline outputs are now organized into audience-scoped subfolders: `opportunity/` (AE/SDR), `demo/` (SA design), `data/` (data model / ML / seed), `deploy/` (bootstrap, teardown, Kibana objects). `.env` remains at the engagement root. All skill SKILL.md files, `scripts/inventory.py`, `docs/pipeline.md`, and `docs/decisions.md` updated accordingly. Merged to main via PR #5.
-- **Cloud-synced engagement root** — Google Drive (and OneDrive) documented as a valid `DEMOBUILDER_ENGAGEMENTS_ROOT` with pathing, sync latency, and credential security guidance. See `docs/engagements-path.md`.
+- **Cloud-synced engagement root** — Google Drive (and OneDrive) documented as a valid `LOOM_ENGAGEMENTS_ROOT` with pathing, sync latency, and credential security guidance. See `docs/engagements-path.md`.
 - **Pipeline efficiency layer** — Pipeline state file, context pruning strategy, model routing guidance, subagent parallelization map, and `scripts/inventory.py` zero-AI CLI added. See `docs/efficiency.md`.
 - **Reference repos for Workflow and Agent Builder builds** — `elastic/workflows` and `elastic/kibana-agent-builder-sdk` cloned at `~/Documents/GitHub/workflows` and `~/Documents/GitHub/kibana-agent-builder-sdk`. Local paths embedded in `weave-agent/SKILL.md` and `bolt-launch/references/serverless-differences.md`. Agent surfaces a blocker if context is missing before any Workflow/Agent Builder build.

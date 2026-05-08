@@ -16,18 +16,18 @@ Drop in discovery notes (and optionally a diagnostic export) and say **"build th
 | Requirement | How to satisfy |
 |---|---|
 | **Cursor** or **Claude Code** | The assistant drives the pipeline; you provide inputs and approvals |
-| **Python 3** | Required for `bootstrap.py`, `teardown.py`, `demo_status.py` |
+| **Python 3** | Required for `bootstrap.py`, `teardown.py`, `wind_pulse.py` |
 | **elastic/agent-skills** (full install) | `npx skills add elastic/agent-skills` — install all skill areas (Search, Observability, **Security**) |
 | **elastic/hive-mind** | `git clone https://github.com/elastic/hive-mind ../hive-mind` — sibling clone is the default; set `HIVE_MIND_PATH` if you keep it elsewhere |
 | **Elastic Cloud API key** | Run the `cloud-setup` skill once to set `EC_API_KEY` |
-| **`DEMOBUILDER_ENGAGEMENTS_ROOT`** | Optional. Defaults to `~/engagements`. Set in your shell profile to use a different root. |
+| **`LOOM_ENGAGEMENTS_ROOT`** | Optional. Defaults to `~/engagements`. Set in your shell profile to use a different root. |
 
 > **hive-mind location matters.** The skill symlinks in `.cursor/skills/`, `.claude/skills/`, and `.agents/skills/` point to `../hive-mind/skills/`. Clone hive-mind into the same parent directory as loom and the links resolve automatically. If your clone lives elsewhere, set `HIVE_MIND_PATH` and re-link using [Dependencies](docs/dependencies.md).
 
 ## Quick Start
 
 ```
-git clone https://github.com/elastic/demobuilder
+git clone https://github.com/elastic/loom
 git clone https://github.com/elastic/hive-mind ../hive-mind
 npx skills add elastic/agent-skills
 ```

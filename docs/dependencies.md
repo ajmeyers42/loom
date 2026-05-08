@@ -130,12 +130,12 @@ If the cluster is unavailable or Vulcan is not installed:
 
 ---
 
-## DEMOBUILDER_ENGAGEMENTS_ROOT (optional)
+## LOOM_ENGAGEMENTS_ROOT (optional)
 
 By default, engagement workspaces are written to `~/engagements/{slug}/`. Set this env var in your shell profile to use a different parent directory:
 
 ```bash
-export DEMOBUILDER_ENGAGEMENTS_ROOT="/Volumes/work/engagements"
+export LOOM_ENGAGEMENTS_ROOT="/Volumes/work/engagements"
 ```
 
 See [docs/engagements-path.md](engagements-path.md) for details and multi-customer isolation patterns.

@@ -7,7 +7,7 @@
 
 ## How Cursor picks up instructions
 
-- **Rules:** [`.cursor/rules/loom.mdc`](../../.cursor/rules/loom.mdc) is set to always apply and points the agent at the orchestrator and `$DEMOBUILDER_ENGAGEMENTS_ROOT` outputs.
+- **Rules:** [`.cursor/rules/loom.mdc`](../../.cursor/rules/loom.mdc) is set to always apply and points the agent at the orchestrator and `$LOOM_ENGAGEMENTS_ROOT` outputs.
 - **AGENTS.md:** Cursor reads [`AGENTS.md`](../../AGENTS.md) at the repo root when present — same content as the practical “what the agent should do” manifest.
 
 ## Prompting
@@ -18,7 +18,7 @@ Examples:
 - “Refresh the demo script from `acme-discovery.json` only”
 - “Deploy the demo to the cluster in `~/engagements/acme/.env`” (after approval)
 
-Outputs should land under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` — default **`~/engagements/{slug}/`** when the env var is unset (see [`docs/engagements-path.md`](../engagements-path.md)).
+Outputs should land under `$LOOM_ENGAGEMENTS_ROOT/{slug}/` — default **`~/engagements/{slug}/`** when the env var is unset (see [`docs/engagements-path.md`](../engagements-path.md)).
 
 ## Skills location and research order
 

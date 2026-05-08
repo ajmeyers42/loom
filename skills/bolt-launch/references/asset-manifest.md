@@ -11,7 +11,7 @@ Per **`docs/decisions.md` D-039** — `bootstrap.py` / `bootstrap-data.py` write
 | Field | Value |
 |-------|-------|
 | Index name | `loom-manifests` (never prefixed — see `pipeline-constants.md`) |
-| Document ID | normalized engagement ID (same as `demobuilder:<id>` tag value) |
+| Document ID | normalized engagement ID (same as `loom:<id>` tag value) |
 | Prefix applied? | No — shared registry index; never prefixed, never deleted by teardown |
 
 ---
@@ -60,7 +60,7 @@ The schema uses **open lists** of typed asset records rather than hardcoded cate
           {"type": "siem_rule",      "id": "demo-citizens-wire-transfer-ml-anomaly", "name": "Citizens POC — Wire Transfer Volume Anomaly"}
         ],
         "default": [
-          {"type": "tag", "id": "r1s2t3u4-...", "name": "demobuilder:cbfraud"}
+          {"type": "tag", "id": "r1s2t3u4-...", "name": "loom:cbfraud"}
         ]
       }
     }
@@ -139,7 +139,7 @@ _manifest_add_kibana(SPACE_ID, "dashboard",   dashboard_id, name="Citizens Fraud
 _manifest_add_kibana(SPACE_ID, "slo",         slo_id,       name="cb-slo-debit-ack-rate")
 _manifest_add_kibana(SPACE_ID, "agent",       agent_id,     name="Fraud Assistant")
 _manifest_add_kibana(SPACE_ID, "workflow",    workflow_id,  name="citizens-open-fraud-case")
-_manifest_add_kibana("default", "tag",        tag_id,       name=f"demobuilder:{_engagement_id_for_tag()}")
+_manifest_add_kibana("default", "tag",        tag_id,       name=f"loom:{_engagement_id_for_tag()}")
 ```
 
 ---
@@ -201,4 +201,4 @@ See `teardown-dispatch.md` for the dispatch loop that consumes this inventory.
 - The `loom-manifests` index is excluded from ILM, snapshot policies, and teardown.
 - Multiple engagements on the same cluster each have their own document (document ID = engagement_id).
 - If bootstrap is re-run (idempotent re-deploy), the manifest is overwritten with the latest state. Old IDs from a previous partial run are replaced cleanly.
-- **What the manifest does NOT replace:** `INDEX_PREFIX` safety gate, `DEMO_SLUG` and `.env` credential fields, `demobuilder:<id>` tags (the manifest complements tag-based discovery by providing IDs directly).
+- **What the manifest does NOT replace:** `INDEX_PREFIX` safety gate, `DEMO_SLUG` and `.env` credential fields, `loom:<id>` tags (the manifest complements tag-based discovery by providing IDs directly).

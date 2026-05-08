@@ -74,7 +74,7 @@ index_prefix      = ""  # from INDEX_PREFIX in .env
 demo_slug         = ""  # from DEMO_SLUG in .env
 kibana_solution   = ""  # from KIBANA_SOLUTION in .env
 bootstrap_version = ""  # from BOOTSTRAP_VERSION constant
-engagement_tag    = ""  # demobuilder:{engagement_id} — from D-026 formula
+engagement_tag    = ""  # loom:{engagement_id} — from D-026 formula
 ```
 
 ## Step 4: Generate `deploy/main.tf`
@@ -106,7 +106,7 @@ For each entry, generate the appropriate Terraform resource. Use patterns from `
 Every Terraform resource that accepts `tags` (or equivalent) must include:
 ```hcl
 tags = concat(
-  ["demobuilder:${var.engagement_tag}"],
+  ["loom:${var.engagement_tag}"],
   var.additional_tags
 )
 ```
@@ -174,7 +174,7 @@ def _engagement_id_for_tag() -> str:
     raw = override or (PREFIX.strip() if PREFIX.strip() else SLUG)
     return re.sub(r"[-_\s]+", "", raw).lower() or "demo"
 
-def loom_tags() -> list: return [f"demobuilder:{_engagement_id_for_tag()}"]
+def loom_tags() -> list: return [f"loom:{_engagement_id_for_tag()}"]
 def merge_tags(existing): return sorted(set((existing or []) + loom_tags()))
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────

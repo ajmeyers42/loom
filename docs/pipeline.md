@@ -146,7 +146,7 @@ For a quick lookup of when to invoke a specific skill without running the full p
 
 ## Engagement workspace layout
 
-Every engagement produces a folder under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/` (default `~/engagements/{slug}/`). Artifacts are organized into four audience-scoped subfolders (D-037):
+Every engagement produces a folder under `$LOOM_ENGAGEMENTS_ROOT/{slug}/` (default `~/engagements/{slug}/`). Artifacts are organized into four audience-scoped subfolders (D-037):
 
 ```
 {slug}/

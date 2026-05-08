@@ -151,7 +151,7 @@ After Vulcan completes, locate the generated module directory:
 
 ```bash
 VULCAN_MODULE="../vulcan/demos/<module_name>"
-ENGAGEMENT_DIR="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
+ENGAGEMENT_DIR="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
 
 cp "$VULCAN_MODULE/all_queries.json"           "$ENGAGEMENT_DIR/data/{slug}-vulcan-queries.json"
 cp "$VULCAN_MODULE/query_testing_results.json" "$ENGAGEMENT_DIR/data/{slug}-vulcan-query-results.json"

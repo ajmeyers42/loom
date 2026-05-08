@@ -132,12 +132,12 @@ resource "elasticstack_elasticsearch_index_template" "claims" {
 
 ## D-026 Tagging — `tags` Maps
 
-All resources that support `tags` must carry `demobuilder:{engagement_id}`. In HCL:
+All resources that support `tags` must carry `loom:{engagement_id}`. In HCL:
 
 ```hcl
 locals {
   engagement_id = replace(var.index_prefix != "" ? trimsuffix(var.index_prefix, "-") : var.slug, "/[^a-z0-9]/", "")
-  loom_tag = "demobuilder:${local.engagement_id}"
+  loom_tag = "loom:${local.engagement_id}"
 
   common_tags = [local.loom_tag]
 }

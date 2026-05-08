@@ -163,7 +163,7 @@ When the demo script includes Agent Builder, `bootstrap.py` should:
 2. **Load seed data** with 30-60 synthetic session documents (step 10, data load)
 3. **Create the AI Usage data view** in the demo Kibana space
 4. **Create the AI Usage & Cost dashboard** with the ES|QL panels above
-5. **Tag all created assets** with `demobuilder:{engagement_id}` (D-026)
+5. **Tag all created assets** with `loom:{engagement_id}` (D-026)
 6. **Add to manifest** (D-031)
 
 Add `INCLUDE_TOKEN_VISIBILITY=true` to `.env` (default: `true` when demo includes Agent Builder).

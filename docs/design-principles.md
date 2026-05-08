@@ -38,7 +38,7 @@ Every defined asset must be deployable on Elastic using supported APIs. Mappings
 
 ## Engagement tagging (D-026)
 
-Every deployed asset with a `tags` field carries `demobuilder:<engagement_id>`. This makes the engagement's assets discoverable by tag at teardown time — no hardcoded ID lists required. See `skills/bolt-launch/references/loom-tagging.md`.
+Every deployed asset with a `tags` field carries `loom:<engagement_id>`. This makes the engagement's assets discoverable by tag at teardown time — no hardcoded ID lists required. See `skills/bolt-launch/references/loom-tagging.md`.
 
 ## ILM is hot-only by default (D-027)
 

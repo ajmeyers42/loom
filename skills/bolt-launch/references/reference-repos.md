@@ -8,7 +8,7 @@ This file is the **single source of truth** for all external repositories refere
 
 ## Registry
 
-### 1. `elastic/demobuilder` — this repo
+### 1. `elastic/loom` — this repo
 
 | Field | Value |
 |-------|-------|
@@ -133,7 +133,7 @@ This file is the **single source of truth** for all external repositories refere
 
 ## Rules
 
-- **Blocking**: Only `elastic/demobuilder` itself causes a pipeline halt if stale. Ask SA before continuing.
+- **Blocking**: Only `elastic/loom` itself causes a pipeline halt if stale. Ask SA before continuing.
 - **Warn-and-continue**: All other repos. Note stale state, recommend pull/update, proceed unless SA objects.
 - **Scope-conditional**: Check Terraform providers only when `DEPLOY_MODE=terraform` is set or TF work is being initiated. Check `workflows` and `kibana-agent-builder-sdk` only when those features are in demo scope.
 - **Missing optional repo**: Log `⏭ not installed — skipping`. Never error.

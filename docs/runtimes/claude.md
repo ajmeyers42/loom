@@ -20,7 +20,7 @@ Point the session at [`skills/loom/SKILL.md`](../../skills/loom/SKILL.md) for fu
 
 ## Outputs
 
-Write artifacts to **`$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`** — default **`~/engagements/{slug}/`** when unset (see [`docs/engagements-path.md`](../engagements-path.md)), or the absolute workspace path the user specifies. Same layout as in [`README.md`](../../README.md).
+Write artifacts to **`$LOOM_ENGAGEMENTS_ROOT/{slug}/`** — default **`~/engagements/{slug}/`** when unset (see [`docs/engagements-path.md`](../engagements-path.md)), or the absolute workspace path the user specifies. Same layout as in [`README.md`](../../README.md).
 
 ## Human vs agent execution
 

@@ -1,12 +1,12 @@
 ---
-description: Elastic loom pipeline — orchestrator, DEMOBUILDER_ENGAGEMENTS_ROOT outputs, approval gates
+description: Elastic loom pipeline — orchestrator, LOOM_ENGAGEMENTS_ROOT outputs, approval gates
 alwaysApply: true
 ---
 
 # Loom
 
 - **Orchestrator:** `skills/loom/SKILL.md` — run pipeline stages in order, read each stage’s `SKILL.md` under `skills/`.
-- **Outputs:** Engagement artifacts under `$DEMOBUILDER_ENGAGEMENTS_ROOT/{slug}/`; default root `~/engagements` if unset (see `docs/engagements-path.md`). Repo = skills only.
+- **Outputs:** Engagement artifacts under `$LOOM_ENGAGEMENTS_ROOT/{slug}/`; default root `~/engagements` if unset (see `docs/engagements-path.md`). Repo = skills only.
 - **SA experience:** Gather inputs, produce artifacts, offer to execute commands. Do not instruct the user to run scripts by hand unless they prefer local execution.
 - **Approvals:** Ask before `bolt-spin` or `bolt-launch` (cluster creation, spend, `bootstrap.py` **against a live cluster**) unless the user already clearly requested deployment **and** has reviewed `bootstrap.py`, platform audit, risks, and checklist (`docs/decisions.md` D-024). `bootstrap.py --dry-run` is allowed without deploy.
 - **Elastic version:** New deployment/project → default **latest GA** unless user specifies otherwise. Existing deployment → **validate version** (`GET /`, Kibana status, diagnostic) before scripts/plans. Scope ES|QL, APIs, and Kibana guidance to that version.
@@ -17,7 +17,7 @@ alwaysApply: true
 - **Managed assets preferred; clone to modify (D-032):** Use Elastic-managed/prebuilt assets (package dashboards, detection rules, ML jobs, data views, ingest pipelines) as-is whenever they serve the demo. If modification is required, clone with a `[{SLUG}]` prefix — never PUT/PATCH the original. Embed existing SLOs, ML results, and saved visualizations in custom dashboards via `slo_overview`/`slo_burn_rate` panel types or `vis` + `ref_id` rather than re-creating equivalent panels.
 - **Integration-first + schema gate (D-043):** For Observability/Security, data must come from Fleet agent integrations (EPR packages), not Prometheus-scraper streams. When a Fleet package is installed, its shipped assets (dashboards, rules, ML jobs, data views) are used first — custom assets only fill gaps the package doesn't cover. Before authoring any asset that queries an index: probe `GET /_index_template/*`, `GET /_component_template/<name>@package`, and `GET /api/fleet/epm/packages/<name>/assets` to confirm schema and inventory what's already shipped. No asset that references an index may be authored or deployed until that index's field schema is confirmed. Custom search indices (Path B) may iterate.
 - **Field population gate (D-044):** Every field in a custom index mapping must be non-null in every seed document. Derived fields (`risk_label`, `on_track`, etc.) must be computed and stored at seed time — never deferred to query time. After each `_bulk_index`, assert every viz-queried field is populated via `POST /{index}/_count {"query":{"exists":{"field":"{field}"}}}`. A null viz-queried field causes `Unknown column` in ES|QL and propagates broken rendering to adjacent panels in the same dashboard. This is a no-go blocker in `finish-check`.
-- **Tagging (D-026):** Every asset with a `tags` field must carry `demobuilder:<engagement_id>` — full spec in `skills/bolt-launch/references/loom-tagging.md`.
+- **Tagging (D-026):** Every asset with a `tags` field must carry `loom:<engagement_id>` — full spec in `skills/bolt-launch/references/loom-tagging.md`.
 - **ILM default (D-027):** Generate hot-only ILM (hot `set_priority` + `delete`). Add warm/cold/frozen phases only when the engagement explicitly requires tiered storage. Never use `rollover` on plain indices — only on data streams.
 - **Inference (D-028):** Use **EIS** (`service: "elastic"`) for all embeddings and reranking. Reserve cluster ML nodes for anomaly detection and data frame analytics only.
 - **Asset manifest (D-031):** `bootstrap.py` writes a manifest to `loom-manifests/{engagement_id}` in the cluster after each step. `teardown.py` reads this manifest as the trusted source of IDs to delete. Fallback to hardcoded inventory if absent. Manifest index is never deleted.

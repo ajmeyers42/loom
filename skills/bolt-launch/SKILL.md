@@ -155,7 +155,7 @@ Read `INDEX_PREFIX` (may be blank). If set, prepend it to every index name, temp
 and pipeline name in the deployment. Apply consistently so a prefix of `cb-` makes
 `fraud-claims` → `cb-fraud-claims` everywhere including query references.
 
-Read optional **`DEMO_ASSET_TAG`** — overrides the engagement id used in **`demobuilder:<id>`**
+Read optional **`DEMO_ASSET_TAG`** — overrides the engagement id used in **`loom:<id>`**
 tags when set (see **`references/loom-tagging.md`**, **`docs/decisions.md` D-026**).
 
 ## Step 2: Read Pipeline Outputs
@@ -276,7 +276,7 @@ def _engagement_id_for_tag() -> str:
     return s or "demo"
 
 def loom_tags() -> list[str]:
-    return [f"demobuilder:{_engagement_id_for_tag()}"]
+    return [f"loom:{_engagement_id_for_tag()}"]
 
 def merge_tags(existing):
     return sorted(set((existing or []) + loom_tags()))
@@ -705,13 +705,13 @@ Every engagement that includes Agent Builder or ML anomaly detection should incl
 
 2. **`deploy/refresh.py`** — A standalone Python script for pre-demo operational maintenance: anomaly re-injection, ELSER warmup, case timestamp refresh, session cleanup, and readiness summary table. Run 15–30 minutes before any demo. Generated once per engagement. Key flags: `--inject-anomaly`, `--skip-cases`, `--dry-run`.
 
-**13m — Engagement tagging (`demobuilder:<id>`)** *(D-026 — REQUIRED on every create payload that has a `tags` field)*
+**13m — Engagement tagging (`loom:<id>`)** *(D-026 — REQUIRED on every create payload that has a `tags` field)*
 
 **`merge_tags()` must be called on EVERY asset with a `tags` field.** This includes SLOs, alerting rules, Kibana Workflows, Cases, Agent Builder agents (labels field), Agent Builder ES|QL tools, ML job tags, and SIEM rule tags. The function is defined in bootstrap.py and must not be skipped:
 
 ```python
 def merge_tags(existing):
-    return sorted(set((existing or []) + [f"demobuilder:{_engagement_id()}"]))
+    return sorted(set((existing or []) + [f"loom:{_engagement_id()}"]))
 ```
 
 Usage:
@@ -1001,7 +1001,7 @@ prefixed resources.
 
 **Prefix copy workflow:** (see `docs/engagements-path.md` — default root `~/engagements`)
 ```bash
-ROOT="${DEMOBUILDER_ENGAGEMENTS_ROOT:-$HOME/engagements}"
+ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
 cp "$ROOT/engagement-a/.env" "$ROOT/engagement-b/.env"
 # Edit engagement-b/.env: DEMO_SLUG, ENGAGEMENT, INDEX_PREFIX for the new customer
 set -a && source "$ROOT/engagement-b/.env" && set +a
