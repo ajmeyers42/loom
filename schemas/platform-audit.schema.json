@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://elastic.co/demobuilder/schemas/platform-audit.schema.json",
-  "title": "Demobuilder Platform Audit",
+  "$id": "https://elastic.co/loom/schemas/platform-audit.schema.json",
+  "title": "Loom Platform Audit",
   "type": "object",
   "required": ["meta", "platform", "feature_audit", "overall_status"],
   "properties": {

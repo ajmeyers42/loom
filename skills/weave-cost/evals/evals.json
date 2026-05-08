@@ -1,0 +1,35 @@
+{
+  "skill_name": "weave-cost",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The demo script includes Agent Builder. Add AI cost and usage visibility to the engagement.",
+      "expected_output": "Token visibility is included by default: {prefix}agent-sessions index spec, seed data guidance, ES|QL panels, and AI Usage & Cost dashboard guidance.",
+      "files": [
+        "$HOME/engagements/acme/acme-demo-script.md",
+        "$HOME/engagements/acme/acme-data-model.json"
+      ],
+      "assertions": [
+        "Runs automatically when Agent Builder is in scope unless INCLUDE_TOKEN_VISIBILITY=false",
+        "Adds agent-sessions schema compatible with hive-mind Group B",
+        "Uses hot-only ILM with delete retention",
+        "Provides realistic synthetic session volume and cost ranges",
+        "Includes dashboard panels for spend, model mix, agent usage, and cache efficiency"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "INCLUDE_TOKEN_VISIBILITY=false for this engagement.",
+      "expected_output": "Token visibility demo feature is skipped and the reason is noted; SA tooling guidance remains available if requested.",
+      "files": [
+        "$HOME/engagements/acme/.env"
+      ],
+      "assertions": [
+        "Respects INCLUDE_TOKEN_VISIBILITY=false",
+        "Does not add agent-sessions index to the demo data model",
+        "Does not add AI Cost + Usage dashboard to required checklist",
+        "Mentions the opt-out in handoff or platform notes"
+      ]
+    }
+  ]
+}

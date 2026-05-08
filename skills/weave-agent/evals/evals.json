@@ -1,0 +1,35 @@
+{
+  "skill_name": "weave-agent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The demo script includes an Elastic Agent Builder assistant with live ES|QL tools, index search, and a ServiceNow workflow. Produce the agent spec.",
+      "expected_output": "{slug}-agent-builder-spec.md produced with agent role, copy-paste-ready system instructions, tool definitions, workflow linkage guidance, and demo prompts mapped to scenes.",
+      "files": [
+        "$HOME/engagements/acme/acme-demo-script.md",
+        "$HOME/engagements/acme/acme-platform-audit.json"
+      ],
+      "assertions": [
+        "Confirms Agent Builder is supported before writing the spec",
+        "Distinguishes ES|QL, index_search, workflow, and platform built-in tools",
+        "Uses workflow id from POST response, not workflow name",
+        "Includes system instructions with grounding and safety rules",
+        "Includes test prompts aligned to demo scenes",
+        "Does not claim bootstrap.py execution is replaced by the spec"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Agent Builder is blocked in the platform audit. Generate the agent design anyway.",
+      "expected_output": "Skill refuses to generate a runnable full spec and points to the audit blocker/remediation instead.",
+      "files": [
+        "$HOME/engagements/acme/acme-platform-audit.json"
+      ],
+      "assertions": [
+        "Does not create a deployable spec for unsupported Agent Builder",
+        "Surfaces blocker and remediation",
+        "Suggests a narrative or fallback only if appropriate"
+      ]
+    }
+  ]
+}

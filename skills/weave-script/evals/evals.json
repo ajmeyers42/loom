@@ -1,0 +1,54 @@
+{
+  "skill_name": "weave-script",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write the demo script for Citizens Bank. Michael De La Cruz will be our only contact in the meeting — Joe Burke won't be there. Keep it focused on what Michael can take back to his leadership.",
+      "expected_output": "citizens-bank-demo-script.md shaped for champion_enablement (single contact, no DM present), 25-35 min runtime, closes with 'what to show Joe' framing. citizens-bank-demo-brief.md for AE. No Bain/AWS Bedrock mention. Uses 'scattered everywhere' verbatim.",
+      "files": [
+        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-discovery.json"
+      ],
+      "assertions": [
+        "Script runtime is 25-35 min (champion enablement, not a full technical deep-dive)",
+        "Human story centers on Michael's role and the internal problem he's trying to solve",
+        "Close positions the demo as something Michael can show Joe — internal ammunition framing",
+        "No mention of Bain, AWS Bedrock, or any competitor in scene talking points (context/do-not-mention sections may name them for SE awareness)",
+        "Uses 'scattered everywhere' or equivalent verbatim from discovery",
+        "Does not use internal sales terms (champion, deal stage, ICP)",
+        "Demo brief is one page and written for the AE, not the SE"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Generate the demo script for Deutsche Telekom SOC-T. Audience is a mixed SOC team. We want to cover ML anomaly detection, ES|QL threat hunting, and AI Assistant — ELSER needs setup first.",
+      "expected_output": "dt-soct-demo-script.md with 3 scenes, ML first (earn trust), ES|QL second, AI Assistant third with setup caveat. Human story is a SOC analyst. Exec bridge at each transition. Platform note for ELSER setup requirement.",
+      "files": [
+        "/tmp/ddp-evals/diagnostic-test/dt-soct/dt-soct-platform-audit.json"
+      ],
+      "assertions": [
+        "ML anomaly detection is Scene 1 (earn trust — they already use it)",
+        "AI Assistant scene includes explicit pre-demo setup note for LLM connector",
+        "Human story is a SOC analyst, not a generic 'user'",
+        "Exec bridge present at each scene transition",
+        "Platform notes section references the amber audit status and pre-demo task list",
+        "No scenes scripted for Agent Builder or Workflows (upgrade_required)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Write the demo script for the Thermo Fisher call with Karen. Thursday is the deadline — keep it tight.",
+      "expected_output": "thermo-fisher-demo-script.md with urgency reflected, RAG demo focus, Karen as decision maker in the room, specific scenario referencing historical project data. Brief for AE.",
+      "files": [
+        "/tmp/ddp-evals/iteration-1/thermo-fisher/with_skill/outputs/thermo-fisher-discovery.json"
+      ],
+      "assertions": [
+        "Script reflects Thursday deadline urgency — tight runtime, no padding",
+        "Demo scenario references historical project data or institutional memory pain point",
+        "Karen Pendergraft addressed as decision maker in audience section",
+        "RAG or semantic search is the primary feature scene",
+        "Confirmation doc language does not use internal sales terms",
+        "Next steps section asks for specific data or access needed for POC"
+      ]
+    }
+  ]
+}

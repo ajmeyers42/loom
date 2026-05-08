@@ -1,4 +1,4 @@
-# demobuilder
+# loom
 
 An agent-driven pipeline that turns customer discovery notes into a fully deployed Elastic demo — mappings, data, ML jobs, dashboards, Agent Builder agents, Workflows, and SIEM rules — without the SA having to hand-write scripts or click through Kibana.
 
@@ -16,27 +16,27 @@ Drop in discovery notes (and optionally a diagnostic export) and say **"build th
 | Requirement | How to satisfy |
 |---|---|
 | **Cursor** or **Claude Code** | The assistant drives the pipeline; you provide inputs and approvals |
-| **Python 3** | Required for `bootstrap.py`, `teardown.py`, `demo_status.py` |
+| **Python 3** | Required for `bootstrap.py`, `teardown.py`, `wind_pulse.py` |
 | **elastic/agent-skills** (full install) | `npx skills add elastic/agent-skills` — install all skill areas (Search, Observability, **Security**) |
 | **elastic/hive-mind** | `git clone https://github.com/elastic/hive-mind ../hive-mind` — sibling clone is the default; set `HIVE_MIND_PATH` if you keep it elsewhere |
 | **Elastic Cloud API key** | Run the `cloud-setup` skill once to set `EC_API_KEY` |
-| **`DEMOBUILDER_ENGAGEMENTS_ROOT`** | Optional. Defaults to `~/engagements`. Set in your shell profile to use a different root. |
+| **`LOOM_ENGAGEMENTS_ROOT`** | Optional. Defaults to `~/engagements`. Set in your shell profile to use a different root. |
 
-> **hive-mind location matters.** The skill symlinks in `.cursor/skills/`, `.claude/skills/`, and `.agents/skills/` point to `../hive-mind/skills/`. Clone hive-mind into the same parent directory as demobuilder and the links resolve automatically. If your clone lives elsewhere, set `HIVE_MIND_PATH` and re-link using [Dependencies](docs/dependencies.md).
+> **hive-mind location matters.** The skill symlinks in `.cursor/skills/`, `.claude/skills/`, and `.agents/skills/` point to `../hive-mind/skills/`. Clone hive-mind into the same parent directory as loom and the links resolve automatically. If your clone lives elsewhere, set `HIVE_MIND_PATH` and re-link using [Dependencies](docs/dependencies.md).
 
 ## Quick Start
 
 ```
-git clone https://github.com/elastic/demobuilder
+git clone https://github.com/elastic/loom
 git clone https://github.com/elastic/hive-mind ../hive-mind
 npx skills add elastic/agent-skills
 ```
 
-Open `demobuilder` in Cursor (or Claude Code — see [docs/runtimes/claude.md](docs/runtimes/claude.md)), then:
+Open `loom` in Cursor (or Claude Code — see [docs/runtimes/claude.md](docs/runtimes/claude.md)), then:
 
 1. Paste your discovery notes into the chat.
 2. Say **"build the demo for [Company]"**.
-3. The `demobuilder` orchestrator runs the pipeline, asks for approvals before any cluster spend, and delivers a complete engagement workspace under `~/engagements/{slug}/`.
+3. The `loom` orchestrator runs the pipeline, asks for approvals before any cluster spend, and delivers a complete engagement workspace under `~/engagements/{slug}/`.
 
 For runtime-specific setup (MCP, rules, plugin paths): [Cursor](docs/runtimes/cursor.md) · [Claude Code](docs/runtimes/claude.md)
 

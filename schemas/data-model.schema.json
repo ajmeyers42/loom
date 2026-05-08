@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://elastic.co/demobuilder/schemas/data-model.schema.json",
-  "title": "Demobuilder Data Model",
+  "$id": "https://elastic.co/loom/schemas/data-model.schema.json",
+  "title": "Loom Data Model",
   "type": "object",
   "required": ["slug", "engagement", "index_prefix", "elastic_version", "deployment_type", "build_order"],
   "properties": {

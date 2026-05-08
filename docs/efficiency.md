@@ -1,4 +1,4 @@
-# demobuilder — Efficiency Guide
+# loom — Efficiency Guide
 
 How to reduce token usage, context window pressure, and cost across the pipeline without
 sacrificing output quality.
@@ -16,7 +16,7 @@ When the state file exists: inventory is instant and costs ~200 tokens.
 When it does not exist (first run): the file scan fallback runs once, then writes the state file.
 
 The orchestrator also prunes raw inputs from context once they are parsed. Discovery PDFs
-and diagnostic ZIPs are large; once `demo-discovery-parser` or `demo-diagnostic-analyzer`
+and diagnostic ZIPs are large; once `warp-listen` or `warp-scan`
 has produced its structured JSON, the original raw file is no longer read by downstream stages.
 Passing raw text through the full pipeline would easily double context usage per session.
 
@@ -36,11 +36,11 @@ and provide only the files that stage needs:
 
 | Stage | Inputs to provide |
 |-------|------------------|
-| demo-discovery-parser | raw discovery notes only |
-| demo-platform-audit | `{slug}-discovery.json`, `{slug}-opportunity-profile.json`, `{slug}-current-state.json` |
-| demo-script-template | `{slug}-discovery.json`, `{slug}-platform-audit.json` |
-| demo-data-modeler | `{slug}-demo-script.md`, `{slug}-discovery.json` |
-| demo-deploy | `{slug}-data-model.json`, `.env`, `{slug}-demo-script.md` |
+| warp-listen | raw discovery notes only |
+| thread-audit | `{slug}-discovery.json`, `{slug}-opportunity-profile.json`, `{slug}-current-state.json` |
+| weave-script | `{slug}-discovery.json`, `{slug}-platform-audit.json` |
+| weave-model | `{slug}-demo-script.md`, `{slug}-discovery.json` |
+| bolt-launch | `{slug}-data-model.json`, `.env`, `{slug}-demo-script.md` |
 
 Avoid pasting all engagement files into context "just in case." The pipeline-state file
 tells you exactly what exists; load only what the stage explicitly requires.
@@ -54,7 +54,7 @@ Different stages have very different cost/quality requirements. See
 
 **Quick rule:**
 - **Extraction and aggregation stages** (discovery-parser, diagnostic-analyzer, opportunity-review,
-  platform-audit, validator, demo-status) → fast/smaller model (Haiku, gpt-4o-mini, etc.)
+  platform-audit, validator, wind-pulse) → fast/smaller model (Haiku, gpt-4o-mini, etc.)
 - **Creative and design stages** (script-template, ideation, data-modeler, agent-design,
   deploy/bootstrap generation) → full model (Sonnet, Opus, GPT-4o)
 
@@ -75,16 +75,16 @@ multiple tasks):
 
 | Parallel pair | Condition |
 |---------------|-----------|
-| demo-discovery-parser + demo-diagnostic-analyzer | Both inputs provided at the start |
-| demo-ml-designer + demo-kibana-agent-design | Both need only the completed data model |
-| demo-status (all health checks) | Independent probes (cluster, ML, ELSER, Kibana) |
+| warp-listen + warp-scan | Both inputs provided at the start |
+| weave-train + weave-agent | Both need only the completed data model |
+| wind-pulse (all health checks) | Independent probes (cluster, ML, ELSER, Kibana) |
 
 The orchestrator runs stages sequentially by default because most setups don't have reliable
 parallel execution. If your runtime does, run the pairs above as concurrent subagents and
 merge their outputs before moving to the next dependent stage.
 
 **subprocess CLIs as lightweight subagents:**
-- `demo_status.py` (in `skills/demo-status/`) runs as a subprocess — it checks cluster health
+- `wind_pulse.py` (in `skills/wind-pulse/`) runs as a subprocess — it checks cluster health
   without loading the full pipeline context into the conversation.
 - `scripts/inventory.py` reads engagement state instantly without an AI session at all.
 - `bootstrap.py` and `teardown.py` run entirely outside the AI context.
@@ -99,20 +99,20 @@ Use these as the first line of investigation before opening a full agent chat.
 |--------|---------|-------------|
 | `scripts/inventory.py` | Show all engagements and stage status | Before starting a session; morning check |
 | `scripts/inventory.py <slug> -v` | Full stage-by-stage status for one engagement | Picking up mid-pipeline |
-| `skills/demo-status/demo_status.py` | Live cluster health check | Pre-demo verification |
+| `skills/wind-pulse/wind_pulse.py` | Live cluster health check | Pre-demo verification |
 | `{engagement_dir}/bootstrap.py --dry-run` | Validate deploy script without cluster changes | Before any live run |
 | `{engagement_dir}/teardown.py --dry-run` | Preview what teardown would delete | Before cleanup |
 
 **Zero-AI pre-session workflow:**
 ```bash
 # See where all engagements stand
-python3 /path/to/demobuilder/scripts/inventory.py
+python3 /path/to/loom/scripts/inventory.py
 
 # Check a specific engagement in detail
-python3 /path/to/demobuilder/scripts/inventory.py 2026CitizensAI -v
+python3 /path/to/loom/scripts/inventory.py 2026CitizensAI -v
 
 # Check cluster health (requires .env)
-cd ~/engagements/2026CitizensAI && python3 /path/to/demo_status.py
+cd ~/engagements/2026CitizensAI && python3 /path/to/wind_pulse.py
 ```
 
 Running these before opening Cursor/Claude means you come into the AI session already knowing
@@ -128,5 +128,5 @@ no "let me check" round-trips.
 | Pipeline-state file | ~500–2000 tokens/session | Single JSON read replaces 10+ file scans |
 | Context pruning | 30–60% context reduction | Raw inputs dropped after parsing |
 | Model routing | 50–80% cost on extraction stages | Fast model for parsing, full model for design |
-| CLI pre-session | Eliminates full sessions for status | `inventory.py` and `demo_status.py` |
+| CLI pre-session | Eliminates full sessions for status | `inventory.py` and `wind_pulse.py` |
 | Subagent parallelism | Wall-clock time, not token cost | Parallel stages where dependencies allow |

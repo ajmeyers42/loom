@@ -1,6 +1,6 @@
 # Observability SLOs — programmatic creation (reference links)
 
-Use these alongside **`elastic/agent-skills`** (`observability-manage-slos`, `kibana-alerting-rules`) and the **Kibana OpenAPI** for request bodies. Scope all API payloads to **`ELASTIC_VERSION`** / `demo-platform-audit` (**D-020**, **D-025**).
+Use these alongside **`elastic/agent-skills`** (`observability-manage-slos`, `kibana-alerting-rules`) and the **Kibana OpenAPI** for request bodies. Scope all API payloads to **`ELASTIC_VERSION`** / `thread-audit` (**D-020**, **D-025**).
 
 ## Which Guide branch to open
 
@@ -28,9 +28,9 @@ From there, use the **Kibana** OpenAPI for:
 - `POST /api/observability/slos` — [Create an SLO](https://www.elastic.co/docs/api/doc/kibana/operation/operation-createsloop)
 - `POST /api/alerting/rule/{id}` with `rule_type_id: slo.rules.burnRate` — burn rate rules (validate `params` per version)
 
-## Programmatic path in demobuilder
+## Programmatic path in loom
 
-- **`skills/demo-deploy/SKILL.md`** — Step 13 (SLOs + burn-rate rules when in scope).
+- **`skills/bolt-launch/SKILL.md`** — Step 13 (SLOs + burn-rate rules when in scope).
 - Engagement example: `kibana/deploy_kibana_gaps.py` (Citizens) — creates SLOs via API; burn-rate rules still require Alerting API payloads validated for the target stack (see Guide + OpenAPI).
 
 ## Why both Guide and OpenAPI

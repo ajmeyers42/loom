@@ -1,0 +1,54 @@
+{
+  "skill_name": "loom",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run the full loom pipeline for Citizens Bank. Here are the discovery notes.",
+      "expected_output": "Complete workspace with all 7 stages executed. Handoff summary with artifact list, platform status, before-you-build tasks, and send-to-customer callout.",
+      "files": [
+        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-discovery.json"
+      ],
+      "assertions": [
+        "Inventory report shown before execution begins",
+        "Each stage announced with emoji status indicator before and after",
+        "All 7 output files produced (discovery through checklist)",
+        "ML designer skipped (no ML scenes in Citizens Bank script)",
+        "Handoff summary present with artifact table, platform status, and before-you-build list",
+        "Confirmation doc flagged as 'send to customer'",
+        "No stage re-run that could be skipped (discovery JSON already exists)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Build the demo for Deutsche Telekom SOC-T — I have the diagnostic. They want ML anomaly detection and ES|QL. No discovery notes, just the diagnostic.",
+      "expected_output": "Partial pipeline — diagnostic analyzer + platform audit only. Orchestrator correctly identifies that discovery notes are missing and reports what's blocked downstream. Does not produce a script or data model without discovery context.",
+      "files": [
+        "/tmp/ddp-evals/diagnostic-test/dt-soct/dt-soct-current-state.json"
+      ],
+      "assertions": [
+        "Diagnostic analyzer stage runs (current-state exists — skipped if already present)",
+        "Platform audit runs in partial mode (no discovery JSON)",
+        "Script template does NOT run (no discovery context)",
+        "Handoff clearly states what's missing and what to do next",
+        "Orchestrator does not hallucinate a script from diagnostic data alone"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The Citizens Bank demo script needs to change — Joe Burke is joining the call after all. Rewrite the script and give me a fresh checklist.",
+      "expected_output": "Only weave-script and finish-check re-run. All other Citizens Bank artifacts left unchanged. Script updated to account for Joe Burke (decision maker now present — adds executive framing). Fresh checklist generated.",
+      "files": [
+        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-discovery.json",
+        "/tmp/ddp-evals/script-test/citizens-bank/citizens-bank-demo-script.md"
+      ],
+      "assertions": [
+        "Only script-template and validator stages run — data model not regenerated",
+        "Inventory report shows other stages as already complete / skipped",
+        "Updated script addresses Joe Burke as a decision maker in the room",
+        "Script runtime expands to accommodate executive framing (likely 40+ min vs 33)",
+        "Checklist regenerated and reflects updated script",
+        "Handoff summary notes what changed vs previous run"
+      ]
+    }
+  ]
+}

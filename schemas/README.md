@@ -1,14 +1,14 @@
 # JSON Schemas
 
-This directory contains versioned contracts for machine-readable demobuilder outputs. Skills still explain how to reason about each artifact, but schemas define the stable fields downstream stages may rely on.
+This directory contains versioned contracts for machine-readable loom outputs. Skills still explain how to reason about each artifact, but schemas define the stable fields downstream stages may rely on.
 
 These schemas are intentionally lightweight at first. They validate shape and core enums without trying to encode every engagement-specific field.
 
 | Schema | Produced by | Consumed by |
 |---|---|---|
-| `opportunity-profile.schema.json` | `demo-opportunity-review` | `demo-platform-audit`, `demo-script-template`, orchestrator |
-| `platform-audit.schema.json` | `demo-platform-audit` | `demo-script-template`, `demo-data-modeler`, `demo-deploy`, `demo-validator` |
-| `data-model.schema.json` | `demo-data-modeler` | `demo-ml-designer`, `demo-deploy`, `demo-validator` |
+| `opportunity-profile.schema.json` | `thread-qualify` | `thread-audit`, `weave-script`, orchestrator |
+| `platform-audit.schema.json` | `thread-audit` | `weave-script`, `weave-model`, `bolt-launch`, `finish-check` |
+| `data-model.schema.json` | `weave-model` | `weave-train`, `bolt-launch`, `finish-check` |
 
 ## Maintenance
 

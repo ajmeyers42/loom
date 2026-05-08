@@ -1,0 +1,75 @@
+{
+  "skill_name": "warp-listen",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Parse these discovery notes from our call with Citizens Bank and generate the full output: the structured JSON profile, customer confirmation document, and internal gap report.",
+      "expected_output": "Three files: citizens-bank-discovery.json (valid JSON with all pain points, champion_enablement demo type, competitive context captured), citizens-bank-confirmation.md (customer-appropriate, uses verbatim quotes like 'scattered everywhere', no internal sales language), citizens-bank-gaps.md (budget and timeline flagged as low-impact gaps)",
+      "files": ["evals/files/citizens-bank.pdf"],
+      "expectations": [
+        "Produces a valid JSON file named citizens-bank-discovery.json",
+        "JSON correctly classifies demo_scope.recommended_type as champion_enablement",
+        "JSON captures at least 3 pain points including data fragmentation and automation bottlenecks",
+        "JSON identifies Michael De La Cruz as champion role, Joe Burke as decision_maker",
+        "JSON captures competitive context: Bain and AWS Bedrock as active alternatives",
+        "Confirmation doc does NOT mention Bain, AWS Bedrock, or any competitor",
+        "Confirmation doc uses customer's own language (e.g. 'scattered everywhere' or similar verbatim)",
+        "Confirmation doc does NOT use internal sales terms like 'champion', 'deal stage', or 'ICP'",
+        "Gap report identifies budget and timeline as missing fields",
+        "JSON deal_context.stage is champion_building or early_awareness"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I've got raw meeting notes from our IHG Club Vacations call — can you parse these and give me the structured discovery output?",
+      "expected_output": "Three files: ihg-club-discovery.json (technical specs extracted precisely: 3 servers, 50GB RAM, 220MM documents, 36GB index, 4 environments; multiple contacts with inferred roles; migration_assessment demo type), ihg-club-confirmation.md (shorter doc reflecting migration focus, gaps prominent), ihg-club-gaps.md",
+      "files": ["evals/files/ihg-club.pdf"],
+      "expectations": [
+        "Produces a valid JSON file named ihg-club-discovery.json",
+        "JSON correctly classifies elastic_relationship.status as existing_on_prem",
+        "JSON correctly classifies elastic_relationship.fallen_behind_releases as true",
+        "JSON extracts infrastructure.server_count as 3 and infrastructure.ram_gb as 50",
+        "JSON extracts data_volumes with 220MM documents mentioned",
+        "JSON captures at least 4 customer contacts (Terry Nixon and others)",
+        "JSON correctly classifies demo_scope.recommended_type as migration_assessment",
+        "Typos in the notes are cleaned in structured output (not 'yeards', 'sice', 'dignostic')",
+        "Gap report exists and identifies gaps since no clear feature demo was scoped",
+        "JSON deal_context.stage is migration"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Structure the Thermo Fisher discovery notes and generate the confirmation doc we'll send to Karen before Thursday's demo.",
+      "expected_output": "Three files: thermo-fisher-discovery.json (urgent deal, RAG demo type, 27 upcoming projects, 30-40 years of historical data, partial_fragmented elastic relationship), thermo-fisher-confirmation.md (specific demo scenario about querying historical project data, tight timeline, Karen's language used), thermo-fisher-gaps.md",
+      "files": ["evals/files/thermo-fisher.pdf"],
+      "expectations": [
+        "Produces a valid JSON file named thermo-fisher-discovery.json",
+        "JSON correctly classifies deal_context.urgency as high or critical",
+        "JSON correctly classifies elastic_relationship.status as partial_fragmented",
+        "JSON captures at least 3 pain points including institutional amnesia and manual overhead",
+        "JSON demo_scope.recommended_type includes rag_demo or technical_deep_dive",
+        "JSON captures Karen Pendergraft as decision_maker role",
+        "Confirmation doc includes a specific demo scenario referencing historical project data or similar concrete scope",
+        "Confirmation doc reflects the urgency (Q2 kickoff, vendor decision timing)",
+        "Confirmation doc does NOT use internal sales language",
+        "JSON next_steps.demo_timing references Thursday or the scheduled time"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Parse the Lowe's demo script as a discovery artifact and generate the discovery profile — this is our approved demo so treat the script as the post-discovery document.",
+      "expected_output": "Three files: lowes-discovery.json (retail industry, multi-persona audience, approved demo scoped, key features identified), lowes-confirmation.md (reflects what is already built/scoped, not what will be built), lowes-gaps.md",
+      "files": ["evals/files/lowes-demo-script.md"],
+      "expectations": [
+        "Produces a valid JSON file named lowes-discovery.json",
+        "JSON correctly identifies retail as the industry",
+        "JSON captures the three audience personas (Tom Gardner, Balajee Mohan, Pawan Kumar or similar)",
+        "JSON identifies key demo features: inventory intelligence, ML anomaly detection, ELSER/semantic search, agentic AI",
+        "JSON demo_scope.recommended_type reflects an approved technical demo (technical_deep_dive or similar)",
+        "Confirmation doc reflects that the demo is already scoped and built, not future-tense planning",
+        "JSON captures the Elastic team members (AJ Meyers as SA/presenter at minimum)",
+        "Gap report correctly notes this is an approved demo with few or no blocking gaps"
+      ]
+    }
+  ]
+}

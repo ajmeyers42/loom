@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-demobuilder inventory — zero-AI engagement status checker.
+loom inventory — zero-AI engagement status checker.
 
 Usage:
     python3 scripts/inventory.py                    # list all engagements
     python3 scripts/inventory.py <slug>             # detail for one engagement
     python3 scripts/inventory.py --root /some/path  # override root
 
-Reads DEMOBUILDER_ENGAGEMENTS_ROOT (default: ~/engagements).
+Reads LOOM_ENGAGEMENTS_ROOT (default: ~/engagements).
 No AI, no network — purely local file inspection.
 """
 
@@ -44,7 +44,7 @@ STATUS_ICONS = {
 
 
 def get_root() -> Path:
-    raw = os.environ.get("DEMOBUILDER_ENGAGEMENTS_ROOT", "").strip()
+    raw = os.environ.get("LOOM_ENGAGEMENTS_ROOT", "").strip()
     return Path(raw).expanduser() if raw else Path.home() / "engagements"
 
 
@@ -128,9 +128,9 @@ def print_summary(eng_dir: Path, slug: str, verbose: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="demobuilder engagement inventory")
+    parser = argparse.ArgumentParser(description="loom engagement inventory")
     parser.add_argument("slug", nargs="?", help="Engagement slug to inspect (omit for all)")
-    parser.add_argument("--root", help="Override DEMOBUILDER_ENGAGEMENTS_ROOT")
+    parser.add_argument("--root", help="Override LOOM_ENGAGEMENTS_ROOT")
     parser.add_argument("-v", "--verbose", action="store_true", help="Show all stages")
     args = parser.parse_args()
 
@@ -138,7 +138,7 @@ def main():
 
     if not root.exists():
         print(f"❌  Engagements root not found: {root}", file=sys.stderr)
-        print(f"    Set DEMOBUILDER_ENGAGEMENTS_ROOT or create ~/engagements", file=sys.stderr)
+        print(f"    Set LOOM_ENGAGEMENTS_ROOT or create ~/engagements", file=sys.stderr)
         sys.exit(1)
 
     print(f"\nDEMOBUILDER INVENTORY")

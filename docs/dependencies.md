@@ -1,6 +1,6 @@
 # Dependencies
 
-Demobuilder has two required external repositories and one optional environment variable.
+Loom has two required external repositories and one optional environment variable.
 
 ## elastic/agent-skills
 
@@ -12,7 +12,7 @@ The full plugin must be installed — not a Search-only subset. Security and hyb
 npx skills add elastic/agent-skills
 ```
 
-Representative skills used by demobuilder (non-exhaustive):
+Representative skills used by loom (non-exhaustive):
 
 | Area | Skills | Purpose |
 |---|---|---|
@@ -22,7 +22,7 @@ Representative skills used by demobuilder (non-exhaustive):
 | **Security** | `security/detection-rule-management`, `security/alert-triage`, `security/case-management`, `security/generate-security-sample-data` | Detection rules, triage, cases, sample data |
 | Elasticsearch | `elasticsearch/elasticsearch-esql`, `elasticsearch/elasticsearch-authz` | ES\|QL queries, RBAC |
 
-Run `cloud-setup` once to configure `EC_API_KEY` before using `demo-cloud-provision`.
+Run `cloud-setup` once to configure `EC_API_KEY` before using `bolt-spin`.
 
 If `elastic/agent-skills` is not installed, the assistant will say so clearly rather than fail silently. See [docs/todo.md](todo.md) for the full one-time setup checklist.
 
@@ -32,11 +32,11 @@ If `elastic/agent-skills` is not installed, the assistant will say so clearly ra
 
 **https://github.com/elastic/hive-mind**
 
-A reference library for Elastic integration patterns, SA coaching frameworks, and demo tooling. Several demobuilder pipeline stages read hive-mind patterns directly — SA ideation archetypes, data fidelity guidelines, token optimization strategies, Kibana Workflows references, and dashboard construction patterns.
+A reference library for Elastic integration patterns, SA coaching frameworks, and demo tooling. Several loom pipeline stages read hive-mind patterns directly — SA ideation archetypes, data fidelity guidelines, token optimization strategies, Kibana Workflows references, and dashboard construction patterns.
 
 ### Install
 
-Clone as a **sibling of demobuilder** (same parent directory):
+Clone as a **sibling of loom** (same parent directory):
 
 ```bash
 git clone https://github.com/elastic/hive-mind ../hive-mind
@@ -54,12 +54,12 @@ No re-linking needed. The orchestrator's Step 0 currency check will warn if eith
 
 ### What's linked
 
-Seven hive-mind skills are pre-symlinked into demobuilder's agent skill directories:
+Seven hive-mind skills are pre-symlinked into loom's agent skill directories:
 
 | Skill | Used for |
 |---|---|
-| `hive-sa-coaching` | SA ideation (`demo-ideation` stage) — Demo Archetypes, COACHING_CONVERSATION framework |
-| `hive-token-optimization` | Token visibility dashboard, AI spend tracking (`token-visibility` skill) |
+| `hive-sa-coaching` | SA ideation (`warp-spark` stage) — Demo Archetypes, COACHING_CONVERSATION framework |
+| `hive-token-optimization` | Token visibility dashboard, AI spend tracking (`weave-cost` skill) |
 | `hive-workflows` | Kibana Workflows API reference, YAML step types, troubleshooting |
 | `hive-dashboards` | Dashboard construction patterns, NDJSON format, Lens panel reference |
 | `hive-demo-data` | Data fidelity guidelines, dataset generation, LLM data quality |
@@ -68,7 +68,7 @@ Seven hive-mind skills are pre-symlinked into demobuilder's agent skill director
 
 ### If you move hive-mind
 
-If you need hive-mind at a different path, set `HIVE_MIND_PATH` and re-run the symlink setup from the demobuilder root:
+If you need hive-mind at a different path, set `HIVE_MIND_PATH` and re-run the symlink setup from the loom root:
 
 ```bash
 export HIVE_MIND_PATH="/path/to/hive-mind"
@@ -95,13 +95,13 @@ done
 
 **https://github.com/elastic/vulcan**
 
-An AI-powered demo generator that produces validated, parameterized ES|QL queries, LLM-generated synthetic datasets, EPR-grounded integration data, and tested RAG pipelines. Used by the `demo-vulcan-generate` skill (Stage 4.5) to generate the data + query layer before `demo-data-modeler` runs.
+An AI-powered demo generator that produces validated, parameterized ES|QL queries, LLM-generated synthetic datasets, EPR-grounded integration data, and tested RAG pipelines. Used by the `weave-query` skill (Stage 4.5) to generate the data + query layer before `weave-model` runs.
 
-Vulcan is **optional** — it activates when the demo script has 5+ ES|QL queries, semantic/RAG search, or Fleet/Beats integrations. If not installed, the pipeline skips Stage 4.5 and `demo-data-modeler` generates the data model from the script directly.
+Vulcan is **optional** — it activates when the demo script has 5+ ES|QL queries, semantic/RAG search, or Fleet/Beats integrations. If not installed, the pipeline skips Stage 4.5 and `weave-model` generates the data model from the script directly.
 
 ### Install
 
-Clone as a **sibling of demobuilder** (same parent directory):
+Clone as a **sibling of loom** (same parent directory):
 
 ```bash
 git clone https://github.com/elastic/vulcan ../vulcan
@@ -120,22 +120,22 @@ cd ../vulcan && git pull
 
 ### Usage
 
-The `demo-vulcan-generate` skill handles invocation — either through Vulcan's Streamlit UI (`streamlit run app.py`) or programmatically. See `skills/demo-vulcan-generate/SKILL.md` for details.
+The `weave-query` skill handles invocation — either through Vulcan's Streamlit UI (`streamlit run app.py`) or programmatically. See `skills/weave-query/SKILL.md` for details.
 
 ### If Vulcan is unavailable
 
 If the cluster is unavailable or Vulcan is not installed:
 - Set `skip_indexing: true` in the Vulcan context to generate query strategy only (no cluster needed)
-- Or skip Stage 4.5 entirely — `demo-data-modeler` will proceed without Vulcan outputs
+- Or skip Stage 4.5 entirely — `weave-model` will proceed without Vulcan outputs
 
 ---
 
-## DEMOBUILDER_ENGAGEMENTS_ROOT (optional)
+## LOOM_ENGAGEMENTS_ROOT (optional)
 
 By default, engagement workspaces are written to `~/engagements/{slug}/`. Set this env var in your shell profile to use a different parent directory:
 
 ```bash
-export DEMOBUILDER_ENGAGEMENTS_ROOT="/Volumes/work/engagements"
+export LOOM_ENGAGEMENTS_ROOT="/Volumes/work/engagements"
 ```
 
 See [docs/engagements-path.md](engagements-path.md) for details and multi-customer isolation patterns.
