@@ -1,0 +1,54 @@
+{
+  "skill_name": "thread-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run the platform audit for Deutsche Telekom SOC-T. We want to demo ML anomaly detection, ES|QL threat hunting, AI Assistant, and ELSER semantic search over threat intel.",
+      "expected_output": "platform-audit.json with feature matrix (ML ready, ES|QL ready, ELSER setup-required, AI Assistant unverified-connector), platform-audit.md with amber status and ordered pre-demo task list",
+      "files": [
+        "/tmp/ddp-evals/diagnostic-test/dt-soct/dt-soct-current-state.json"
+      ],
+      "assertions": [
+        "overall_status is amber (ELSER needs setup, AI Assistant connector unverified)",
+        "ML anomaly detection marked ready (4 dedicated ML nodes, 131 active jobs confirmed)",
+        "ES|QL marked ready (8.17.5 >= 8.11 minimum)",
+        "ELSER marked setup_required with half-day effort",
+        "Agent Builder or Workflows marked upgrade_required if included in scope",
+        "Pre-demo task list is ordered (ELSER setup before scenes that depend on it)",
+        "Bottom line paragraph correctly identifies critical path"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Audit the Citizens Bank demo scope against their platform. No diagnostic available — just the discovery notes output.",
+      "expected_output": "platform-audit.json in partial mode with unverified statuses, platform-audit.md clearly flagging that diagnostic is needed before build",
+      "files": [
+        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-discovery.json"
+      ],
+      "assertions": [
+        "audit_mode is partial",
+        "All ML/semantic features marked unverified (no diagnostic to confirm)",
+        "Pre-demo tasks include: run warp-scan to confirm platform",
+        "overall_status is amber or red due to unverified requirements",
+        "Bottom line recommends getting diagnostic before scoping build"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The Lowe's demo is already built on Serverless 9.3. Run a platform audit to confirm everything used in the script is available.",
+      "expected_output": "platform-audit.json with green status, all features ready, platform-audit.md confirming scope as viable",
+      "files": [
+        "/tmp/ddp-evals/iteration-1/lowes/with_skill/outputs/lowes-discovery.json"
+      ],
+      "assertions": [
+        "overall_status is green",
+        "ELSER marked ready (serverless, managed endpoint)",
+        "Agent Builder marked ready (9.x serverless)",
+        "Workflows marked ready (9.3 serverless)",
+        "ES|QL marked ready",
+        "ML anomaly detection marked ready (serverless auto-scales ML)",
+        "pre_demo_tasks list is short (quick setup items only)"
+      ]
+    }
+  ]
+}

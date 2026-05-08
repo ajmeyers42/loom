@@ -5,7 +5,7 @@
 /api/alerting/rule/{id}` (`rule_type_id: slo.rules.burnRate`). It does **not** replace the
 **Saved Objects** or **Alerting** references below — those are what you need for **dashboards,
 Lens, tags, generic alert rules, connectors**, and **bulk import/export** of saved objects
-(**D-025**, demo-deploy Step **13c–13d**).
+(**D-025**, bolt-launch Step **13c–13d**).
 
 ## Saved Objects API
 

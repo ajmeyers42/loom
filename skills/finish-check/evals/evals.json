@@ -1,0 +1,39 @@
+{
+  "skill_name": "finish-check",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run the pre-demo validation for Citizens Bank. The demo is tomorrow morning.",
+      "expected_output": "citizens-bank-demo-checklist.md organized by timing (day-before / morning-of / 30-min-before), citizens-bank-risks.md with open risks. Go/no-go decision based on available pipeline outputs.",
+      "files": [
+        "/tmp/ddp-evals/script-test/citizens-bank/citizens-bank-demo-script.md",
+        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-discovery.json",
+        "/tmp/ddp-evals/iteration-1/citizens-bank/with_skill/outputs/citizens-bank-gaps.md"
+      ],
+      "assertions": [
+        "Checklist is organized into timing sections (day before, morning of, 30 min before)",
+        "Each checklist item has a specific command or UI action, not a vague instruction",
+        "ELSER warm-up step is present and correctly timed (before audience arrives)",
+        "Agent scenario testing is in the checklist (all three scenarios from the script)",
+        "Risks section identifies at least one risk with a documented fallback",
+        "Go/no-go status is explicit and has named decision owner",
+        "Missing pipeline outputs (data model not yet run) are noted, not silently skipped"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Validate the Lowe's demo. Everything should be built — I want a full go/no-go.",
+      "expected_output": "lowes-demo-checklist.md with all 6 scenes covered, ML verification steps for swimlane, simulator running check, all agent scenarios tested. Go recommendation if all checks pass.",
+      "files": [],
+      "assertions": [
+        "Live data simulator check is present (event count incrementing in Discover)",
+        "ML swimlane verification step specifies store 1842 and anomaly_score >= 75",
+        "ELSER warm-up step present with specific query and expected response time",
+        "All three agent scenarios listed with specific pass criteria",
+        "Dashboard drill-down warm-up step present (geo heatmap tile pre-load)",
+        "Browser tab pre-opening list matches the scenes in the script",
+        "Screenshot fallbacks section exists with specific fallback plan"
+      ]
+    }
+  ]
+}

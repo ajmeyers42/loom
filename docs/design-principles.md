@@ -1,10 +1,10 @@
 # Design Principles
 
-These are the architectural choices that shape how demobuilder works. Most have a corresponding entry in [decisions.md](decisions.md) with fuller rationale.
+These are the architectural choices that shape how loom works. Most have a corresponding entry in [decisions.md](decisions.md) with fuller rationale.
 
 ## Each skill is a specialist
 
-Drop into any stage independently — you don't need to run the full pipeline every time. The orchestrator handles sequencing when you want it. Running `demo-deploy` on an existing engagement re-uses everything already built; running `demo-discovery-parser` on updated notes triggers only the downstream stages that depend on its output.
+Drop into any stage independently — you don't need to run the full pipeline every time. The orchestrator handles sequencing when you want it. Running `bolt-launch` on an existing engagement re-uses everything already built; running `warp-listen` on updated notes triggers only the downstream stages that depend on its output.
 
 ## Outputs feed inputs
 
@@ -30,7 +30,7 @@ Scripts and plans lead with business value and the customer's key asks, then the
 
 ## Approvals before cluster spend (D-024)
 
-The assistant will not run `demo-cloud-provision` or `demo-deploy` (create resources, execute `bootstrap.py` against a live cluster) until the SA has explicitly asked to proceed **and** has reviewed `bootstrap.py`, the platform audit, risks, and the demo checklist. Generating or editing artifacts, and running `bootstrap.py --dry-run`, do not require approval.
+The assistant will not run `bolt-spin` or `bolt-launch` (create resources, execute `bootstrap.py` against a live cluster) until the SA has explicitly asked to proceed **and** has reviewed `bootstrap.py`, the platform audit, risks, and the demo checklist. Generating or editing artifacts, and running `bootstrap.py --dry-run`, do not require approval.
 
 ## Elastic truthfulness (D-025)
 
@@ -38,7 +38,7 @@ Every defined asset must be deployable on Elastic using supported APIs. Mappings
 
 ## Engagement tagging (D-026)
 
-Every deployed asset with a `tags` field carries `demobuilder:<engagement_id>`. This makes the engagement's assets discoverable by tag at teardown time — no hardcoded ID lists required. See `skills/demo-deploy/references/demobuilder-tagging.md`.
+Every deployed asset with a `tags` field carries `demobuilder:<engagement_id>`. This makes the engagement's assets discoverable by tag at teardown time — no hardcoded ID lists required. See `skills/bolt-launch/references/loom-tagging.md`.
 
 ## ILM is hot-only by default (D-027)
 
@@ -54,7 +54,7 @@ Prebuilt SIEM rules are cloned and the clone is modified for the demo. Elastic-m
 
 ## Asset manifest lives on the cluster (D-031)
 
-`bootstrap.py` writes a document per engagement to the `demobuilder-manifests` Elasticsearch index. `teardown.py` reads this as its trusted source of asset IDs — no local state, no `.env` entries for IDs, no hardcoded lists. If an engagement was deployed from a different machine, teardown still has everything it needs.
+`bootstrap.py` writes a document per engagement to the `loom-manifests` Elasticsearch index. `teardown.py` reads this as its trusted source of asset IDs — no local state, no `.env` entries for IDs, no hardcoded lists. If an engagement was deployed from a different machine, teardown still has everything it needs.
 
 ## Credentials stay local (D-024)
 
@@ -67,12 +67,12 @@ The orchestrator inventories existing outputs before running any stage. If you c
 ## Repo structure (for reference)
 
 ```
-demobuilder/
+loom/
 ├── AGENTS.md                 ← agent behavior: orchestrator, engagement root, approvals
 ├── README.md                 ← getting started
 ├── .cursor/
 │   ├── rules/
-│   │   ├── demobuilder.mdc   ← Cursor: orchestrator + key decisions
+│   │   ├── loom.mdc   ← Cursor: orchestrator + key decisions
 │   │   └── hive-mind.mdc     ← Cursor: hive-mind skills routing
 │   └── skills/               ← hive-mind skills symlinked here
 ├── .claude/skills/           ← same hive-mind symlinks for Claude Code
@@ -88,20 +88,20 @@ demobuilder/
 │       ├── cursor.md         ← Cursor-specific setup
 │       └── claude.md         ← Claude Code setup
 └── skills/
-    ├── demobuilder/          ← orchestrator
-    ├── demo-ideation/        ← SA coaching + archetype selection (D-035)
-    ├── demo-discovery-parser/
-    ├── demo-diagnostic-analyzer/
-    ├── demo-platform-audit/
-    ├── demo-script-template/
-    ├── demo-data-modeler/
-    ├── demo-ml-designer/
-    ├── demo-validator/
-    ├── demo-kibana-agent-design/
-    ├── token-visibility/     ← AI cost + usage dashboard (D-036)
-    ├── demo-cloud-provision/
-    ├── demo-deploy/
+    ├── loom/          ← orchestrator
+    ├── warp-spark/        ← SA coaching + archetype selection (D-035)
+    ├── warp-listen/
+    ├── warp-scan/
+    ├── thread-audit/
+    ├── weave-script/
+    ├── weave-model/
+    ├── weave-train/
+    ├── finish-check/
+    ├── weave-agent/
+    ├── weave-cost/     ← AI cost + usage dashboard (D-036)
+    ├── bolt-spin/
+    ├── bolt-launch/
     │   └── references/       ← env-reference, tagging, asset-manifest, serverless, workflows
-    ├── demo-status/
-    └── demo-teardown/
+    ├── wind-pulse/
+    └── wind-reset/
 ```

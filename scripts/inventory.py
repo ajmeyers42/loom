@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-demobuilder inventory — zero-AI engagement status checker.
+loom inventory — zero-AI engagement status checker.
 
 Usage:
     python3 scripts/inventory.py                    # list all engagements
@@ -128,7 +128,7 @@ def print_summary(eng_dir: Path, slug: str, verbose: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="demobuilder engagement inventory")
+    parser = argparse.ArgumentParser(description="loom engagement inventory")
     parser.add_argument("slug", nargs="?", help="Engagement slug to inspect (omit for all)")
     parser.add_argument("--root", help="Override DEMOBUILDER_ENGAGEMENTS_ROOT")
     parser.add_argument("-v", "--verbose", action="store_true", help="Show all stages")

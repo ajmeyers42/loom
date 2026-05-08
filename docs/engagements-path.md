@@ -2,7 +2,7 @@
 
 ## Why
 
-- **Portable repo:** The demobuilder git tree holds **pipeline skills** (`skills/`, `docs/`) only. Customer-specific files stay **out of version control** under your user profile.
+- **Portable repo:** The loom git tree holds **pipeline skills** (`skills/`, `docs/`) only. Customer-specific files stay **out of version control** under your user profile.
 - **Sharable:** You can push the repo without engagement data; each machine uses the same default layout.
 - **Cloud-synced option:** Point the root at a cloud-synced folder (Google Drive, OneDrive) so engagements are available on any machine without a separate copy step.
 

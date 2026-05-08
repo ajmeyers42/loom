@@ -1,0 +1,57 @@
+{
+  "skill_name": "weave-query",
+  "evals": [
+    {
+      "id": "vulcan-esql-heavy-demo",
+      "description": "ES|QL-heavy analytics demo — should invoke Vulcan and produce vulcan-queries.json",
+      "prompt": "The demo script for 2026-acme-ops has 8 ES|QL query scenes covering real-time fraud scoring, anomaly trends, and agent interaction analytics. Run weave-query before the data modeler. Vulcan is installed at ../vulcan.",
+      "files": ["skills/weave-query/SKILL.md"],
+      "expected_output": "Skill runs Step 0 and determines Vulcan applies (5+ ES|QL queries). Produces Step 1 context JSON. Instructs SA to run Vulcan and copy all_queries.json to {slug}-vulcan-queries.json. Produces vulcan-queries.json contract with queries[], index_name_map, data_profile_summary.",
+      "assertions": [
+        "Step 0 evaluation table is shown with 'More than 5 distinct ES|QL queries' marked as matching",
+        "Vulcan context JSON includes company, pain_points, datasets[], demo_type=analytics",
+        "Output references {slug}-vulcan-queries.json with correct structure",
+        "Announces completion with query count, validation summary, and handoff to weave-model"
+      ]
+    },
+    {
+      "id": "vulcan-rag-search-demo",
+      "description": "Semantic/RAG search demo — should set include_rag=true and wire inference endpoints",
+      "prompt": "The demo script for 2026-retailco-search includes a semantic product search scene using ELSER, a reranking step, and an LLM completion to generate a purchase recommendation. Run weave-query.",
+      "files": ["skills/weave-query/SKILL.md"],
+      "expected_output": "Skill sets demo_type=search and include_rag=true in the Vulcan context. RAG pipeline spec included in vulcan-queries.json output. Queries include at least one rag type entry with MATCH/RERANK/COMPLETION chain.",
+      "assertions": [
+        "Vulcan context has demo_type=search",
+        "Vulcan context has include_rag=true",
+        "Output vulcan-queries.json has rag_pipeline field populated (not null)",
+        "At least one query entry has query_type=rag"
+      ]
+    },
+    {
+      "id": "vulcan-skip-no-esql",
+      "description": "Demo with no ES|QL — should skip Vulcan and pass through to weave-model",
+      "prompt": "The demo script for 2026-simplebank focuses on Kibana dashboards and ML anomaly detection. There are no ES|QL query scenes and no semantic search. Should weave-query run?",
+      "files": ["skills/weave-query/SKILL.md"],
+      "expected_output": "Skill evaluates Step 0 triggers and determines none are met. States clearly that Vulcan does not apply and should be skipped. Instructs to proceed directly to weave-model.",
+      "assertions": [
+        "Skill explicitly states Vulcan is being skipped",
+        "Reason given: no ES|QL scenes and no semantic search",
+        "No Vulcan context JSON generated",
+        "Directs to weave-model as next step"
+      ]
+    },
+    {
+      "id": "vulcan-integration-grounded",
+      "description": "Fleet/Beats integration demo — should set use_integrations=true and EPR grounding",
+      "prompt": "The demo script for 2026-telco-ops references system integration metrics (logs-system.*) and APM data (metrics-apm.*). Run weave-query with integration grounding.",
+      "files": ["skills/weave-query/SKILL.md"],
+      "expected_output": "Vulcan context sets use_integrations=true with confirmed_integrations=[\"system\", \"apm\"]. index_name_map in output respects logs-*/metrics-* naming. Skill notes that EPR grounding aligns fields to integration schema for dashboard compatibility.",
+      "assertions": [
+        "Vulcan context has use_integrations=true",
+        "confirmed_integrations contains system and apm",
+        "Output notes integration_grounded=true",
+        "Warning included: do not rename index names or fields as this breaks integration dashboards"
+      ]
+    }
+  ]
+}

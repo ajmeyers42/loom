@@ -1,0 +1,37 @@
+{
+  "skill_name": "bolt-launch",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Deploy the Citizens Bank demo. The .env is ready.",
+      "expected_output": "bootstrap.py generated and executed. All 4 indices created, seed data loaded with demo-critical docs verified, ELSER endpoint deployed and warmed. Deploy log confirms complete.",
+      "files": [
+        "$HOME/engagements/citizens-bank/.env",
+        "$HOME/engagements/citizens-bank/citizens-bank-data-model.json"
+      ],
+      "assertions": [
+        "bootstrap.py generated in workspace with all 15 steps implemented",
+        "Script reads credentials from .env, never hardcodes them",
+        "DEPLOYMENT_TYPE from .env drives ILM vs DSL decision in script",
+        "Each step is idempotent (checks existence before creating)",
+        "Demo-critical documents individually verified after bulk load",
+        "ELSER endpoint check included — waits for allocation before continuing",
+        "Deploy log written with artifact table and doc counts",
+        "Script includes --dry-run, --skip-data, --step N flags"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Deploy the Lowe's demo to a shared cluster. INDEX_PREFIX=lowes- is set in the .env.",
+      "expected_output": "bootstrap.py applies lowes- prefix to all index names, pipeline names, template names. ML jobs created with prefixed IDs. Kibana saved objects patched with prefix before import.",
+      "files": [],
+      "assertions": [
+        "All index names in bootstrap.py use p(name) helper with PREFIX applied",
+        "ML job ID is lowes-inventory-shrink-monitor (not inventory-shrink-monitor)",
+        "Kibana index patterns patched from store-transactions to lowes-store-transactions",
+        "Enrich policy execute step uses prefixed policy name",
+        "Deploy log shows prefixed artifact names throughout"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Pipeline
 
-The demobuilder pipeline runs end-to-end when you invoke the `demobuilder` orchestrator, or you can drop into any single skill independently. Each skill's JSON output is a machine-readable input to the next stage — nothing is re-inferred downstream.
+The loom pipeline runs end-to-end when you invoke the `loom` orchestrator, or you can drop into any single skill independently. Each skill's JSON output is a machine-readable input to the next stage — nothing is re-inferred downstream.
 
 For a quick lookup of when to invoke a specific skill without running the full pipeline, see [skills-index.md](skills-index.md).
 
@@ -8,19 +8,19 @@ For a quick lookup of when to invoke a specific skill without running the full p
 
 ```
                     ╔══════════════════════════════════════╗
-                    ║        demobuilder orchestrator       ║
+                    ║        loom orchestrator       ║
                     ║  drop any inputs · stages auto-run   ║
                     ║  skips completed · resumes on re-run ║
                     ╚══════════════╤═══════════════════════╝
                                    │
                     ┌──────────────▼──────────────┐
                     │  Step 0: Currency check      │
-                    │  demobuilder + hive-mind     │
+                    │  loom + hive-mind     │
                     │  repos up to date?           │
                     └──────────────┬──────────────┘
                                    │
                     ┌──────────────▼──────────────┐
-                    │  demo-ideation   optional   │
+                    │  warp-spark   optional   │
                     │  SA coaching + archetypes    │
                     │  when direction is unclear   │
                     │  → {slug}-ideation.md        │
@@ -34,8 +34,7 @@ For a quick lookup of when to invoke a specific skill without running the full p
     └──────┬───────────────┘               └─────────────┬──────────────┘
            │                                             │
     ┌──────▼───────────────┐               ┌─────────────▼──────────────┐
-    │ demo-discovery-      │               │  demo-diagnostic-          │
-    │ parser               │               │  analyzer        optional  │
+    │ warp-listen          │               │  warp-scan       optional  │
     │                      │               │                            │
     │ → discovery.json     │               │ → current-state.json       │
     │ → confirmation.md    │               │ → findings.md              │
@@ -44,8 +43,7 @@ For a quick lookup of when to invoke a specific skill without running the full p
            └───────────────────┬─────────────────────────┘
                                │
                     ┌──────────▼──────────┐
-                    │  demo-opportunity-  │
-                    │  review             │
+                    │  thread-qualify     │
                     │                     │
                     │ → opportunity-      │
                     │   summary.md        │
@@ -58,28 +56,26 @@ For a quick lookup of when to invoke a specific skill without running the full p
                      MEDDPIC gate  ──────►  🔴 not qualified: stop
                                │
                     ┌──────────▼──────────┐
-                    │  demo-platform-     │
-                    │  audit              │
+                    │  thread-audit       │
                     │                     │
                     │ → platform-audit    │
                     │   .json / .md       │
                     └──────────┬──────────┘
                                │
                     ┌──────────▼──────────┐
-                    │  demo-script-       │
-                    │  template           │
+                    │  weave-script       │
                     │                     │
                     │ → demo-script.md    │
                     │ → demo-brief.md     │
                     └──────────┬──────────┘
                                │
       conditional if scripted:
-      Agent Builder → demo-kibana-agent-design
-      AI component  → token-visibility
+      Agent Builder → weave-agent
+      AI component  → weave-cost
                │
       conditional (ES|QL-heavy / RAG / integrations):
       ┌─────────────────────────────────┐
-      │  demo-vulcan-generate optional  │
+      │  weave-query optional  │
       │  validated ES|QL + synth data   │
       │  EPR grounding + RAG pipelines  │
       │ → vulcan-queries.json           │
@@ -87,22 +83,20 @@ For a quick lookup of when to invoke a specific skill without running the full p
       └────────────────┬────────────────┘
                        │
                     ┌──────────▼──────────┐
-                    │  demo-data-         │
-                    │  modeler            │
+                    │  weave-model        │
                     │                     │
                     │ → data-model.json   │
                     │ → mapping files     │
                     └──────────┬──────────┘
                                │
                     ┌──────────▼──────────┐
-                    │  demo-ml-           │
-                    │  designer           │  ← conditional
+                    │  weave-train        │  ← conditional
                     │                     │    ML scenes only
                     │ → ml-config.json    │
                     └──────────┬──────────┘
                                │
                     ┌──────────▼──────────┐
-                    │  demo-validator     │  ← always runs last
+                    │  finish-check     │  ← always runs last
                     │                     │
                     │ → demo-checklist.md │
                     │ → risks.md          │
@@ -112,17 +106,16 @@ For a quick lookup of when to invoke a specific skill without running the full p
            │              deploy phase  (SA approval req.) │
            │                                               │
     ┌──────▼───────────────┐               ┌──────────────▼──────────┐
-    │  demo-cloud-         │               │  demo-deploy            │
-    │  provision           ├──────────────►│                         │
-    │                      │               │ → bootstrap.py          │
-    │  new cluster or      │               │ → deploy-log.md         │
-    │  copy existing .env  │               └──────────────┬──────────┘
-    │  → .env              │                              │
+    │  bolt-spin           │               │  bolt-launch            │
+    │                      ├──────────────►│                         │
+    │  new cluster or      │               │ → bootstrap.py          │
+    │  copy existing .env  │               │ → deploy-log.md         │
+    │  → .env              │               └──────────────┬──────────┘
     └──────────────────────┘                              │
                                           ┌───────────────┴────────────┐
                                           │                            │
                                ┌──────────▼──────────┐  ┌─────────────▼──────┐
-                               │   demo-status       │  │   demo-teardown    │
+                               │   wind-pulse       │  │   wind-reset    │
                                │   readiness check   │  │   post-demo        │
                                │   any time pre-demo │  │   cleanup          │
                                └─────────────────────┘  └────────────────────┘
@@ -132,24 +125,24 @@ For a quick lookup of when to invoke a specific skill without running the full p
 
 | Skill | Input | Output | Version |
 |---|---|---|---|
-| `demobuilder` | Any combination of inputs | Runs full pipeline, delivers handoff summary | v2 |
-| `demo-ideation` | SA goals, customer vertical (optional) | `demo/{slug}-ideation.md` — frozen archetype + value contract | v2 |
-| `demo-discovery-parser` | Discovery notes (PDF, markdown, raw text) | `demo/{slug}-discovery.json`, `opportunity/{slug}-confirmation.md`, `opportunity/{slug}-gaps.md` | v1 |
-| `demo-diagnostic-analyzer` | Elastic diagnostic ZIP or API exports | `demo/{slug}-current-state.json`, `demo/{slug}-architecture.md`, `demo/{slug}-findings.md` | v1 |
-| `demo-opportunity-review` | All parsed discovery + diagnostic outputs | `opportunity/{slug}-opportunity-summary.md` (team review), `opportunity/{slug}-opportunity-profile.json` | v1 |
-| `demo-platform-audit` | Discovery JSON + opportunity profile (pre-scopes audit) + optional diagnostic | `demo/{slug}-platform-audit.json`, `demo/{slug}-platform-audit.md` | v1 |
-| `demo-script-template` | Discovery JSON + platform audit | `demo/{slug}-demo-script.md`, `opportunity/{slug}-demo-brief.md` | v2 |
-| `demo-vulcan-generate` | Demo script (ES\|QL / RAG / integration-grounded demos) | `data/{slug}-vulcan-queries.json`, `data/{slug}-vulcan-data-profile.json`, `data/seed/*.csv` | v1 |
-| `demo-data-modeler` | Demo script + discovery JSON + optional Vulcan outputs | `data/{slug}-data-model.json`, `data/{slug}-data-model.md`, `data/mappings/`, `data/pipelines/` | v2 |
-| `demo-fleet-integrations` | Data model + discovery + demo script | `deploy/{slug}-integrations-manifest.json`, `demo/{slug}-integration-assets.md` | v1 |
-| `demo-ml-designer` | Demo script + data model | `data/{slug}-ml-config.json`, `data/{slug}-ml-setup.md` | v1 |
-| `demo-validator` | All pipeline outputs | `deploy/{slug}-demo-checklist.md`, `deploy/{slug}-risks.md` | v1 |
-| `demo-kibana-agent-design` | Demo script + discovery (Agent Builder in scope) | `demo/{slug}-agent-builder-spec.md` | v2 |
-| `token-visibility` | Engagement slug + `.env` | Token tracking index + AI Cost dashboard (auto-included in Agent Builder demos) | v2 |
-| `demo-cloud-provision` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `deploy/{slug}-provision-log.md` | v1 |
-| `demo-deploy` | `.env` + pipeline outputs | `deploy/bootstrap.py`, `deploy/{slug}-deploy-log.md` | v2 |
-| `demo-status` | `.env` | Terminal readiness report (✅/❌ per resource, fix commands) | v1 |
-| `demo-teardown` | `.env` | `deploy/teardown.py`, `deploy/{slug}-teardown-log.md` | v1 |
+| `loom` | Any combination of inputs | Runs full pipeline, delivers handoff summary | v2 |
+| `warp-spark` | SA goals, customer vertical (optional) | `demo/{slug}-ideation.md` — frozen archetype + value contract | v2 |
+| `warp-listen` | Discovery notes (PDF, markdown, raw text) | `demo/{slug}-discovery.json`, `opportunity/{slug}-confirmation.md`, `opportunity/{slug}-gaps.md` | v1 |
+| `warp-scan` | Elastic diagnostic ZIP or API exports | `demo/{slug}-current-state.json`, `demo/{slug}-architecture.md`, `demo/{slug}-findings.md` | v1 |
+| `thread-qualify` | All parsed discovery + diagnostic outputs | `opportunity/{slug}-opportunity-summary.md` (team review), `opportunity/{slug}-opportunity-profile.json` | v1 |
+| `thread-audit` | Discovery JSON + opportunity profile (pre-scopes audit) + optional diagnostic | `demo/{slug}-platform-audit.json`, `demo/{slug}-platform-audit.md` | v1 |
+| `weave-script` | Discovery JSON + platform audit | `demo/{slug}-demo-script.md`, `opportunity/{slug}-demo-brief.md` | v2 |
+| `weave-query` | Demo script (ES\|QL / RAG / integration-grounded demos) | `data/{slug}-vulcan-queries.json`, `data/{slug}-vulcan-data-profile.json`, `data/seed/*.csv` | v1 |
+| `weave-model` | Demo script + discovery JSON + optional Vulcan outputs | `data/{slug}-data-model.json`, `data/{slug}-data-model.md`, `data/mappings/`, `data/pipelines/` | v2 |
+| `weave-fleet` | Data model + discovery + demo script | `deploy/{slug}-integrations-manifest.json`, `demo/{slug}-integration-assets.md` | v1 |
+| `weave-train` | Demo script + data model | `data/{slug}-ml-config.json`, `data/{slug}-ml-setup.md` | v1 |
+| `finish-check` | All pipeline outputs | `deploy/{slug}-demo-checklist.md`, `deploy/{slug}-risks.md` | v1 |
+| `weave-agent` | Demo script + discovery (Agent Builder in scope) | `demo/{slug}-agent-builder-spec.md` | v2 |
+| `weave-cost` | Engagement slug + `.env` | Token tracking index + AI Cost dashboard (auto-included in Agent Builder demos) | v2 |
+| `bolt-spin` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `deploy/{slug}-provision-log.md` | v1 |
+| `bolt-launch` | `.env` + pipeline outputs | `deploy/bootstrap.py`, `deploy/{slug}-deploy-log.md` | v2 |
+| `wind-pulse` | `.env` | Terminal readiness report (✅/❌ per resource, fix commands) | v1 |
+| `wind-reset` | `.env` | `deploy/teardown.py`, `deploy/{slug}-teardown-log.md` | v1 |
 
 ## Engagement workspace layout
 
@@ -209,20 +202,20 @@ See [docs/engagements-path.md](engagements-path.md) for the env-var override and
 
 | Skill | Validated against |
 |---|---|
-| `demo-discovery-parser` | Sample notes from multiple customer interactions across 4 verticals — 97.5% benchmark |
-| `demo-diagnostic-analyzer` | Sample diagnostic exports from multiple customer environments (large-scale self-managed) |
-| `demo-opportunity-review` | Evals written — initial MEDDPIC review + living-document update |
-| `demo-platform-audit` | Sample diagnostics from multiple customer self-managed deployments |
-| `demo-script-template` | Sample notes from multiple customer interactions (single-contact and executive-present scenarios) |
-| `demo-vulcan-generate` | Evals written — ES\|QL parameterized demo + integration-grounded data + RAG pipeline |
-| `demo-data-modeler` | Sample notes from multiple customer interactions (fraud detection use case) |
-| `demo-ideation` | Evals written — cold-start demo direction + vague operational AI prompt |
-| `demo-kibana-agent-design` | Evals written — Agent Builder spec + blocked Agent Builder fallback |
-| `token-visibility` | Evals written — Agent Builder default inclusion + opt-out behavior |
-| `demo-validator` | Sample pipeline outputs from multiple customer interactions |
-| `demo-cloud-provision` | Evals written — serverless project + shared cluster namespace copy |
-| `demo-deploy` | Evals written — isolated cluster full deploy + shared cluster prefix deploy |
-| `demo-status` | Evals written — readiness check + ML-focused readiness check |
-| `demo-teardown` | Evals written — isolated cluster teardown + shared cluster prefix teardown |
+| `warp-listen` | Sample notes from multiple customer interactions across 4 verticals — 97.5% benchmark |
+| `warp-scan` | Sample diagnostic exports from multiple customer environments (large-scale self-managed) |
+| `thread-qualify` | Evals written — initial MEDDPIC review + living-document update |
+| `thread-audit` | Sample diagnostics from multiple customer self-managed deployments |
+| `weave-script` | Sample notes from multiple customer interactions (single-contact and executive-present scenarios) |
+| `weave-query` | Evals written — ES\|QL parameterized demo + integration-grounded data + RAG pipeline |
+| `weave-model` | Sample notes from multiple customer interactions (fraud detection use case) |
+| `warp-spark` | Evals written — cold-start demo direction + vague operational AI prompt |
+| `weave-agent` | Evals written — Agent Builder spec + blocked Agent Builder fallback |
+| `weave-cost` | Evals written — Agent Builder default inclusion + opt-out behavior |
+| `finish-check` | Sample pipeline outputs from multiple customer interactions |
+| `bolt-spin` | Evals written — serverless project + shared cluster namespace copy |
+| `bolt-launch` | Evals written — isolated cluster full deploy + shared cluster prefix deploy |
+| `wind-pulse` | Evals written — readiness check + ML-focused readiness check |
+| `wind-reset` | Evals written — isolated cluster teardown + shared cluster prefix teardown |
 
 See [../schemas/](../schemas/) for initial JSON contracts used by machine-readable outputs.

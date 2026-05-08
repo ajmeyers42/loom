@@ -1,7 +1,7 @@
-# Session Post-Mortem: demobuilder Pipeline Build
+# Session Post-Mortem: loom Pipeline Build
 
 **Date:** 2026-04-15
-**Scope:** Two-context-window session building 9 skills from scratch (demo-discovery-parser through demo-deploy) plus the demobuilder orchestrator. Real-data validated against a Deutsche Telekom 152-node production cluster.
+**Scope:** Two-context-window session building 9 skills from scratch (warp-listen through bolt-launch) plus the loom orchestrator. Real-data validated against a Deutsche Telekom 152-node production cluster.
 
 ---
 
@@ -13,7 +13,7 @@ Nine skills built across two context windows, running from raw discovery notes a
 
 ## What worked well
 
-**The pipeline architecture held.** The data flow — each skill consuming the prior stage's JSON output — proved sound. The Citizens Bank re-scope (champion → DM-present) needed only two stages to re-run (`demo-script-template` + `demo-validator`). The data model didn't change, the discovery didn't change. That's the right behavior, and the orchestrator's skip logic correctly captures it.
+**The pipeline architecture held.** The data flow — each skill consuming the prior stage's JSON output — proved sound. The Citizens Bank re-scope (champion → DM-present) needed only two stages to re-run (`weave-script` + `finish-check`). The data model didn't change, the discovery didn't change. That's the right behavior, and the orchestrator's skip logic correctly captures it.
 
 **Real validation caught a real bug.** The DT SOC-T diagnostic test was the most valuable thing done this session. The shard density metric was initially one-dimensional (shards/GB of data), which rated DT as healthy at 0.027 shards/GB. But 211 shards across 7 nodes is actually a signal worth surfacing when normalized against heap. The bug would never have appeared on synthetic evals — it required a real cluster with real topology.
 
@@ -88,10 +88,10 @@ Seed data generation is buried inside `bootstrap.py`. A standalone `demo-data-ge
 ### `demo-refresh`
 Anomaly injection timing (T-2h) and the things that can go wrong with it (ML job not trained, bucket span error, injection doesn't score) are different enough from initial deployment to warrant a dedicated skill. SEs run this the morning of every demo, not just on initial deploy.
 
-### `demo-status` *(added this session)*
+### `wind-pulse` *(added this session)*
 A quick pre-demo pulse check: connectivity, index doc counts, demo_critical_docs spot-check, ML job state, ELSER latency, Kibana object reachability. Should run in under 60 seconds and output paste-ready fix commands for anything failing.
 
-### `demo-teardown` *(added this session)*
+### `wind-reset` *(added this session)*
 Cleanup after a demo: stops ML jobs, deletes Kibana objects, removes indices and all supporting infrastructure — prefix-aware, dry-run support, verification step confirming resources are gone.
 
 ---
@@ -100,16 +100,16 @@ Cleanup after a demo: stops ML jobs, deletes Kibana objects, removes indices and
 
 The pipeline implicitly depends on skills from `https://github.com/elastic/agent-skills` that were not referenced explicitly in skill instructions. These provide the actual API integration layer for:
 
-| Skill | Used by demobuilder for |
+| Skill | Used by loom for |
 |---|---|
 | `cloud-setup` | Configure EC_API_KEY before provisioning |
-| `cloud-create-project` | Create serverless projects (demo-cloud-provision) |
-| `cloud-manage-project` | Day-2 ops: connect to existing project, delete project (demo-teardown) |
-| `kibana-agent-builder` | Create/update agent configs during bootstrap (demo-deploy) |
-| `kibana-dashboards` | Create/deploy dashboards and Lens visualizations (demo-deploy, demo-kibana-builder) |
-| `kibana-connectors` | Set up email/webhook connectors for Workflows (demo-deploy) |
+| `cloud-create-project` | Create serverless projects (bolt-spin) |
+| `cloud-manage-project` | Day-2 ops: connect to existing project, delete project (wind-reset) |
+| `kibana-agent-builder` | Create/update agent configs during bootstrap (bolt-launch) |
+| `kibana-dashboards` | Create/deploy dashboards and Lens visualizations (bolt-launch, demo-kibana-builder) |
+| `kibana-connectors` | Set up email/webhook connectors for Workflows (bolt-launch) |
 | `kibana-alerting-rules` | Configure alerting if demo includes alerting scenes |
-| `elasticsearch-esql` | Run spot-check queries in demo-status, demo-validator |
+| `elasticsearch-esql` | Run spot-check queries in wind-pulse, finish-check |
 
 **Gap:** No elastic/agent-skills exist yet for ML anomaly detection jobs, Kibana Workflows (9.3), ingest pipelines, or index template management. These are handled entirely within `bootstrap.py` today.
 

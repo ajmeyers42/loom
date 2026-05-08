@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://elastic.co/demobuilder/schemas/opportunity-profile.schema.json",
-  "title": "Demobuilder Opportunity Profile",
+  "$id": "https://elastic.co/loom/schemas/opportunity-profile.schema.json",
+  "title": "Loom Opportunity Profile",
   "type": "object",
   "required": [
     "slug",

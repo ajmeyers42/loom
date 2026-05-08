@@ -1,0 +1,33 @@
+{
+  "skill_name": "bolt-spin",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a new Serverless project for the Citizens Bank demo.",
+      "expected_output": "citizens-bank/.env with DEPLOYMENT_TYPE=serverless, ELASTICSEARCH_URL, KIBANA_URL, ES_API_KEY. citizens-bank-provision-log.md confirming green health. .env.example written alongside.",
+      "files": [],
+      "assertions": [
+        ".env written to workspace with all required fields populated",
+        "DEPLOYMENT_TYPE=serverless in .env",
+        "INDEX_PREFIX is blank (isolated cluster, no prefix needed)",
+        ".env.example written with <placeholder> values (safe to commit)",
+        "Provision log confirms connectivity verified with cluster health status",
+        "Cluster name follows loom-{slug}-{date} convention"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to run the IHG Club demo on the same cluster I used for Citizens Bank. Copy the env and set up the namespace.",
+      "expected_output": "ihg-club/.env copied from citizens-bank/.env with DEMO_SLUG=ihg-club, ENGAGEMENT updated, INDEX_PREFIX=ihg-. No new cluster provisioned. Connectivity re-verified against existing cluster.",
+      "files": [],
+      "assertions": [
+        "No new cluster provisioned — reuses existing credentials",
+        "DEMO_SLUG updated to ihg-club in the new .env",
+        "INDEX_PREFIX=ihg- set to avoid collisions",
+        "ENGAGEMENT updated to IHG Club Vacations",
+        "Connectivity verified against the copied cluster URL",
+        "Provision log notes this is a namespace copy, not a new provisioning"
+      ]
+    }
+  ]
+}
