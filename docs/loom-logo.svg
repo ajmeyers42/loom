@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 140" role="img" aria-label="loom">
+  <title>loom</title>
+
+  <!-- Warp threads (vertical, the foundation) -->
+  <g stroke="currentColor" stroke-width="1.5" opacity="0.4" stroke-linecap="round">
+    <line x1="20"  y1="22" x2="20"  y2="118"/>
+    <line x1="35"  y1="22" x2="35"  y2="118"/>
+    <line x1="50"  y1="22" x2="50"  y2="118"/>
+    <line x1="65"  y1="22" x2="65"  y2="118"/>
+    <line x1="80"  y1="22" x2="80"  y2="118"/>
+    <line x1="95"  y1="22" x2="95"  y2="118"/>
+    <line x1="110" y1="22" x2="110" y2="118"/>
+    <line x1="125" y1="22" x2="125" y2="118"/>
+    <line x1="140" y1="22" x2="140" y2="118"/>
+  </g>
+
+  <!-- Weft thread weaving through warp (over/under wave) -->
+  <path stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"
+        d="M 8 70 Q 20 60 32 70 T 62 70 T 92 70 T 122 70 T 148 70" />
+
+  <!-- Shuttle character (lens-shaped, mid-weave, trailing thread) -->
+  <g transform="translate(168, 70)">
+    <!-- shuttle body -->
+    <ellipse cx="0" cy="0" rx="24" ry="10" stroke="currentColor" stroke-width="2.2" fill="none"/>
+    <!-- eye -->
+    <circle cx="-9" cy="-2" r="1.7" fill="currentColor"/>
+    <!-- smile -->
+    <path d="M -12 3 Q -6 7 0 3" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Thread trailing from shuttle toward wordmark -->
+  <path stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"
+        d="M 192 70 Q 210 70 224 70" />
+
+  <!-- Wordmark "loom" -->
+  <text x="232" y="98"
+        font-family="Georgia, 'Times New Roman', 'Bitstream Charter', serif"
+        font-size="86" font-weight="700" letter-spacing="-2"
+        fill="currentColor">loom</text>
+
+  <!-- Subtle finishing thread continuing past the wordmark -->
+  <path stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"
+        opacity="0.45"
+        d="M 488 70 Q 500 64 512 70 T 530 70" />
+</svg>

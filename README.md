@@ -1,4 +1,6 @@
-# loom
+<p align="left">
+  <img src="docs/loom-logo.svg" alt="loom" width="420">
+</p>
 
 An agent-driven pipeline that turns customer discovery notes into a fully deployed Elastic demo — mappings, data, ML jobs, dashboards, Agent Builder agents, Workflows, and SIEM rules — without the SA having to hand-write scripts or click through Kibana.
 
