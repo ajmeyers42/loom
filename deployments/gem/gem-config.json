@@ -1,0 +1,9 @@
+{
+  "name": "Discovery",
+  "description": "Paste or attach discovery notes and I'll qualify the opportunity, draft a customer confirmation document, flag open questions, and prepare an SA handoff brief — all in one response.",
+  "starter_questions": [
+    "Here are my notes from today's call with [Company] — [paste notes here]",
+    "I have a transcript from my call with [Company] — [attach file]",
+    "I just got off a call with [Company]. Here's what I captured: [paste notes]"
+  ]
+}

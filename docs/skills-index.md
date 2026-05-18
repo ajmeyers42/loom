@@ -8,7 +8,22 @@ Use `loom` when you want the guided end-to-end pipeline. Use an individual skill
 |---|---|---|
 | `loom` | Build or resume a complete engagement from any combination of discovery notes, diagnostics, and existing outputs | Runs the pipeline, skips completed stages, delivers the final handoff |
 
-## Planning and Qualification
+## SDR / AE Discovery (non-technical users)
+
+| Skill | Use when | Primary outputs | Deployment |
+|---|---|---|---|
+| `warp-discovery` | An SDR or AE wants to parse discovery notes and qualify an opportunity without any technical setup | Qualification summary (MEDDPIC), customer confirmation doc, gaps report, SA handoff brief | Gemini Gem (`deployments/gem/`) · Slack bot (`deployments/slack/`, deferred) |
+
+> **SDR/AE path:** use the [Gemini Gem](../deployments/gem/README.md). No Cursor, no API keys, no file system.
+> Paste notes or attach a file; receive all four outputs in chat.
+>
+> **Maintainer path:** `warp-discovery` can also be invoked in Cursor. When upstream skills
+> (`warp-listen`, `thread-qualify`) change, update `skills/warp-discovery/SKILL.md` per the
+> checklist in `skills/warp-discovery/components.md`, then recompile `deployments/gem/system-prompt.md`.
+
+---
+
+## Planning and Qualification (SA pipeline)
 
 | Skill | Use when | Primary outputs |
 |---|---|---|

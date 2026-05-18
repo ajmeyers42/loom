@@ -25,12 +25,14 @@ This repository is meant to be driven by an **assistant** (Cursor, Claude Code, 
 
 ## Runtime-specific setup
 
-| Runtime | Setup |
-|--------|--------|
-| **Cursor** | [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) |
-| **Claude Code / Claude projects** | [`docs/runtimes/claude.md`](docs/runtimes/claude.md) |
+| Runtime | Audience | Setup |
+|--------|--------|--------|
+| **Cursor** | Solutions Architects | [`docs/runtimes/cursor.md`](docs/runtimes/cursor.md) |
+| **Claude Code / Claude projects** | Solutions Architects | [`docs/runtimes/claude.md`](docs/runtimes/claude.md) |
+| **Gemini Gem** | SDRs / AEs (non-technical) | [`docs/runtimes/gem.md`](docs/runtimes/gem.md) — uses `warp-discovery` skill only; no SA pipeline stages |
+| **Slack bot** | SDRs / AEs (non-technical) | `deployments/slack/` — deferred pending IT approval |
 
-Do **not** duplicate skill bodies per IDE. One [`skills/`](skills/) tree; thin glue only (this file, Cursor rules, Claude plugin paths).
+Do **not** duplicate skill bodies per runtime. One [`skills/`](skills/) tree; deployment-target artifacts live under [`deployments/`](deployments/). The `warp-discovery` bundle is the single source for all SDR/AE targets — see [`skills/warp-discovery/components.md`](skills/warp-discovery/components.md) for the update workflow.
 
 ## Research, skills, and external sources
 
