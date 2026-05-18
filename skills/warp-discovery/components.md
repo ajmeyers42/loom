@@ -11,7 +11,7 @@ maintenance checklist.
 
 | Skill | What it contributes to warp-discovery | Last synced |
 |---|---|---|
-| `skills/warp-listen/SKILL.md` | Discovery note parsing, input type classification, JSON extraction schema, customer confirmation doc structure, gaps report format | 2026-05-18 |
+| `skills/warp-listen/SKILL.md` | Discovery note parsing, input type classification, JSON extraction schema, customer confirmation doc structure, gaps report format | 2026-05-18 (updated: demo-conditional section, hedged "What You Can Expect") |
 | `skills/thread-qualify/SKILL.md` | MEDDPIC qualification logic, qualification thresholds (PROCEED / CONTINUE / NOT QUALIFIED), opportunity summary structure, SA demo goals brief format | 2026-05-18 |
 
 ---

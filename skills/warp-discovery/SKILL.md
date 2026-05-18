@@ -180,14 +180,53 @@ If notes describe something already built or approved, use past tense ("What We 
 [3–5 bullets using the customer's language. If they said "scattered everywhere"
 use that phrase, not "data fragmentation".]
 
-## What We'll Demonstrate
-[Table or brief prose: each demo scenario mapped to a specific pain point they raised.
-Be concrete — name the role, the task, and the outcome. Not "we'll show AI capabilities"
-but "we'll show how [role] goes from [current state] to [outcome] in under [timeframe]".]
+## [What We'll Demonstrate — OR — Measures of Success]
+
+**Use "What We'll Demonstrate" only if a demo was explicitly requested or confirmed
+in the notes** (e.g. "they asked for a demo", "demo scheduled for [date]", "they want
+to see it in action"). If a demo was not mentioned, use "Measures of Success" instead.
+
+**If a demo was confirmed — "What We'll Demonstrate":**
+Map each planned demo scenario to a specific pain point the customer raised.
+Name the role, the task, and the measurable outcome. Make success criteria quantifiable
+wherever the notes support it.
+
+> Not: "We'll demonstrate AI search capabilities."
+> Instead: "We'll show how [role] goes from [current state — e.g. searching across
+> five disconnected systems] to [outcome] in under [timeframe, e.g. 30 seconds] —
+> addressing the [verbatim pain, e.g. 'scattered everywhere'] problem directly."
+
+**If no demo was mentioned — "Measures of Success":**
+Frame the same content as what good looks like for the customer, not what Elastic will show.
+Describe the outcomes they would experience if the initiative succeeded. Make these
+quantifiable wherever the notes support it — reference timeframes, volumes, reduction in
+manual steps, or improvement in metrics they mentioned.
+
+> Not: "Faster incident response."
+> Instead: "Mean time to resolution drops from [current state, e.g. 45 minutes] to
+> under [target, e.g. 10 minutes] for the on-call team — based on what [contact] described
+> about the current triage process."
+
+If the notes don't support a quantified target, use a directional qualifier:
+> "Significantly faster than today's manual process" or "measurably fewer escalations"
+> are acceptable when no numbers were given. Do not invent figures.
 
 ## What You Can Expect
-[Concrete deliverables: a working prototype, a migration sizing estimate,
-a live query against their own data model? Be specific about what they walk away with.]
+
+Based on what we've heard so far, describe the likely shape of next steps — not final
+commitments. This section is directional. More will be defined as discovery continues.
+
+**Do not use absolute language** ("you will receive", "we will deliver", "precise estimate").
+**Do use hedged, forward-looking language** that reflects this is a post-first-call summary:
+"based on what we've heard", "our initial read is", "we expect to work toward",
+"subject to confirming [gap]".
+
+> Not: "You'll walk away with a working prototype and a precise migration sizing estimate."
+> Instead: "Based on what we've heard, we expect to be able to show a working prototype
+> of [scenario]. Sizing and timeline will come into focus once we've confirmed [open item]."
+
+Keep this section to 2–3 sentences. If the notes don't support even a directional
+statement, omit this section rather than filling it with generic language.
 
 ## Before We Build
 [List only genuine gaps — things you actually need from them to proceed.
