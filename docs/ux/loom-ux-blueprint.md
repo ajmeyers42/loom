@@ -1,6 +1,6 @@
 # Loom UX Blueprint
 
-**Status:** Design artifact (not an implementation)  
+**Status:** Direction accepted (2026-10-30) — blueprint + prototype frozen as the SA-first control-plane UX; implementation not started  
 **Audience:** Solutions Architects (primary), AE/SDR handoff, product and security reviewers  
 **Last updated:** 2026-10-30  
 
@@ -832,9 +832,9 @@ Package for review:
 
 | Phase | Outcome | Exit |
 |-------|---------|------|
-| **P0 Blueprint validation** | This document reviewed with 2–3 SAs + one security reviewer | Comments resolved; direction accepted |
-| **P1 Prototype** | Clickable Engagement Home covering SB-01–SB-10 — [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) drafted | Usability test: 5 tasks, ≥80% success without coaching |
-| **P2 Thin slice** | Intake + Qualify + Vision freeze writing real engagement files + pipeline-state | Parity with `warp-scout` / `warp-spark` outputs |
+| **P0 Blueprint validation** | Direction accepted with primary SA (2026-10-30); broader SA/security review still welcome | Comments resolved; direction accepted |
+| **P1 Prototype** | Clickable Engagement Home — [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) | Usability test: 5 tasks, ≥80% success without coaching (optional polish) |
+| **P2 Thin slice** ← **next** | Intake + Qualify + Vision freeze writing real engagement files + pipeline-state | Parity with `warp-scout` / `warp-spark` outputs |
 | **P3 Build & Readiness slice** | Progress UI + unified readiness calling existing skills/CLIs | finish-check / finish-verify statuses visible |
 | **P4 Controlled pilot** | Deploy approval records + Kibana deep links on real non-prod demos | Infosec pack complete; live pair validated |
 | **P5 Production review** | Retention wizard, scoped keys, a11y AA smoke | Release gates (10.6) all green |
