@@ -1,6 +1,6 @@
 # Elastic Deployment — Behavioral Differences and Known Gotchas
 
-Loaded by: bolt-launch, weave-train, thread-audit, finish-check
+Loaded by: bolt-serverless, bolt-bootstrap, weave-train, thread-audit, finish-check
 
 Source: Lowe's "Store That Knows" demo first-gen postmortem. Every item below caused real rework.
 
@@ -171,7 +171,7 @@ for obj in objects:
 
 ## ILM
 
-ILM is not supported on Serverless. Use Data Stream Lifecycle (DSL) via the `lifecycle` block in the index template. bootstrap.py detects this via `DEPLOYMENT_TYPE` and skips the ILM API call.
+ILM is not supported on Serverless. Use Data Stream Lifecycle (DSL) via the `lifecycle` block in the index template. bolt-serverless emits DSL and does not call the ILM API.
 
 ---
 

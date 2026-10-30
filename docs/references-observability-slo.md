@@ -30,8 +30,8 @@ From there, use the **Kibana** OpenAPI for:
 
 ## Programmatic path in loom
 
-- **`skills/bolt-launch/SKILL.md`** — Step 13 (SLOs + burn-rate rules when in scope).
-- Engagement example: `kibana/deploy_kibana_gaps.py` (Citizens) — creates SLOs via API; burn-rate rules still require Alerting API payloads validated for the target stack (see Guide + OpenAPI).
+- **`skills/finish-verify/SKILL.md`** authors SLO and burn-rate rule assets. **`bolt-bootstrap`** places them in Terraform.
+- Burn-rate rules still require Alerting API payloads validated for the target stack (see Guide + OpenAPI).
 
 ## Why both Guide and OpenAPI
 

@@ -8,9 +8,9 @@ description: >
 
   ALWAYS use this skill when the user says "create a new cluster for this demo", "spin up
   a serverless project", "provision an ECH deployment", "set up the demo environment",
-  or "I need a cluster for the [company] demo". Also trigger when bolt-launch is about to
-  run but no .env exists in the workspace. Run before bolt-launch — this is the
-  provisioning step; bolt-launch is the deployment step.
+  or "I need a cluster for the [company] demo". Also trigger when finish-verify or
+  bolt-bootstrap is about to run but no .env exists in the workspace. This is the
+  provisioning step. Deployment is finish-verify, then bolt-bootstrap.
 ---
 
 # Demo Cloud Provision
@@ -358,15 +358,15 @@ Kibana: {version}
 
 ## What Good Looks Like
 
-**Serverless, new demo:** User says "create a serverless project for the Citizens Bank
-demo." Skill creates project named `loom-citizens-bank-20260415` in `us-east-1`,
-captures endpoint URLs and API key, writes `citizens-bank/.env`, validates connectivity.
-Provision log confirms green health. Ready for bolt-launch.
+**Serverless, new demo:** User says "create a serverless project for this demo."
+Skill creates a project named from the engagement slug, captures endpoint URLs and an
+API key, writes `{slug}/.env`, and validates connectivity. Provision log confirms green
+health. Ready for finish-verify.
 
 **ECH, reusing cluster:** User has an existing ECH cluster and says "use my existing
-ECH cluster for the Thermo Fisher demo." Skill skips provisioning, asks for the URL and
-API key, writes `thermo-fisher/.env` with `INDEX_PREFIX=tf-` to avoid collisions with
-any existing Citizens Bank indices on the same cluster. Validates connectivity.
+cluster for this demo." Skill skips provisioning, asks for the URL and API key, and
+writes `{slug}/.env` with a distinct `INDEX_PREFIX` so this engagement does not collide
+with other demos on the same cluster. Validates connectivity.
 
 **Multi-customer, same cluster:** User says "reuse the Citizens Bank cluster for the
 IHG demo." Skill copies `citizens-bank/.env` to `ihg-club/.env`, sets

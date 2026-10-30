@@ -29,7 +29,7 @@
 ## D-002: Idempotent deployment with check-before-create
 
 **Status:** Active  
-**Enforced by:** `skills/bolt-launch/templates/bootstrap-template.py` — every step function checks existence before creating. `--step N` flag resumes from a specific step. Data load checks doc count before loading (90% threshold). These patterns are in the template and cannot be removed without breaking the template contract.
+**Enforced by:** `bolt-bootstrap` and the ECH/Serverless variants. Terraform apply is idempotent. `bootstrap-data.py` checks before writing (enrich execute, seed counts, manifest upsert). The old `skills/bolt-launch/templates/bootstrap-template.py` file is gone with the retired skill.
 
 **Rationale:** A failed deploy at step 9 shouldn't require tearing down steps 1–8. Demo environments are time-pressured.
 
@@ -399,8 +399,8 @@
 
 ## D-035: Demo ideation as Stage 0 in the pipeline
 
-**Status:** Active  
-**Enforced by:** Orchestrator Step 0b skip condition — ideation is skipped only when discovery notes, diagnostic, or prior pipeline outputs (`{slug}-discovery.json`, `{slug}-ideation.md`) already exist. No fallback to a "default demo" shape.
+**Status:** Superseded by D-050  
+**Enforced by:** D-050. Ideation always runs unless `demo/{slug}-ideation.md` is already frozen. Discovery notes do not skip it. The earlier skip-when-notes-exist rule is retired.
 
 **Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
 

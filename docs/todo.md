@@ -1,32 +1,16 @@
 # loom — Open Items Requiring User Action
 
 *Generated from the post-mortem and current skill review. Updated as items are resolved.*
-*Last updated: 2026-05-20*
+*Last updated: 2026-10-30 — baseline commit. Deploy path is finish-verify, then bolt-bootstrap.*
 
 For **agent behavior** (orchestrator path, `$LOOM_ENGAGEMENTS_ROOT` outputs, deploy approvals), see
 [`AGENTS.md`](../AGENTS.md), [`docs/engagements-path.md`](../docs/engagements-path.md), and [`docs/runtimes/`](../docs/runtimes/).
 
 ---
 
-## 🔴 Blocking — Pipeline Won't Work Without These
+## 🔴 Before the first provision
 
-### 1. Install elastic/agent-skills
-The loom pipeline depends on skills from `https://github.com/elastic/agent-skills` for actual API integration with Elastic Cloud and Kibana. Without them, `bolt-spin` has no mechanism to call the Cloud API, and `bolt-launch` can't create Agent Builder configs or Kibana dashboards.
-
-**Install the full plugin** so **Search, Observability, and Elastic Security** skills are all available. A given engagement may only use search — but SIEM/detection demos require Security skills without a separate install.
-
-**Skills needed (install all — representative list):**
-- `cloud/setup` — configure EC_API_KEY (must run first)
-- `cloud/create-project` — create serverless projects
-- `cloud/manage-project` — connect to existing projects, delete after demo
-- `kibana/agent-builder` — create/update agents in Agent Builder
-- `kibana/kibana-dashboards` — deploy dashboards and Lens visualizations
-- `kibana/kibana-connectors` — set up email/webhook connectors for Workflows
-- **Security (SIEM / detection / cases):** e.g. `security-detection-rule-management`, `security-alert-triage`, `security-case-management`, `security-generate-security-sample-data` — required for Security-scoped or hybrid demos
-
-**How:** Clone `https://github.com/elastic/agent-skills` and install per its README, or install via the Claude Code plugin mechanism. These should be available alongside the loom skills in the same session.
-
-### 2. Run `cloud-setup` once to configure EC_API_KEY
+### 1. Run `cloud-setup` once to configure EC_API_KEY
 Before `bolt-spin` can create any serverless project, the `cloud-setup` skill needs to run to configure and validate your Elastic Cloud API key. This is a one-time setup.
 
 **How:** In a Claude session with the elastic/agent-skills installed, say: "set up my Elastic Cloud credentials" and follow the prompts. **Never paste the API key directly into chat** — the skill handles secure entry.
@@ -35,37 +19,36 @@ Before `bolt-spin` can create any serverless project, the `cloud-setup` skill ne
 
 ## 🟡 Required Before First Live Demo Deploy
 
-### 3. Validate bootstrap.py against a real cluster
-`bolt-launch` generates `deploy/bootstrap.py` from the data model, but it has not yet been executed against a real cluster. The generated script follows the correct patterns, but edge cases (network timeouts, ELSER model load time, Kibana ndjson import formatting) may surface only on a live run.
+### 3. Validate the deploy pair against a real cluster
+`finish-verify` writes `deploy/asset-bundle/`. `bolt-bootstrap` writes `deploy/main.tf` and `deploy/bootstrap-data.py`. That pair has not yet been executed against a real cluster. Edge cases (network timeouts, ELSER model load time, Terraform provider pins, Kibana ndjson import formatting) may surface only on a live run.
 
-**Action:** Pick one demo (Citizens Bank is the best-validated). Engagement root defaults to **`~/engagements`** (see [`docs/engagements-path.md`](../docs/engagements-path.md)):
+**Action:** Pick one engagement. Root defaults to **`~/engagements`** (see [`docs/engagements-path.md`](../docs/engagements-path.md)):
 ```bash
 cd /path/to/loom
 ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
-set -a && source "$ROOT/citizens-bank/.env" && set +a
-python3 "$ROOT/citizens-bank/deploy/bootstrap.py" --dry-run
-# Review output, then:
-python3 "$ROOT/citizens-bank/deploy/bootstrap.py"
+SLUG="{slug}"
+set -a && source "$ROOT/$SLUG/.env" && set +a
+python3 "$ROOT/$SLUG/deploy/bootstrap-data.py" --dry-run
+terraform -chdir="$ROOT/$SLUG/deploy" plan
+# Review output, then apply only after the D-024 review gate.
 ```
-Note any failures and report back — the script template in `bolt-launch/SKILL.md` may need adjustments.
+Note any failures and report back — the templates in `bolt-bootstrap`, `bolt-ech`, and `bolt-serverless` may need adjustments.
 
 ### 4. Kibana saved objects — files in the engagement workspace
-`deploy/bootstrap.py` imports from paths such as `deploy/kibana-objects/{slug}-*.ndjson` and optional
+Terraform saved-object import reads paths such as `deploy/kibana-objects/{slug}-*.ndjson` and optional
 `deploy/kibana/workflows/*`, `deploy/kibana/agent/*.json` (see `docs/decisions.md` **D-024**). Those files
 are **authored** using **`elastic/agent-skills`** (e.g. `kibana-dashboards`) and **export-first**
-from Kibana when needed (**D-017**), then **saved under `{engagement_dir}/deploy/`** — not generated
-on the fly during deploy unless `demo-kibana-builder` exists.
+from Kibana when needed (**D-017**), then **saved under `{engagement_dir}/deploy/`**.
 
-**Action:** Keep dashboards/agent exports under `deploy/`; ensure `deploy/bootstrap.py`
-references them and runs **`saved_objects/_import`** (and related APIs) — not manual UI import.
+**Action:** Keep dashboards/agent exports under `deploy/`. `bolt-bootstrap` imports them from Terraform, not by hand in the UI.
 
-**Review gate:** Do **not** run `deploy/bootstrap.py` against a cluster until the SA has reviewed
-`deploy/bootstrap.py`, `demo/{slug}-platform-audit`, `deploy/{slug}-risks`, and `deploy/{slug}-demo-checklist.md` (**D-024**, `AGENTS.md`).
+**Review gate:** Do **not** `terraform apply` or run `deploy/bootstrap-data.py` against a cluster until the SA has reviewed
+`deploy/main.tf`, `deploy/bootstrap-data.py`, `demo/{slug}-platform-audit`, `deploy/{slug}-risks`, and `deploy/{slug}-demo-checklist.md` (**D-024**, `AGENTS.md`).
 
-### 5. Configure email connector for Workflows demos
-The `online-order-notification` Workflow (Lowe's demo) and any demo using Kibana Workflows that send email requires a pre-configured Kibana Email connector. The `kibana-connectors` skill handles this, but the SMTP settings (or SES/Mailgun config) need to be provided.
+### 5. Configure an email connector for Workflows demos
+Any demo whose Workflow sends email needs a Kibana email connector. The `kibana-connectors` skill creates it. SMTP or an equivalent provider still has to be supplied per engagement.
 
-**Action:** Using the `kibana-connectors` skill, configure an email connector in the demo cluster before running the Lowe's bootstrap.
+**Action:** Configure the connector in the demo cluster before `terraform apply` when a Workflow scene sends mail.
 
 ---
 
@@ -112,16 +95,16 @@ as in **D-024**; this skill would automate first-time **generation** only.
 **Depends on:** `kibana-dashboards` skill from elastic/agent-skills
 
 ### 7. `demo-data-generator`
-Generates seed data as reviewable flat JSON files from the data model's sample data spec, before `deploy/bootstrap.py` runs. Makes seed data version-controllable and re-loadable independently.
+Generates seed data as reviewable flat JSON files from the data model's sample data spec, before `deploy/bootstrap-data.py` runs. Makes seed data version-controllable and re-loadable independently.
 
-**Priority:** Medium — current approach (generating data inside bootstrap.py) works but isn't reviewable.
+**Priority:** Medium — seed documents are still produced inside the data model and loaded by `bootstrap-data.py`. They are not a separate reviewable file yet.
 **Inputs:** `data/{slug}-data-model.json`
 **Outputs:** `data/{slug}-{index-name}-seed.json` (one file per index)
 
 ### 8. `demo-refresh`
-Re-injects anomaly data T-2h before a demo. Separate from `deploy/bootstrap.py --step 14` because timing, verification, and failure modes are different from initial deployment. SEs will run this the morning of every demo.
+Re-injects anomaly data T-2h before a demo. Separate from the initial `bootstrap-data.py` run because timing, verification, and failure modes differ. SEs will run this the morning of every ML demo.
 
-**Priority:** Medium — until built, SEs use `python3 deploy/bootstrap.py --step 14` directly.
+**Priority:** Medium — until built, re-run `python3 deploy/bootstrap-data.py` (it includes anomaly injection) the morning of the demo.
 **Inputs:** `{engagement_dir}/.env`, `data/{slug}-ml-config.json`
 **Outputs:** confirmation that injection docs are indexed and ML score ≥ 75 on target
 
@@ -135,10 +118,10 @@ Includes asset catalog review with shared `use_as_is` / `clone_and_modify` / `st
 **Remaining:** Validate against a live cluster (part of item #3 first-deploy gate).
 
 ### 10. `weave-pipe`
-Designs and generates Elasticsearch ingest pipeline definitions from a field mapping specification. Produces deployment-ready pipeline JSON artifacts consumed by `wind-streams` (for Streams wiring) or directly deployed by `deploy/bootstrap.py` step 4.
+Designs and generates Elasticsearch ingest pipeline definitions from a field mapping specification. Outputs would be consumed by `wind-streams` or by `finish-verify` as Terraform resources. Not a `bootstrap-data.py` step.
 
 **Priority:** Medium — originated from 2026lenovoGAIaaS engagement.
-**Status:** Stub SKILL.md exists at `skills/weave-pipe/SKILL.md` — implementation pending.
+**Status:** Backlog. `skills/weave-pipe/SKILL.md` halts if selected. Do not treat it as a deploy step. Pipelines that are in scope are infrastructure for `finish-verify` / `bolt-bootstrap`.
 **Inputs:** `data/{slug}-data-model.json`, field samples or log examples
 **Outputs:** `data/pipelines/{slug}-{name}-pipeline.json`
 
@@ -146,7 +129,7 @@ Designs and generates Elasticsearch ingest pipeline definitions from a field map
 Creates, configures, and wires Kibana Streams with ingest pipelines for demo environments. Extends the read-only `kibana-streams` skill with write-side operations (create stream, set routing, attach pipeline, configure retention).
 
 **Priority:** Medium — originated from 2026lenovoGAIaaS engagement. Required when the demo story is Streams-native ingest.
-**Status:** Stub SKILL.md exists at `skills/wind-streams/SKILL.md` — implementation pending.
+**Status:** Backlog. `skills/wind-streams/SKILL.md` halts if selected. Inspect existing streams with `kibana-streams`.
 **Depends on:** `weave-pipe` (pipelines must exist before wiring)
 
 ### 12. `thread-audit` — Asset Discovery pass
@@ -178,10 +161,10 @@ The current keychain token has `repo` scope but not `read:org`, which blocks `gh
 
 **Action:** Regenerate the GitHub PAT at `github.com/settings/tokens` and include `read:org`.
 
-### 14. Run evals for bolt-spin and bolt-launch
-Both skills have `evals/evals.json` written but the eval loop (run → grade → benchmark) hasn't been executed. These evals require a real cluster to be meaningful.
+### 14. Run evals for bolt-spin, finish-verify, and bolt-bootstrap
+`bolt-spin` and the retired `bolt-launch` have `evals/evals.json`. `finish-verify` and `bolt-bootstrap` are the live deploy pair. The eval loop (run → grade → benchmark) has not been executed. These evals need a real cluster to mean anything.
 
-**Action:** After completing items 1–3 above, run the evals for these two skills using the skill-creator eval loop.
+**Action:** After the first live deploy (item 3), run evals for `bolt-spin`, `finish-verify`, and `bolt-bootstrap`. Do not spend an eval cycle on `bolt-launch`.
 
 ### 15. Validate `.ml-anomalies-*` field names on first Serverless ML build
 
@@ -189,23 +172,18 @@ On first use of ML anomaly detection on Serverless, run this before writing any 
 ```
 GET .ml-anomalies-*/_mapping
 ```
-The Serverless field names differ from documentation: use `record_score`, `timestamp`, `partition_field_value`, `by_field_value`. See `skills/bolt-launch/references/serverless-differences.md`.
-
-### 16. Update `skills/wind-pulse/wind_pulse.py` for D-037 subfolder layout
-
-The `wind_pulse.py` helper script still resolves Kibana saved objects from `kibana-objects/*.ndjson`
-(old flat layout). After D-037, those files live under `deploy/kibana-objects/`. The script will
-silently find zero saved objects on any engagement created after the reorganization.
-
-**Action:** Update the glob patterns in `wind_pulse.py` to search `deploy/kibana-objects/` and
-`deploy/kibana/**/*.ndjson` instead of the root-level paths. Verify against a live engagement.
+The Serverless field names differ from documentation: use `record_score`, `timestamp`, `partition_field_value`, `by_field_value`. See `skills/references/serverless-differences.md`.
 
 ---
 
 ## ✅ Resolved
 
+- **2026-10-30 baseline** — Local dependency clones fast-forwarded. Deploy instructions, handoffs, and indexes name `finish-verify` then `bolt-bootstrap` (`main.tf` + `bootstrap-data.py`). `bolt-launch` is a redirect only. Duplicate `skills/bolt-launch/references/` removed. `wind_pulse.py` reads `deploy/kibana-objects/`. `weave-query` targets Vulcan 2.1 (`OPENROUTER_*`). `validate_ext_deps.py` finds the agent-skills plugin. `elastic-demo-starter` is an optional registry entry. D-035 is superseded by D-050.
+- **elastic/agent-skills installed (checked 2026-10-26)** — Cursor plugin cache, `~/.claude/skills`, and `~/Documents/GitHub/agent-skills` (`baa5111`). Re-run `npx skills update elastic/agent-skills` when the Cursor plugin should move past that cache.
+- **wind-pulse D-037 paths (2026-10-26)** — `wind_pulse.py` searches `deploy/kibana-objects/` and `deploy/kibana/` first, and still falls back to the pre-D-037 root paths.
+
 - **Workspace root convention** — Engagement workspaces live under **`~/engagements/{slug}/`** by default (or **`$LOOM_ENGAGEMENTS_ROOT/{slug}/`** if set) outside the repo. See `docs/decisions.md` D-019, D-023 and [`docs/engagements-path.md`](../docs/engagements-path.md).
 - **Engagement folder reorganization (D-037)** — All pipeline outputs are now organized into audience-scoped subfolders: `opportunity/` (AE/SDR), `demo/` (SA design), `data/` (data model / ML / seed), `deploy/` (bootstrap, teardown, Kibana objects). `.env` remains at the engagement root. All skill SKILL.md files, `scripts/inventory.py`, `docs/pipeline.md`, and `docs/decisions.md` updated accordingly. Merged to main via PR #5.
 - **Cloud-synced engagement root** — Google Drive (and OneDrive) documented as a valid `LOOM_ENGAGEMENTS_ROOT` with pathing, sync latency, and credential security guidance. See `docs/engagements-path.md`.
 - **Pipeline efficiency layer** — Pipeline state file, context pruning strategy, model routing guidance, subagent parallelization map, and `scripts/inventory.py` zero-AI CLI added. See `docs/efficiency.md`.
-- **Reference repos for Workflow and Agent Builder builds** — `elastic/workflows` and `elastic/kibana-agent-builder-sdk` cloned at `~/Documents/GitHub/workflows` and `~/Documents/GitHub/kibana-agent-builder-sdk`. Local paths embedded in `weave-agent/SKILL.md` and `bolt-launch/references/serverless-differences.md`. Agent surfaces a blocker if context is missing before any Workflow/Agent Builder build.
+- **Reference repos for Workflow and Agent Builder builds** — `elastic/workflows` and `elastic/kibana-agent-builder-sdk` cloned at `~/Documents/GitHub/workflows` and `~/Documents/GitHub/kibana-agent-builder-sdk`. Local paths embedded in `weave-agent/SKILL.md` and `skills/references/serverless-differences.md`. Agent surfaces a blocker if context is missing before any Workflow/Agent Builder build.

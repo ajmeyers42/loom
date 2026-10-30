@@ -1,6 +1,6 @@
 # Inference Configuration Reference
 
-**Loaded by:** `skills/bolt-launch/SKILL.md`, `skills/weave-model/SKILL.md`, `skills/weave-train/SKILL.md`
+**Loaded by:** `skills/finish-verify/SKILL.md`, `skills/bolt-bootstrap/SKILL.md`, `skills/weave-model/SKILL.md`, `skills/weave-train/SKILL.md`
 
 This file is the **single source of truth** for Elastic inference service/model configuration by deployment type. When model IDs, service names, or task types change, update here.
 

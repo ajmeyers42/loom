@@ -1,20 +1,28 @@
 ---
 name: weave-pipe
 description: >
-  Designs and generates Elasticsearch ingest pipeline definitions from a field mapping
-  specification. Produces deployment-ready pipeline JSON artifacts for Streams wiring
-  or direct ES API deployment.
+  NOT IMPLEMENTED. If this skill is selected, stop immediately and tell the SA that
+  weave-pipe is backlog. Do not generate ingest pipelines, grok patterns, or cluster calls.
+  The notes below are a design sketch only.
 status: planned
 ---
 
 # weave-pipe
 
-**Status: BACKLOG — not yet implemented**
-**Scoped: 2026-05-01**
+**Status: BACKLOG — do not execute.**
+
+```
+⛔ weave-pipe is not implemented.
+   Do not write pipeline JSON, call Elasticsearch, or continue into a deploy step.
+   Ingest pipelines that a Fleet package does not cover are still authored later by
+   finish-verify from a confirmed field schema (D-043), not by this skill.
+```
+
+**Scoped: 2026-05-01. Design notes below are not a procedure.**
 
 ## Purpose
 
-Designs and generates Elasticsearch ingest pipeline definitions from a field mapping specification. Produces deployment-ready pipeline JSON artifacts consumed by `wind-streams` (for Streams wiring) or directly deployed by `bootstrap.py` step 4. Handles field extraction, ECS normalization, enrichment processor wiring, and routing logic.
+Designs and generates Elasticsearch ingest pipeline definitions from a field mapping specification. Produces deployment-ready pipeline JSON artifacts consumed by `wind-streams` (for Streams wiring) or later applied as Terraform infrastructure by `bolt-bootstrap`. Handles field extraction, ECS normalization, enrichment processor wiring, and routing logic.
 
 ## When to Use
 
@@ -41,7 +49,7 @@ Designs and generates Elasticsearch ingest pipeline definitions from a field map
   - `{slug}-{source}-pipeline.json` — full pipeline definition with processors array
   - `{slug}-pipelines-manifest.json` — index of all pipelines, their source streams, and processor summary
 - Updates `data-model.json` to record pipeline names alongside their target indices/streams
-- Adds pipeline deployment to `bootstrap.py` step 4
+- Pipeline JSON is an input to `finish-verify`, not a `bootstrap-data.py` step
 
 ## Key Capabilities to Implement
 
@@ -127,7 +135,7 @@ K8S_CONTAINER   %{TIMESTAMP_ISO8601:@timestamp} %{LOGLEVEL:log.level} %{GREEDYDA
 weave-model           → defines field schemas (consumed as input)
 weave-pipe → produces pipeline JSON artifacts
   └─ wind-streams  → wires pipelines into Streams
-  └─ bootstrap.py step 4    → deploys pipelines directly via ES API
+  └─ finish-verify / bolt-bootstrap → pipelines are Terraform resources (D-046)
 ```
 
 Independent of `weave-fleet` — Fleet manages its own ingest pipelines internally. This skill is for custom/non-integration sources only.
@@ -139,13 +147,13 @@ Stage 5 (new): weave-pipe
   → Input:  data-model.json, demo-script.md, optional log samples
   → Output: data/ingest-pipelines/*.json, data/pipelines-manifest.json
   → Runs after: weave-model (Stage 5)
-  → Runs before: wind-streams, bootstrap.py
+  → Would run before: wind-streams, finish-verify
 ```
 
 ## Constraints and Risks
 
 - **Grok compilation**: Patterns must be validated before deployment. Skill should test patterns against sample lines and report failures before writing output files.
-- **Enrich processor dependency**: Enrich processors require an enrich policy to exist at deploy time. Skill must declare enrich dependencies and ensure `bootstrap.py` creates enrich policies (step 3) before pipelines (step 4).
+- **Enrich processor dependency**: Enrich processors require an enrich policy to exist at deploy time. Declare enrich dependencies so Terraform creates the policy before the pipeline. `bootstrap-data.py` only executes the policy.
 - **On_failure required**: All generated pipelines must include `on_failure` handlers. Documents must never be silently dropped by pipeline failures in a demo.
 - **Pipeline naming**: Use `{slug}-{source}-pipeline` convention to avoid collisions with system pipelines.
 
@@ -156,5 +164,5 @@ Stage 5 (new): weave-pipe
 - [ ] All `on_failure` handlers present in every generated pipeline
 - [ ] ECS normalization applied for all standard vendor fields (see mapping table above)
 - [ ] Pipeline artifacts registered in `loom-manifests` for teardown
-- [ ] Pipelines deployed idempotently via `bootstrap.py --step 4`
+- [ ] Pipelines are Terraform resources, applied idempotently by `terraform apply`
 - [ ] Works with both `wind-streams` wiring and direct `_index` pipeline attachment

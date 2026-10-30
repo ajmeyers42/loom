@@ -1,6 +1,6 @@
 # Terraform Patterns Reference
 
-**Loaded by:** `skills/bolt-launch/SKILL.md` (Terraform mode generation)
+**Loaded by:** `skills/bolt-bootstrap/SKILL.md`, `skills/bolt-ech/SKILL.md`, `skills/bolt-serverless/SKILL.md`
 
 This file documents HCL patterns for generating `providers.tf`, `main.tf`, and `{slug}.tfvars` for loom engagements. All patterns target the `elastic/elasticstack` + `elastic/ec` provider pair.
 

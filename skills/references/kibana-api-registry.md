@@ -1,6 +1,6 @@
 # Kibana API Registry
 
-**Loaded by:** `skills/bolt-launch/SKILL.md`, `skills/wind-reset/SKILL.md`, `skills/bolt-spin/SKILL.md`, `skills/wind-pulse/SKILL.md`, `skills/weave-agent/SKILL.md`
+**Loaded by:** `skills/finish-verify/SKILL.md`, `skills/bolt-bootstrap/SKILL.md`, `skills/wind-reset/SKILL.md`, `skills/bolt-spin/SKILL.md`, `skills/wind-pulse/SKILL.md`, `skills/weave-agent/SKILL.md`
 
 This file is the **single source of truth** for Kibana API path patterns. Paths are version-sensitive but cluster-agnostic — they are appended to `KIBANA_URL` (or `KIBANA_URL + KIBANA_SPACE_PATH` for space-scoped calls).
 

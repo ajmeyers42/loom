@@ -13,6 +13,14 @@ Use *this* file for loom-specific API wiring (Agent Builder `workflow_id`, idemp
 
 Patterns below are derived from live 9.4 ECH deployments. Use this as a lookup, not a tutorial.
 
+## Upstream corrections (elastic/workflows @ 98d080f, 2026-10-15)
+
+Confirmed in the current `elastic/workflows` clone. Do not copy older shapes from memory:
+
+- Workflow Liquid links use the top-level `kibanaUrl` value, not `context.kibanaUrl`.
+- Alert notification-group payloads list `inputs.payload.alerts`. The grouped Slack template `alert-notification-group-slack` 2.0.0 declares `availability: ">=9.6.0"`. Do not author that template against the 9.4 floor.
+- Search responses use `results`, not `items`. The list example below follows that.
+
 ---
 
 ## ⚠️ Known Issue: Stale Reads After Create/Update
@@ -108,7 +116,7 @@ curl -s -X POST "${KIBANA_URL}/api/workflows/search" \
 curl -s -X GET "${KIBANA_URL}/api/workflows" \
   -H "Authorization: ApiKey ${KIBANA_API_KEY}" \
   -H "kbn-xsrf: loom" \
-  | jq '.items[] | {id, name, valid}'
+  | jq '.results[]? // .items[]? | {id, name, valid}'
 ```
 
 ---

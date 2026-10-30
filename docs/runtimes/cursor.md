@@ -123,4 +123,4 @@ only — Cursor's native Read/Grep/Glob tools are not affected.
 
 ## Observability SLOs (integration packages)
 
-For **SLO demos**, **Fleet / Elastic Agent integration packages**, or **Observability package** structure and conventions, prefer the Elastic org repo **[integration-packages-slo](https://github.com/elastic/integration-packages-slo)** alongside in-repo skills and **[elastic/agent-skills](https://github.com/elastic/agent-skills)**. Use it when scripting or explaining SLO-related data ingest—not as a substitute for engagement-specific `bootstrap.py` unless the demo is explicitly package-driven.
+For **SLO demos**, **Fleet / Elastic Agent integration packages**, or **Observability package** structure and conventions, prefer the Elastic org repo **[integration-packages-slo](https://github.com/elastic/integration-packages-slo)** alongside in-repo skills and **[elastic/agent-skills](https://github.com/elastic/agent-skills)**. Use it when scripting or explaining SLO-related data ingest—not as a substitute for the engagement's `finish-verify` asset bundle unless the demo is explicitly package-driven.

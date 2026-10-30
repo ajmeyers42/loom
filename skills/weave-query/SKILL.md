@@ -21,14 +21,24 @@ ES|QL queries, synthetic datasets, and optionally integration-grounded or RAG pi
 Vulcan assumes a **running Elastic cluster** for indexing and validation. If no cluster is
 available, generate Vulcan's config context only (skip indexing + query testing).
 
-Vulcan is a sibling clone at `../vulcan` (same parent as loom). If it is absent,
-tell the SA to clone it:
+Vulcan is a sibling clone at `../vulcan` (same parent as loom). Loom targets **Vulcan 2.1**
+(OpenRouter). `LITELLM_*` variables are ignored. If the clone is absent, or its `.env` still
+has only `LITELLM_*` keys, set it up before generating:
 
 ```bash
 git clone https://github.com/elastic/vulcan ../vulcan
-cd ../vulcan && pip install -r requirements.txt
-cp .env.example .env  # fill in ELASTICSEARCH credentials + LLM keys
+cd ../vulcan && ./setup.sh
+source venv/bin/activate
 ```
+
+`setup.sh` writes `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, and `OPENROUTER_MODEL`, plus
+the Elasticsearch and Kibana credentials. Provider order is Claude SDK, then OpenRouter,
+then Anthropic, then OpenAI. v1.3+ can emit `CHANGE_POINT`, ES|QL subqueries, ES|QL views,
+and `PROMQL` when the target version supports them.
+
+Vulcan 2.0 **Export Handoff** (`vulcan-handoff/*.md` and `handoff.json`) is an optional
+package for a downstream UI, including elastic-demo-starter. Loom still copies the query
+and seed artifacts below into the engagement. Demo Starter is not required.
 
 ---
 
@@ -98,6 +108,7 @@ making generated data compatible with shipped integration dashboards.
 
 ```bash
 cd ../vulcan
+source venv/bin/activate
 set -a && source .env && set +a
 streamlit run app.py
 ```
@@ -111,7 +122,16 @@ In the **Create** tab:
 Vulcan will run through its pipeline phases and produce the demo module under
 `../vulcan/demos/<module_name>/`.
 
-### Option B — Programmatic (headless, for scripted pipelines)
+### Option B — CLI or programmatic (headless)
+
+Prefer the CLI when the context JSON from Step 1 is already on disk:
+
+```bash
+cd ../vulcan && source venv/bin/activate
+python -m src.cli generate path/to/config.json --output-dir demos
+```
+
+The orchestrator entry point is unchanged:
 
 ```python
 import sys, os
@@ -167,7 +187,7 @@ cp "$VULCAN_MODULE/data/"*.csv                 "$ENGAGEMENT_DIR/data/seed/"
 
 Read `data/{slug}-vulcan-query-results.json`. For each query:
 
-- **PASS** — query ran against the cluster and returned results. Safe to include in `bootstrap.py`.
+- **PASS** — query ran against the cluster and returned results. Safe to hand to weave-model.
 - **FAIL** — query did not return results or had syntax errors. Document the failure and either
   fix the ES|QL manually or exclude from the data model.
 - **SKIPPED** — `skip_query_testing` was true or cluster was unavailable. Flag as unvalidated.
@@ -241,7 +261,7 @@ CSVs under: {engagement_dir}/data/seed/
 → data/{slug}-vulcan-queries.json     (feed to weave-model)
 → data/{slug}-vulcan-data-profile.json
 → data/{slug}-vulcan-query-results.json
-→ data/seed/*.csv                       (seed data for bootstrap.py)
+→ data/seed/*.csv                       (seed data for bootstrap-data.py)
 ```
 
 Proceed to **weave-model** — the next stage will consume these outputs.
@@ -266,7 +286,8 @@ meaningful `sample_values` — these feed directly into Agent Builder tool param
 
 | Issue | Resolution |
 |-------|-----------|
-| `ModuleNotFoundError` | `pip install -r ../vulcan/requirements.txt` |
+| `ModuleNotFoundError` | `cd ../vulcan && ./setup.sh && source venv/bin/activate` |
+| OpenRouter auth failure | `.env` still has `LITELLM_*` only. Re-run `./setup.sh` or set `OPENROUTER_API_KEY`. |
 | `401 Unauthorized` from cluster | Check `ELASTICSEARCH_API_KEY` in `../vulcan/.env` |
 | Queries fail with `Unknown column` | Field name mismatch — reconcile with `{slug}-data-model.json` fields once that is generated, then re-run query testing |
 | EPR fetch times out | `VULCAN_EPR_CACHE=1` to use cached packages, or set `use_integrations: false` and align field names manually |

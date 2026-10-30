@@ -1,6 +1,6 @@
 # Feature Compatibility Reference
 
-**Loaded by:** `skills/bolt-launch/SKILL.md`, `skills/thread-audit/SKILL.md`, `skills/weave-agent/SKILL.md`, `skills/weave-fleet/SKILL.md`, `skills/weave-model/SKILL.md`
+**Loaded by:** `skills/thread-audit/SKILL.md`, `skills/finish-verify/SKILL.md`, `skills/bolt-bootstrap/SKILL.md`, `skills/weave-agent/SKILL.md`, `skills/weave-fleet/SKILL.md`, `skills/weave-model/SKILL.md`
 
 This file is the **single source of truth** for Elastic version gates and feature availability by deployment type. When a feature's minimum version or availability changes, update here. Skills read from here rather than hardcoding version numbers.
 
@@ -14,7 +14,23 @@ This file is the **single source of truth** for Elastic version gates and featur
 | `SKIP_VERSION_CHECK` env var | Set to `true` to bypass the version gate (use only for pre-GA testing) |
 | Bootstrap halt message | `"Cluster version {v} < 9.4 — set SKIP_VERSION_CHECK=true to override"` |
 
-All `bootstrap.py` / `bootstrap-data.py` generated scripts validate `version.number >= (9, 4)` at Step 1 unless `SKIP_VERSION_CHECK=true`.
+`bootstrap-data.py` validates `version.number >= (9, 4)` at step 1 unless `SKIP_VERSION_CHECK=true`.
+
+## Current GA (checked 2026-10-26)
+
+Published Elastic release notes name **Stack 9.5.5** as the current release. New deployments resolve **latest GA at provision time** (D-020). Do not hardcode 9.5.5 into generated scripts. The pipeline floor remains **9.4** (D-033).
+
+Kibana custom panels are a technical preview in hive-mind `hive-kibana-custom-panels` (Kibana 9.6+ or Serverless). They are outside the 9.4 floor. Prefer standard ES|QL visualizations on 9.4 and 9.5.
+
+## ES|QL join facts
+
+Corrected in hive-mind `patterns/search/ESQL_MULTI_INDEX_ENRICHMENT.md` (2026-09-10):
+
+| Feature | Availability |
+|---|---|
+| LOOKUP JOIN, single field | Preview in 9.0, GA since 9.1 |
+| INLINE STATS | Preview in 9.2, GA since 9.3 |
+| Full-text join conditions (MATCH) | Preview since 9.3 |
 
 ---
 

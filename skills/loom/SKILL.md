@@ -72,6 +72,7 @@ Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 **Reference libraries (hive-mind):**
 The `hive-mind` local clone provides validated patterns. Path: `{hive-mind-root}` = `$HIVE_MIND_PATH` if set, otherwise `../hive-mind` (sibling clone). See `docs/ext-registry.yaml`.
 - Kibana dashboards: `{hive-mind-root}/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md`
+- Kibana custom panels: `{hive-mind-root}/skills/hive-kibana-custom-panels/SKILL.md` — technical preview, Kibana 9.6+ or Serverless. Prefer standard ES|QL visualizations on the 9.4 floor and on 9.5. Do not reimplement custom panels in loom.
 - Workflows API: `{hive-mind-root}/patterns/workflows/WORKFLOWS_API_REFERENCE.md`
 - Agent Builder API: `{hive-mind-root}/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`
 - Probe-based feature detection: `{hive-mind-root}/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`
@@ -88,16 +89,18 @@ loom-specific decisions; use hive-mind for upstream pattern reference.
 
 Two distinct starting points exist for the loom pipeline. Choose based on who is running it:
 
-### AE/SDR Entry Point — 
+### AE/SDR Entry Point — `warp-scout`
 
 **Who uses this:** AE or SDR who has discovery notes and wants to structure them and hand
-off a brief to the SA. This is the early-funnel pipeline.
+off a brief to the SA. This is the early-funnel pipeline. Non-technical users use the
+Gemini Gem (`warp-discovery`) instead of this skill.
 
-Read  and execute it. This skill runs three stages:
+Read `skills/warp-scout/SKILL.md` and execute it. This skill runs three stages:
 discovery parsing, optional diagnostic analysis, and opportunity review. It produces the
-full discovery package plus  as the SA handoff brief.
+full discovery package plus `opportunity/{slug}-demo-goals.md` as the SA handoff brief.
 
-The AE/SDR pipeline ends at . The SA picks up from there.
+The AE/SDR pipeline ends at `opportunity/{slug}-demo-goals.md`. The SA picks up from there
+with `loom` (ideation first, D-050).
 
 Trigger phrases: "parse these notes", "qualify this deal", "structure the discovery",
 "hand off to SA", "what do we know about [company]".
@@ -257,7 +260,7 @@ loom clone (`skills/`, `docs/`).
 | `opportunity/` | AE, SDR, SA | Opportunity summary, qualification profile, customer confirmation, gaps, demo brief |
 | `demo/` | SA | Ideation contract, discovery JSON, diagnostic outputs, platform audit, demo script, agent spec |
 | `data/` | SA, engineer | Data model, ML config, Vulcan outputs, `mappings/`, `pipelines/`, `seed/` |
-| `deploy/` | SA | `bootstrap.py`, `teardown.py`, provision log, deploy log, checklist, risks, Kibana objects |
+| `deploy/` | SA | `main.tf`, `providers.tf`, `bootstrap-data.py`, `teardown.py`, provision log, deploy log, checklist, risks, Kibana objects |
 
 `.env` and `.env.example` remain at the **engagement root** (not inside any subfolder) — they
 are sourced directly by scripts and shell workflows using the root path convention.
@@ -296,7 +299,7 @@ Pipeline-state schema (write and update this after every stage completes):
     "ml-designer":         { "status": "complete|skipped|pending", "output": "data/{slug}-ml-config.json",              "input_hash": "…" },
     "validator":           { "status": "complete|skipped|pending", "output": "deploy/{slug}-demo-checklist.md",     "input_hash": "…" },
     "cloud-provision":     { "status": "complete|skipped|pending", "output": ".env",                         "input_hash": "…" },
-    "deploy":              { "status": "complete|skipped|pending", "output": "deploy/bootstrap.py",                 "input_hash": "…" }
+    "deploy":              { "status": "complete|skipped|pending", "output": "deploy/bootstrap-data.py",            "input_hash": "…" }
   }
 }
 ```
@@ -330,7 +333,7 @@ finish-check           | deploy/{slug}-demo-checklist.md            | always run
 Conditional skills without a standalone required file (`weave-cost`, Security-specific
 sample data, SLO authoring helpers) should still be invoked when the script or audit scopes
 those capabilities. Record their outputs in the downstream artifact they enrich (usually
-`{slug}-data-model.json`, `{slug}-demo-checklist.md`, or `bootstrap.py`).
+`{slug}-data-model.json`, `{slug}-demo-checklist.md`, or `deploy/bootstrap-data.py`).
 
 **Model tier guidance** — use this when the SA can configure per-stage models or when cost matters:
 
@@ -349,7 +352,8 @@ those capabilities. Record their outputs in the downstream artifact they enrich 
 | 6d | weave-train | **Best** | ML job config accuracy; detector/datafeed shapes |
 | 6e | weave-agent | **Best** | Agent system prompt quality; tool API shapes |
 | 7 | finish-check | Fast | Template-driven checklist generation |
-| 8 | finish-verify | Fast | Probe, compare, and template |
+| 8 | bolt-spin | Fast | Provisioning; spend approval required |
+| 8b | finish-verify | Fast | Probe, compare, and template |
 | 9 | bolt-bootstrap | Fast | Template generation from verified asset-bundle |
 
 Report the inventory to the user before executing:
@@ -360,7 +364,7 @@ Report the inventory to the user before executing:
 Stage                    Status
 ─────────────────────────────────────────
 Currency check           ✅ Up to date (loom rev abc1234, hive-mind rev def5678)
-Ideation                 ⏭  Skipped  (discovery notes provided)
+Ideation                 🔲 Pending   (always runs unless demo/{slug}-ideation.md exists — D-050)
 Discovery parser         ✅ Complete  ({slug}-discovery.json)
 Diagnostic analyzer      ⏭  Skipped  (no diagnostic provided)
 Opportunity review       🔲 Pending
@@ -478,8 +482,8 @@ For each stage that needs to run, in order:
 
 ### Stage execution order and skip conditions
 
-**Stage 0 — warp-spark** `[fast-model ok]` *(optional — run when no discovery notes or diagnostic exist)*
-- Skip if: `{slug}-discovery.json` OR `{slug}-ideation.md` exists, OR discovery notes provided
+**Stage 0 — warp-spark** `[best-model]` *(always runs — D-050)*
+- Skip if: `demo/{slug}-ideation.md` already exists and is frozen. Discovery notes do not skip ideation.
 - Read: `../warp-spark/SKILL.md`
 - Inputs: SA description, customer vertical, or "I have a meeting with X" context
 - Outputs: `{slug}-ideation.md` (frozen contract: archetype, wow moments, capability map, data strategy)
@@ -566,7 +570,7 @@ For each stage that needs to run, in order:
 - Read: `../weave-cost/SKILL.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-data-model.json` if it exists, `.env` if available
 - Outputs: guidance and schema content that downstream stages must materialize in
-  `{slug}-data-model.json`, `{slug}-demo-checklist.md`, dashboards, and `bootstrap.py`
+  `{slug}-data-model.json`, `{slug}-demo-checklist.md`, and dashboards. Deploy materializes them through `finish-verify` and `bolt-bootstrap`.
 - Include by default for Agent Builder demos per D-036.
 
 **Stage 4.5 — weave-query** `[full-model required]` *(conditional — ES|QL / RAG / integration-grounded data)*
@@ -671,7 +675,7 @@ When all stages are complete, produce a structured handoff:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- DEMOBUILDER COMPLETE — [Company]
+ LOOM COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📁 Workspace: $LOOM_ENGAGEMENTS_ROOT/{slug}/  (default: ~/engagements/{slug}/)
@@ -686,7 +690,7 @@ opportunity/  (AE / SDR / SA — team alignment gate)
   ✅  opportunity/{slug}-demo-brief.md            — one-page AE brief
 
 demo/  (SA — planning & design intelligence)
-  ✅  demo/{slug}-ideation.md          — frozen demo direction contract (if run)
+  ✅  demo/{slug}-ideation.md          — frozen demo direction contract (D-050)
   ✅  demo/{slug}-discovery.json       — structured customer profile
   ⏭   or ✅  demo/{slug}-current-state.json  — diagnostic (optional)
   ✅  demo/{slug}-platform-audit.json  — feature feasibility matrix
@@ -704,7 +708,8 @@ deploy/  (SA — cluster assets & readiness)
   ✅  deploy/{slug}-demo-checklist.md  — pre-demo checklist (timed)
   ✅  deploy/{slug}-risks.md           — risks and fallbacks
   ✅  deploy/{slug}-provision-log.md   — cluster info (if provisioned)
-  ✅  deploy/bootstrap.py              — generated deployment (15 steps; step 13 = scoped Kibana/platform APIs)
+  ✅  deploy/main.tf                   — infrastructure (D-046)
+  ✅  deploy/bootstrap-data.py         — data operations only (seed, warm-up, anomaly injection, manifest)
   ✅  deploy/{slug}-deploy-log.md      — what was created for this engagement
   ⏭   (skipped — no cluster target provided)
 
@@ -720,8 +725,9 @@ PLATFORM STATUS: [Green / Amber / Red from platform audit]
 BEFORE YOU BUILD  *(shown only if cluster not yet deployed)*
 ─────────────────
   1. Run bolt-spin or copy an existing .env
-  2. Run bolt-launch → python3 bootstrap.py --dry-run first
-  3. Run end-to-end checks from {slug}-demo-checklist.md (scenes vary by demo)
+  2. Run finish-verify, then bolt-bootstrap
+  3. Review deploy/main.tf and deploy/bootstrap-data.py; terraform plan and bootstrap-data.py --dry-run are safe
+  4. Run end-to-end checks from {slug}-demo-checklist.md (scenes vary by demo)
 
   *(If already deployed, check {slug}-deploy-log.md)*
 
@@ -759,13 +765,14 @@ Leave all other artifacts unchanged unless downstream stages must react.
 
 **User wants to deploy to a new cluster:**
 "Create a new serverless project for this demo and deploy it."
-Run stage 8 (bolt-spin) to provision and write `.env`, then stage 9 (bolt-launch)
-to generate and execute `bootstrap.py`. Stages 1–7 already complete — skip them.
+Run stage 8 (bolt-spin) to provision and write `.env`, then stage 8b (finish-verify)
+and stage 9 (bolt-bootstrap). Live `terraform apply` and `bootstrap-data.py` stay behind
+the D-024 approval gate. Stages 1–7 already complete — skip them.
 
 **User wants to deploy to an existing cluster:**
 "I already have a cluster — here are my credentials." Or they copy a `.env` from another
-engagement. Skip stage 8. Run stage 9 only. Verify the `.env` has all required fields before
-generating `bootstrap.py`.
+engagement. Skip stage 8. Run stages 8b and 9 only. Verify the `.env` has all required fields before
+generating `main.tf` and `bootstrap-data.py`.
 
 **User running a second engagement on the same cluster:**
 "Reuse this cluster for another customer." Copy `.env`, update `DEMO_SLUG`, `ENGAGEMENT`,
@@ -789,7 +796,8 @@ under "Scope adjustments."
 
 **End-to-end with deploy:** User provides discovery notes and says "create a serverless
 project and deploy this demo." Orchestrator runs all 9 stages: builds the full artifact
-set, provisions the cluster, generates and executes `bootstrap.py`. Delivers a deploy log
+set, provisions the cluster, runs finish-verify and bolt-bootstrap, then applies the
+reviewed Terraform and `bootstrap-data.py`. Delivers a deploy log
 confirming 4 indices created, seed data loaded, ELSER endpoint warmed.
 
 **Multi-customer on shared cluster:** First engagement deployed with `INDEX_PREFIX=cb-`.

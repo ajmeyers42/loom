@@ -12,11 +12,13 @@ description: >
   cluster", "pre-demo check", "what's the state of the demo", "is [slug] deployed and
   ready", "is everything still up", "check that the cluster is healthy", "run a status
   check", or "quick check before the demo". Also trigger when the user comes back after
-  a gap (overnight, weekend) and wants to confirm nothing fell over, or when bootstrap.py
+  a gap (overnight, weekend) and wants to confirm nothing fell over, or when bootstrap-data.py
   ran and they want to confirm it actually worked.
 ---
 
 # Demo Status
+
+**Fix commands (D-046):** data repairs use `python3 deploy/bootstrap-data.py` (connectivity, seed, ELSER warm-up, anomaly injection, manifest). Indices, inference endpoints, and saved objects are Terraform: `terraform -chdir=deploy apply`. Do not run a monolithic `bootstrap.py --step N`.
 
 You are running a live health check against a deployed Elastic demo environment. This is
 not a deep audit — it is a fast pre-demo pulse check that tells the SE exactly what is
@@ -33,7 +35,7 @@ workspace:
 
 ```bash
 cd "${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}"
-python3 "$DEMOBUILDER_REPO/skills/wind-pulse/wind_pulse.py"
+python3 /path/to/loom/skills/wind-pulse/wind_pulse.py
 # or: python3 /path/to/loom/skills/wind-pulse/wind_pulse.py --engagement-dir .
 ```
 
@@ -41,7 +43,7 @@ python3 "$DEMOBUILDER_REPO/skills/wind-pulse/wind_pulse.py"
 
 | Source | Check |
 |--------|--------|
-| `kibana-objects/**/*.ndjson`, `kibana/**/*.ndjson` | `GET /api/saved_objects/{type}/{id}` for **each** line (dashboard, lens, index-pattern, etc.) |
+| `deploy/kibana-objects/**/*.ndjson`, `deploy/kibana/**/*.ndjson` | `GET /api/saved_objects/{type}/{id}` for **each** line (dashboard, lens, index-pattern, etc.) |
 | `{slug}-data-model.json` | Doc counts for listed data streams / indices (`p(name)`) |
 | Observability SLOs | List with `perPage=500`, filter tags **`loom:<engagement_id>`** (**D-026**) |
 | Optional `kibana/status-expected.json` | Extra **`slo_ids`** via GET-by-id (see `references/status-expected.example.json`) |
@@ -114,7 +116,7 @@ Extract: overall status (`green`/`yellow`/`red`), Kibana version.
 
 ❌  Cluster health: RED ({N} unassigned shards)
     → GET /_cluster/allocation/explain  to find the blocked shard
-    → python3 bootstrap.py --step 1    to recheck after resolving
+    → python3 deploy/bootstrap-data.py    to recheck after resolving
 
 ⚠️  Cluster health: YELLOW ({N} unassigned shards)
     → Likely replica unassigned on single-node cluster — safe to demo, note for customer
@@ -166,16 +168,16 @@ do not hardcode VND-0412 unless that's what the data model specifies for this en
 **Failures:**
 ```
 ❌  {p(index.name)}   index does not exist
-    → Run: python3 bootstrap.py --step {build_step_number}
+    → Re-apply infrastructure: terraform -chdir=deploy apply
 
 ❌  {p(index.name)}   0 docs  (expected ≥ {seed_document_count})
-    → Run: python3 bootstrap.py --step {data_load_step_number}
+    → Re-seed: python3 deploy/bootstrap-data.py
 
 ⚠️  {p(index.name)}   {N} docs  (expected ≥ {seed_document_count}, got {pct}%)
-    → Partial load. Run: python3 bootstrap.py --skip-data  (checks threshold, tops up)
+    → Partial load. Run: python3 deploy/bootstrap-data.py  (seed step tops up)
 
 ❌  Demo-critical docs: VND-0412 claims not found
-    → The Friday scenario cannot run. Re-run seed: python3 bootstrap.py --step 10
+    → The Friday scenario cannot run. Re-run seed: python3 deploy/bootstrap-data.py
 ```
 
 For indices with `seed_document_count: 0` (e.g., `fraud-escalations` which starts empty),
@@ -292,7 +294,7 @@ GET /_ml/anomaly_detectors/{job.job_id}/results/records
 
 ⚠️  No anomaly ≥ 75 on target entity {entity}
     → Anomaly injection may not have run, or the anomaly bucket hasn't processed yet.
-       Re-run injection: python3 bootstrap.py --step 14
+       Re-run injection: python3 deploy/bootstrap-data.py
        Then wait {2 × bucket_span} minutes and recheck.
 ```
 
@@ -340,7 +342,7 @@ Capture `took` (milliseconds).
 **Failures:**
 ```
 ❌  ELSER endpoint not found: {p("elser-v2-endpoint")}
-    → Run: python3 bootstrap.py --step 8
+    → Re-apply the inference endpoint: terraform -chdir=deploy apply
 
 ❌  ELSER endpoint exists but num_allocations: 0  (model not loaded)
     → Model is still loading or failed to start. Wait 90s and recheck.
@@ -355,8 +357,8 @@ Capture `took` (milliseconds).
 
 **Do not rely on `_find` by title alone** — that can miss objects or match the wrong space.
 
-**Primary:** **`wind_pulse.py`** (Step 0) — parses **every** line in `kibana-objects/*.ndjson`
-(and `kibana/**/*.ndjson`) and calls **`GET /api/saved_objects/{type}/{id}`** for each. That
+**Primary:** **`wind_pulse.py`** (Step 0) — parses **every** line in `deploy/kibana-objects/*.ndjson`
+(and `deploy/kibana/**/*.ndjson`) and calls **`GET /api/saved_objects/{type}/{id}`** for each. That
 includes **dashboards**, **Lens**, **index-patterns**, **search** sessions, **maps**, etc.,
 exactly as exported for the engagement.
 
@@ -381,7 +383,7 @@ requires it.
 **Failures:**
 ```
 ❌  saved_object dashboard:xyz  HTTP 404
-    → Import failed or wrong space. Re-run: python3 bootstrap.py step 13 / deploy_kibana_gaps.py
+    → Import failed or wrong space. Re-apply saved objects: terraform -chdir=deploy apply
 
 ❌  Agent GET 404
     → Run: python3 kibana/deploy_fraud_assistant_agent.py
@@ -428,7 +430,7 @@ GET /{p("fraud-claims")}/_search
   ✅  Injection SKUs primed — VND-0412 anomaly docs present (4 SLA-breach claims)
 
   ⚠️  T-2h or less before demo — run final checks:
-      1. python3 bootstrap.py --step 15   # ELSER warm-up
+      1. python3 deploy/bootstrap-data.py   # includes ELSER warm-up
       2. Confirm ML datafeed current (Check 3 above)
       3. Open dashboard tabs in browser now to warm tile cache
 
@@ -483,9 +485,9 @@ OVERALL: ❌ NOT READY  (2 failures, 1 warning)
 
 FAILURES (fix these before the demo):
   ❌  {p("fraud-claims-semantic")}  0 docs
-      → Run: python3 bootstrap.py --step 10
+      → Re-seed: python3 deploy/bootstrap-data.py
   ❌  ELSER endpoint not allocated
-      → Run: python3 bootstrap.py --step 8
+      → Re-apply infrastructure: terraform -chdir=deploy apply
 
 WARNINGS (demo can proceed, but note these):
   ⚠️  ML last bucket: 6h ago
@@ -505,8 +507,8 @@ into their terminal to attempt remediation:
  FIX COMMANDS — paste to resolve failures
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 set -a && source {engagement_dir}/.env && set +a
-python3 {engagement_dir}/bootstrap.py --step 8
-python3 {engagement_dir}/bootstrap.py --step 10
+terraform -chdir={engagement_dir}/deploy apply
+python3 {engagement_dir}/deploy/bootstrap-data.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -517,7 +519,7 @@ If everything passes, output the ELSER warm-up command as a proactive step:
  RECOMMENDED — run before the demo
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 set -a && source {engagement_dir}/.env && set +a
-python3 {engagement_dir}/bootstrap.py --step 15   # ELSER warm-up
+python3 {engagement_dir}/deploy/bootstrap-data.py   # includes ELSER warm-up
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -573,7 +575,7 @@ SE pastes the fix command, datafeed restarts, anomaly score re-appears within 2 
 spans.
 
 **Missing semantic index:** `fraud-claims-semantic` has 0 docs. ELSER endpoint is fine.
-Status report shows ❌, prints `python3 bootstrap.py --step 10`. SE runs it, encoding
+Status report shows ❌, prints `python3 deploy/bootstrap-data.py`. SE runs it, encoding
 takes 10–20 minutes (ELSER at ingest). SE re-runs `wind-pulse` to confirm.
 
 **Multi-prefix environment:** Two deployments share one cluster — `cb-` for Citizens Bank,

@@ -7,8 +7,8 @@ These schemas are intentionally lightweight at first. They validate shape and co
 | Schema | Produced by | Consumed by |
 |---|---|---|
 | `opportunity-profile.schema.json` | `thread-qualify` | `thread-audit`, `weave-script`, orchestrator |
-| `platform-audit.schema.json` | `thread-audit` | `weave-script`, `weave-model`, `bolt-launch`, `finish-check` |
-| `data-model.schema.json` | `weave-model` | `weave-train`, `bolt-launch`, `finish-check` |
+| `platform-audit.schema.json` | `thread-audit` | `weave-script`, `weave-model`, `finish-verify`, `finish-check` |
+| `data-model.schema.json` | `weave-model` | `weave-train`, `finish-verify`, `bolt-bootstrap`, `finish-check` |
 
 ## Maintenance
 

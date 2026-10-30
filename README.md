@@ -45,7 +45,7 @@ Each phase writes structured JSON outputs that feed the next — nothing is re-i
 | Requirement | How to satisfy |
 |---|---|
 | **Cursor** or **Claude Code** | The assistant drives the pipeline; you provide inputs and approvals |
-| **Python 3** | Required for `bootstrap.py`, `teardown.py`, `wind_pulse.py` |
+| **Python 3** | Required for `bootstrap-data.py`, `teardown.py`, `wind_pulse.py` |
 | **elastic/agent-skills** (full install) | `npx skills add elastic/agent-skills` — install all skill areas (Search, Observability, **Security**) |
 | **elastic/hive-mind** | `git clone https://github.com/elastic/hive-mind ../hive-mind` — sibling clone is the default; set `HIVE_MIND_PATH` if you keep it elsewhere |
 | **Elastic Cloud API key** | Run the `cloud-setup` skill once to set `EC_API_KEY` |

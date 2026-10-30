@@ -240,7 +240,7 @@ source for each matching dataset. In the build manifest, set:
 }
 ```
 
-`bootstrap.py` will read the CSV via pandas and bulk-index it, preserving Vulcan's realistic
+`bootstrap-data.py` bulk-indexes the CSV, preserving Vulcan's realistic
 field distributions. Add `demo_critical_docs` on top — the CSV provides the background data;
 demo-critical documents ensure scenario-specific docs are present regardless of CSV content.
 
@@ -475,7 +475,7 @@ Set to `false` if the demo scope does not include Agent Builder or AI features.
 ## Step 5d: Embed Vulcan-Validated Queries (conditional)
 
 When `data/{slug}-vulcan-queries.json` exists, embed the validated queries directly into the data
-model JSON under each index spec. This ensures bootstrap.py has tested ES|QL without re-authoring:
+model JSON under each index spec. This ensures finish-verify has tested ES|QL without re-authoring:
 
 ```json
 {
@@ -504,7 +504,7 @@ model JSON under each index spec. This ensures bootstrap.py has tested ES|QL wit
 
 Parameterized queries (`query_type: "parameterized"`) are Agent Builder tool ES|QL bodies —
 copy them into the agent-builder-spec tool definitions verbatim. Mark `validation_status: "failed"`
-queries with a comment in the data model and exclude them from bootstrap.py step 13 tool creation.
+queries with a comment in the data model and exclude them from Agent Builder tool creation in finish-verify.
 
 ---
 

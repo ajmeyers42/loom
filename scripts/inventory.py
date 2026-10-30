@@ -32,7 +32,7 @@ STAGE_OUTPUTS = [
     ("ml-designer",         "data/{slug}-ml-config.json"),
     ("validator",           "deploy/{slug}-demo-checklist.md"),
     ("cloud-provision",     ".env"),
-    ("deploy",              "deploy/bootstrap.py"),
+    ("deploy",              "deploy/bootstrap-data.py"),
 ]
 
 STATUS_ICONS = {
@@ -141,7 +141,7 @@ def main():
         print(f"    Set LOOM_ENGAGEMENTS_ROOT or create ~/engagements", file=sys.stderr)
         sys.exit(1)
 
-    print(f"\nDEMOBUILDER INVENTORY")
+    print(f"\nLOOM INVENTORY")
     print(f"Root: {root}")
 
     if args.slug:

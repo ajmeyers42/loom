@@ -233,7 +233,7 @@ before committing to a build direction or sizing approach.}
 
 {Known source systems, APIs, ETL pipelines, connectors, or feeds that would flow data
 into or receive data from Elastic. Hosting model and API access status directly determine
-which bootstrap.py integration steps are available vs. manual.}
+which Fleet packages finish-verify can install vs. what stays manual.}
 
 | System | Category | Hosting | Version / API | Integration status | Data it produces | Follow-up / Clarification needed |
 |---|---|---|---|---|---|---|
