@@ -1,12 +1,14 @@
 # Loom UX Blueprint
 
-**Status:** Direction accepted (2026-10-30) — blueprint + prototype frozen as the SA-first control-plane UX; implementation not started  
+**Status:** Direction accepted (2026-10-30) — blueprint + prototype frozen as the SA-first control-plane UX  
+**Implementation:** Start **Full P2** in a **fresh chat** using [`p2-handoff.md`](p2-handoff.md). Keep UX-only edits in the originating UX session.  
 **Audience:** Solutions Architects (primary), AE/SDR handoff, product and security reviewers  
 **Last updated:** 2026-10-30  
 
 This blueprint turns Loom’s file-and-chat pipeline into a guided **opportunity → vision → demo** journey. It teaches the UX process for readers new to journey design, maps the current system, proposes a simplified future experience, and defines the security, privacy, and QA rigor needed to pass infosec and QA review.
 
-**Clickable prototype (P1):** [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) — ten screens for the SA-first journey. Spec and copy live in [Section 7](#7-low-fidelity-storyboards-proposed).
+**Clickable prototype (P1):** [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) — storyboard for the SA-first journey. Spec and copy live in [Section 7](#7-low-fidelity-storyboards-proposed).  
+**P2 implementation brief:** [`p2-handoff.md`](p2-handoff.md) — Full P2 scope, artifact contract, acceptance, and fresh-chat starter prompt.
 
 > **Existing vs proposed.** Sections marked **[Existing]** reflect Loom behavior today. Sections marked **[Proposed]** are product controls not yet implemented. Do not treat proposed UI as shipped capability.
 
@@ -834,10 +836,12 @@ Package for review:
 |-------|---------|------|
 | **P0 Blueprint validation** | Direction accepted with primary SA (2026-10-30); broader SA/security review still welcome | Comments resolved; direction accepted |
 | **P1 Prototype** | Clickable Engagement Home — [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) | Usability test: 5 tasks, ≥80% success without coaching (optional polish) |
-| **P2 Thin slice** ← **next** | Intake + Qualify + Vision freeze writing real engagement files + pipeline-state | Parity with `warp-scout` / `warp-spark` outputs |
+| **P2 Full slice** ← **next (fresh chat)** | SB-01→SB-07: dual-identity create, keystore (+ clone), evidence/`warp-listen`, qualify + dual gap-closure, vision + capability-map freeze, predefined vs custom path — all writing real engagement files + `pipeline-state` | Exit criteria in [`p2-handoff.md`](p2-handoff.md) §6; scout + spark parity |
 | **P3 Build & Readiness slice** | Progress UI + unified readiness calling existing skills/CLIs | finish-check / finish-verify statuses visible |
 | **P4 Controlled pilot** | Deploy approval records + Kibana deep links on real non-prod demos | Infosec pack complete; live pair validated |
 | **P5 Production review** | Retention wizard, scoped keys, a11y AA smoke | Release gates (10.6) all green |
+
+**P2 chat split:** UX lineage owns this blueprint + prototype. Implementation owns code/fixtures per [`p2-handoff.md`](p2-handoff.md). Do not mix Full P2 coding into the UX session.
 
 ### Success measures
 
@@ -877,6 +881,7 @@ Resolve these in P0 review; they do not block blueprint acceptance.
 
 ## 14. References
 
+- [`p2-handoff.md`](p2-handoff.md) — Full P2 implementation brief (fresh-chat starter)  
 - [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) — P1 clickable storyboard  
 - [`AGENTS.md`](../../AGENTS.md) — hygiene, D-024, privacy  
 - [`README.md`](../../README.md) — six-phase overview  
