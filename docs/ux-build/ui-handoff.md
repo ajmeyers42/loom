@@ -84,6 +84,15 @@ Never write engagement data into the repo. The UI's own config (port, token) is 
   `find_identity_leaks`; the Overview header and Qualify screens may show private identity, nothing else may.
 - File edits only through `inputs` (`inputs add`) — no generic file read/write endpoint. Evidence excerpts come from
   `listen`/`gaps` output, not from reading arbitrary paths.
+- **`POST /api/e/{slug}/inputs`** (browser file picker → `inputs/`):
+  - Body: `{ "uploads": [ { "filename": "<basename>", "content": "<utf-8 text>" } | { "filename": "<basename>", "content_base64": "<standard base64>" } ] }`
+    or legacy single `{ "filename", "content" | "content_base64" }`.
+  - `filename` must be a basename only (no `/` or `\\`); max **20 MiB** per file (`too_large` → 400).
+  - Writes via `bootstrap.add_input` (same as CLI `inputs add`); response includes refreshed `state` (`next`) so the UI
+    can show staleness after discovery was already recorded.
+  - Never log request bodies for `keys/*` or `inputs`.
+- **SB-01 Create:** multi-select file picker and/or paste → `POST /api/engagements` then extra `POST …/inputs` uploads
+  when the first selected file is binary or there are additional files.
 
 ### 5.3 Screens
 

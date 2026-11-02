@@ -34,7 +34,7 @@ class LoomUIHandler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         # Never log request bodies (keys/*); path-only access log
-        if args and isinstance(args[0], str) and "/keys/" in args[0]:
+        if args and isinstance(args[0], str) and ("/keys/" in args[0] or "/inputs" in args[0]):
             return
         sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), fmt % args))
 

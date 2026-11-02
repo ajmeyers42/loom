@@ -188,8 +188,11 @@ class LoomAdapter:
 
     @staticmethod
     def _safe_upload_name(filename: str) -> str:
-        name = Path(filename or "").name.strip()
-        if not name or name in (".", "..") or "/" in name or "\\" in name:
+        raw = (filename or "").strip()
+        if not raw or raw in (".", "..") or "/" in raw or "\\" in raw or raw != Path(raw).name:
+            raise AdapterError("bad_filename", "Upload filename required (basename only)", http=400)
+        name = Path(raw).name
+        if not name or name in (".", ".."):
             raise AdapterError("bad_filename", "Upload filename required (basename only)", http=400)
         return name
 

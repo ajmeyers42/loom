@@ -134,6 +134,22 @@ class TestAdapterS2(UIAdapterBase):
         pdf = self.root / SLUG / "inputs" / "deck-notes.pdf"
         self.assertEqual(pdf.read_bytes(), blob)
 
+    def test_inputs_rejects_path_traversal_filename(self):
+        self.create()
+        with self.assertRaises(AdapterError) as ctx:
+            self.adapter.inputs_add(SLUG, {"filename": "../../evil.md", "content": "x"})
+        self.assertEqual(ctx.exception.code, "bad_filename")
+
+    def test_inputs_upload_shows_stale_after_listen_record(self):
+        self.create()
+        self.put("listen/discovery.json", "demo/{slug}-discovery.json")
+        self.put("listen/gaps.md", "opportunity/{slug}-gaps.md")
+        self.put("listen/confirmation.md", "opportunity/{slug}-confirmation.md")
+        self.cli("listen", "record", SLUG)
+        out = self.adapter.inputs_add(SLUG, {"filename": "follow-up.md", "content": "new buyer info"})
+        blockers = out.get("state", {}).get("blockers") or []
+        self.assertTrue(any("stale" in b.lower() for b in blockers), blockers)
+
 
 class HTTPServerTests(P2Base):
     def setUp(self):
@@ -191,6 +207,32 @@ class HTTPServerTests(P2Base):
         code, body = self.req(f"/api/e/{SLUG}/next?fs=0")
         self.assertEqual(code, 200)
         self.assertEqual(body["data"]["slug"], SLUG)
+
+    def test_http_inputs_multi_upload(self):
+        import base64
+
+        self.create()
+        code, body = self.req(
+            f"/api/e/{SLUG}/inputs",
+            method="POST",
+            body={
+                "uploads": [
+                    {"filename": "notes-a.md", "content": "doc a"},
+                    {"filename": "notes-b.md", "content": "doc b"},
+                ]
+            },
+        )
+        self.assertEqual(code, 200)
+        self.assertTrue(body.get("ok"))
+        self.assertTrue((self.root / SLUG / "inputs" / "notes-a.md").is_file())
+        self.assertTrue((self.root / SLUG / "inputs" / "notes-b.md").is_file())
+        code2, body2 = self.req(
+            f"/api/e/{SLUG}/inputs",
+            method="POST",
+            body={"filename": "scan.pdf", "content_base64": base64.b64encode(b"pdf").decode("ascii")},
+        )
+        self.assertEqual(code2, 200)
+        self.assertEqual((self.root / SLUG / "inputs" / "scan.pdf").read_bytes(), b"pdf")
 
 
 class TestRootGuard(unittest.TestCase):

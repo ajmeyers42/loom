@@ -395,10 +395,12 @@ async function renderEvidence() {
   if (staleView(gen)) return;
   const gaps = gapsR.data?.gaps || [];
   const claims = gapsR.data?.claims || [];
+  const staleBlockers = (gapsR.state?.blockers || []).filter((b) => /stale/i.test(b));
   main.innerHTML = `
     <article class="frame">
       <p class="eyebrow">SB-03</p>
       <h2>Evidence · ${escapeHtml(state.slug)}</h2>
+      ${staleBlockers.length ? `<p class="callout" role="alert"><strong>Inputs changed</strong> — ${escapeHtml(staleBlockers.join("; "))}. Re-run warp-listen in Cursor, then Check outputs.</p>` : ""}
       <h3>Inputs</h3>
       <p class="beat">Files land in <code>inputs/</code> under this engagement (source of truth for listen).</p>
       <ul class="list">${(plan.inputs || []).map((i) => `<li><span aria-hidden="true">📄</span><span>${escapeHtml(i.file)}<br><span class="meta">${escapeHtml(i.sha256 || "")}</span></span></li>`).join("") || "<li>No inputs yet</li>"}</ul>
