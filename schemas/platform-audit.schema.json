@@ -17,8 +17,8 @@
         "platform_summary": { "type": "string" },
         "scope_source": {
           "type": "string",
-          "enum": ["capability_map", "demo_scope_signals", "discovery"],
-          "description": "capability_map = audited the frozen ideation map (required once ideation is frozen)"
+          "enum": ["capability_map", "discovery", "ad_hoc"],
+          "description": "capability_map = audited the frozen ideation map (required once ideation is frozen); discovery / ad_hoc = standalone audit, not valid for demo-path commit"
         },
         "capability_map_hash": {
           "type": ["string", "null"],

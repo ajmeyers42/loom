@@ -162,6 +162,12 @@ def derive(state: dict, stale: dict | None = None) -> dict:
     if ks.get("status") in (None, "empty", "partial"):
         label = "deferred" if ks.get("deferred") else ks.get("status", "empty")
         notes.append(f"keystore {label} — required before live verify / deploy / agent-runtime launch (not for planning)")
+    ksol = state.get("kibana_solution") or {}
+    if ksol.get("source") != "sa":
+        notes.append(f"Kibana space solution suggested: {ksol.get('value', 'classic')}"
+                     + (f" ({ksol['reason']})" if ksol.get("reason") else "")
+                     + f" — confirm or override in input settings (keys set {state.get('slug')} "
+                       "KIBANA_SOLUTION=classic|es|oblt|security)")
 
     for key, reason in stale.items():
         blockers.append(f"{key} is stale ({reason}) — re-run required")

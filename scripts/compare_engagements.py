@@ -33,7 +33,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from loomstate.core import find_identity_leaks, find_section, md_sections, sha256_file  # noqa: E402
 from loomstate.schema import validate  # noqa: E402
 
+# Artifact discovery ignores VCS / tool dirs; the unmodified-legacy manifest covers everything but build caches.
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "continual-learning"}
+MANIFEST_SKIP_DIRS = {"node_modules", "__pycache__", ".venv"}
 
 ARTIFACTS = {
     # key: (relative candidates with {p}, schema or None)
@@ -73,14 +75,14 @@ SHARED_KEYS = ("ideation", "capability-map", "platform-audit", "platform-audit-m
 
 # ── tree helpers ────────────────────────────────────────────────────────────
 
-def iter_files(root: Path):
+def iter_files(root: Path, skip=SKIP_DIRS):
     for p in sorted(root.rglob("*")):
-        if p.is_file() and not any(part in SKIP_DIRS for part in p.relative_to(root).parts):
+        if p.is_file() and not any(part in skip for part in p.relative_to(root).parts):
             yield p
 
 
 def manifest(root: Path) -> dict:
-    return {p.relative_to(root).as_posix(): sha256_file(p) for p in iter_files(root)}
+    return {p.relative_to(root).as_posix(): sha256_file(p) for p in iter_files(root, MANIFEST_SKIP_DIRS)}
 
 
 def detect_prefix(root: Path) -> str:
@@ -138,15 +140,22 @@ class Report:
         self.rows.append({"area": area, "check": check, "legacy": legacy, "candidate": candidate,
                           "verdict": verdict, "note": note})
 
-    def gate(self, name, ok, detail=""):
-        self.gates.append({"gate": name, "ok": bool(ok), "detail": detail})
+    def gate(self, name, ok, detail="", pass_detail=""):
+        """``detail`` explains a failure and is shown only when the gate fails."""
+        self.gates.append({"gate": name, "ok": bool(ok), "detail": pass_detail if ok else detail})
 
     @property
     def ok(self):
         return all(g["ok"] for g in self.gates)
 
 
+def missing(v) -> bool:
+    return v is None or v in ("", "—")
+
+
 def verdict(legacy, candidate, better=None):
+    if missing(legacy) or missing(candidate):
+        return "same" if missing(legacy) and missing(candidate) else "info"
     if legacy == candidate:
         return "same"
     if better is not None:
@@ -196,7 +205,7 @@ def check_discovery(r: Report, L: dict, C: dict):
         ("deal_context.urgency", lambda d: (d.get("deal_context") or {}).get("urgency")),
     ):
         lv, cv = getter(ld), getter(cd)
-        r.row("discovery", label, lv, cv, "same" if norm(lv) == norm(cv) else "changed")
+        r.row("discovery", label, lv, cv, verdict(norm(lv), norm(cv)))
     for label, key in (("contacts", "contacts"), ("pain_points", "pain_points"), ("gaps", "gaps"),
                        ("claims", "claims")):
         lv, cv = len(ld.get(key) or []), len(cd.get(key) or [])
@@ -226,9 +235,11 @@ def check_discovery(r: Report, L: dict, C: dict):
         text = cache.setdefault(path, norm(path.read_text(errors="replace")))
         if ref.get("excerpt") and norm(ref["excerpt"]) not in text:
             bad.append(f"{kind}:{ident} excerpt")
-    r.gate("evidence: claims present", len(cd.get("claims") or []) > 0 or C["state"].get("entry_mode") == "import",
-           f"{len(cd.get('claims') or [])} claims")
-    r.gate("evidence: source_refs verify", not bad, "; ".join(bad[:5]))
+    n_claims = len(cd.get("claims") or [])
+    importing = C["state"].get("entry_mode") == "import"
+    r.gate("evidence: claims present", n_claims > 0 or importing, "0 claims",
+           f"{n_claims} claims" if n_claims else "exempt (import)")
+    r.gate("evidence: source_refs verify", not bad, "; ".join(bad[:5]), f"{refs} verified")
     r.gate("gaps: every gap has gap_id", all(g.get("gap_id") for g in cd.get("gaps") or []))
     r.row("discovery", "verified source_refs", 0, refs - len(bad), "improved" if refs - len(bad) else "same")
 
@@ -237,8 +248,7 @@ def check_qualification(r: Report, L: dict, C: dict):
     lp, cp = load_json(L["paths"].get("opportunity-profile")) or {}, load_json(C["paths"].get("opportunity-profile")) or {}
     stage = (C["state"].get("stages") or {}).get("opportunity-review") or {}
     r.row("qualify", "qualification_status (recommendation)", lp.get("qualification_status"),
-          cp.get("qualification_status"),
-          "same" if lp.get("qualification_status") == cp.get("qualification_status") else "changed")
+          cp.get("qualification_status"), verdict(lp.get("qualification_status"), cp.get("qualification_status")))
     r.row("qualify", "recorded SA decision", "— (not recorded)", stage.get("decision") or "—",
           "improved" if stage.get("decision") else "info")
     lm, cm = lp.get("meddpic") or {}, cp.get("meddpic") or {}
@@ -265,8 +275,7 @@ def check_vision(r: Report, L: dict, C: dict):
         lines = [ln for ln in (find_section(md_sections(text), "chosen archetype") or "").splitlines() if ln.strip()]
         return norm(re.sub(r"[*_`#]", "", lines[0])) if lines else ""
 
-    r.row("vision", "chosen archetype", arch(lt)[:80] or "—", arch(ct)[:80] or "—",
-          "same" if arch(lt) == arch(ct) else "changed")
+    r.row("vision", "chosen archetype", arch(lt)[:80] or "—", arch(ct)[:80] or "—", verdict(arch(lt), arch(ct)))
     legacy_caps = _legacy_capabilities(lt) if lt else []
     cmap = load_json(C["paths"].get("capability-map")) or {}
     in_scope = [c for c in cmap.get("capabilities") or [] if c.get("in_scope", True)]
@@ -289,7 +298,7 @@ def check_vision(r: Report, L: dict, C: dict):
 def check_audit(r: Report, L: dict, C: dict):
     la, ca = load_json(L["paths"].get("platform-audit")) or {}, load_json(C["paths"].get("platform-audit")) or {}
     r.row("audit", "overall_status", la.get("overall_status"), ca.get("overall_status"),
-          "same" if la.get("overall_status") == ca.get("overall_status") else "changed")
+          verdict(la.get("overall_status"), ca.get("overall_status")))
     lf = {norm(f.get("feature")): f.get("status") for f in la.get("feature_audit") or []}
     cf = {norm(f.get("feature") or f.get("capability_id")): f.get("status") for f in ca.get("feature_audit") or []}
     r.row("audit", "feature rows", len(lf), len(cf), "info", "candidate is scoped to the capability map")
@@ -327,12 +336,15 @@ def check_state(r: Report, L: dict, C: dict, through: str):
         for action in GATE_APPROVALS.get(key, ()):
             alt = {"qualification_decision": {"qualification_override"}}.get(action, set())
             r.gate(f"approval {action}", action in actions or bool(actions & alt))
-    drift = []
+    latest = {}  # artifact -> (action, hash) of the most recent approval that recorded it
     for a in cs.get("approvals") or []:
         for rel, h in (a.get("artifacts") or {}).items():
-            cur = sha256_file(C["dir"] / rel) if (C["dir"] / rel).is_file() else None
-            if h != "absent" and cur and cur != h:
-                drift.append(f"{a.get('action')}:{rel}")
+            latest[rel] = (a.get("action"), h)
+    drift = []
+    for rel, (action, h) in latest.items():
+        cur = sha256_file(C["dir"] / rel) if (C["dir"] / rel).is_file() else None
+        if h != "absent" and cur and cur != h:
+            drift.append(f"{action}:{rel}")
     r.row("state", "approved artifacts edited since approval", "", sorted(set(drift))[:8] or "none",
           "info" if drift else "same", "expected only for living docs re-run after the gate")
 
@@ -360,7 +372,10 @@ def check_identity(r: Report, L: dict, C: dict):
             hits.append(f"file prefix: {', '.join(leaks)}")
         return hits
 
-    lh, ch = scan(L, SHARED_KEYS), scan(C, SHARED_KEYS)
+    lh = scan(L, SHARED_KEYS)
+    if L["prefix"].lower() != C["prefix"].lower():
+        identity = {**identity, "legacy_slugs": sorted(set(identity.get("legacy_slugs") or []) | {L["prefix"]})}
+    ch = scan(C, SHARED_KEYS)
     r.row("identity", "private identity on shared artifacts", len(lh), len(ch),
           verdict(len(lh), len(ch), len(ch) < len(lh) if len(ch) != len(lh) else None),
           "; ".join(lh[:4]))
@@ -386,9 +401,18 @@ def compare(args) -> Report:
         before = json.loads(Path(args.legacy_manifest).read_text())
         after = manifest(L["dir"])
         changed = sorted(k for k in set(before) | set(after) if before.get(k) != after.get(k))
-        r.gate("legacy tree unmodified", not changed, ", ".join(changed[:5]))
-    for fn in (check_inventory, check_schemas, check_discovery, check_qualification, check_vision, check_audit,
-               check_path, check_identity):
+        newly_covered = SKIP_DIRS - MANIFEST_SKIP_DIRS
+        if changed and all(k not in before and newly_covered & set(k.split("/")) for k in changed):
+            detail = (f"manifest predates full coverage ({len(changed)} files under "
+                      f"{', '.join(sorted(newly_covered))} not fingerprinted) — regenerate it")
+        else:
+            detail = ", ".join(changed[:5])
+        r.gate("legacy tree unmodified", not changed, detail, f"{len(after)} files")
+    stages = THROUGH[args.through]
+    sections = [check_inventory, check_schemas, check_discovery, check_qualification]
+    sections += [fn for fn, stage in ((check_vision, "ideation"), (check_audit, "platform-audit"),
+                                      (check_path, "build-path")) if stage in stages]
+    for fn in sections + [check_identity]:
         fn(r, L, C)
     check_state(r, L, C, args.through)
     r.meta = {"legacy": str(L["dir"]), "legacy_prefix": L["prefix"], "candidate": str(C["dir"]),

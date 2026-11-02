@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from . import keystore, legacy
 from .core import LoomError, now_iso, read_json, sha256_file, write_json
 from .intake import (
     CURRENT_STATE,
@@ -52,18 +53,28 @@ def _profile(eng: Engagement) -> dict:
     return profile
 
 
-def record(eng: Engagement) -> dict:
+def record(eng: Engagement, migrate: bool | None = None) -> dict:
     if eng.stage("discovery-parser").get("status") != "complete":
         raise LoomError("Discovery is not registered yet — run `loom_state listen record` first.")
     missing = [eng.rel(t) for t in (SUMMARY, DEMO_GOALS) if not eng.path(t).exists()]
     if missing:
         raise LoomError(f"thread-qualify outputs missing: {', '.join(missing)}")
+    warnings: list[str] = []
+    migrate = eng.state.get("entry_mode") == "import" if migrate is None else migrate
+    if migrate:
+        raw = read_json(eng.path(PROFILE))
+        notes = legacy.migrate_profile(raw)
+        if notes:
+            write_json(eng.path(PROFILE), raw)
+            warnings.extend(notes)
     profile = _profile(eng)
+    warnings.extend(keystore.refresh_kibana_solution(eng, profile))
     st = eng.stage("opportunity-review")
     profile_hash = sha256_file(eng.path(PROFILE))
     in_hash = qualify_input_hash(eng)
     if st.get("decision") and st.get("decision_profile_hash") == profile_hash and st.get("input_hash") == in_hash:
-        return {"status": st["status"], "unchanged": True, "decision": st["decision"]}
+        eng.save()
+        return {"status": st["status"], "unchanged": True, "decision": st["decision"], "warnings": warnings}
     history = st.get("history", [])
     if st.get("decision"):
         history.append({"decision": st["decision"], "decided_at": st.get("decided_at"),
@@ -75,7 +86,8 @@ def record(eng: Engagement) -> dict:
                   decision=None, decided_at=None, design_anyway=None, decision_profile_hash=None,
                   open_blocking_gaps=open_blocking(eng), history=history or None)
     eng.save()
-    return {"status": "awaiting_decision", "recommended_status": recommended, "readiness": readiness(eng)}
+    return {"status": "awaiting_decision", "recommended_status": recommended, "readiness": readiness(eng),
+            "warnings": warnings}
 
 
 def readiness(eng: Engagement) -> dict:

@@ -12,6 +12,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from . import solution as space_solution
 from .core import LoomError, find_identity_leaks, normalize_tag_id, now_iso, write_text_atomic
 
 REQUIRED_KEYS = ("ELASTICSEARCH_URL", "KIBANA_URL", "ES_API_KEY", "KIBANA_API_KEY")
@@ -22,12 +23,60 @@ THIS_SLUG_KEYS = ("DEMO_SLUG", "ENGAGEMENT", "KIBANA_SPACE_PATH", "KIBANA_SOLUTI
 # Copied only when the SA opts in (--keep).
 CLONE_OPT_IN = ("DEMO_ASSET_TAG", "CLUSTER_NAME", "DEPLOYMENT_ID")
 
-SOLUTION_TO_KIBANA = {"security": "security", "observability": "oblt", "search": "es"}
+SOLUTION_TO_KIBANA = {"security": "security", "observability": "oblt"}  # everything else → classic
+KIBANA_SOLUTIONS = space_solution.KIBANA_SOLUTIONS
 MIN_VERSION = (9, 4)
 
 
-def kibana_solution(solution: str, fallback: str = "es") -> str:
-    return SOLUTION_TO_KIBANA.get(solution, fallback or "es")
+def kibana_solution(solution: str, fallback: str = space_solution.DEFAULT_SOLUTION) -> str:
+    """Space solution for an engagement's declared solution: security / oblt when explicit, else classic."""
+    return SOLUTION_TO_KIBANA.get(solution, fallback or space_solution.DEFAULT_SOLUTION)
+
+
+def current_kibana_solution(eng) -> str:
+    """This engagement's KIBANA_SOLUTION: recorded value (SA choice or suggestion), else derived from the solution."""
+    rec = eng.state.get("kibana_solution") or {}
+    if rec.get("value"):
+        return rec["value"]
+    return kibana_solution(eng.state.get("solution", ""))
+
+
+def kibana_solution_status(eng) -> dict:
+    """Input-settings view: the value in use, whether the SA confirmed it, and the suggestion behind it."""
+    rec = eng.state.get("kibana_solution") or {}
+    value = current_kibana_solution(eng)
+    return {
+        "value": value,
+        "source": rec.get("source") or "default",
+        "confirmed": rec.get("source") == "sa",
+        "confidence": rec.get("confidence"),
+        "reason": rec.get("reason"),
+        "suggested": rec.get("suggested") or (value if rec.get("source") != "sa" else None),
+        "options": list(KIBANA_SOLUTIONS),
+    }
+
+
+def refresh_kibana_solution(eng, profile: dict | None = None) -> list[str]:
+    """Infer the Kibana space solution from the engagement (notes, discovery, profile) and record it as a suggestion.
+
+    Observability / security only when clear; otherwise classic. Never overrides an SA choice
+    (`keys set KIBANA_SOLUTION=…`). Called at create, `listen record` and `qualify record`. Returns messages.
+    """
+    rec = eng.state.get("kibana_solution") or {}
+    if rec.get("source") == "sa":
+        return []
+    found = space_solution.infer(eng, profile)
+    new = {"value": found["value"], "source": "inferred", "confidence": found["confidence"],
+           "reason": found["reason"], "signals": found["signals"]}
+    eng.state["kibana_solution"] = new
+    for name in (".env.example", ".env"):
+        p = eng.dir / name
+        if p.exists() and parse_env(p).get("KIBANA_SOLUTION") != new["value"]:
+            write_env(p, {"KIBANA_SOLUTION": new["value"]})
+    if rec.get("value") == new["value"] and rec.get("reason") == new["reason"]:
+        return []
+    return [f"KIBANA_SOLUTION={new['value']} suggested — {new['reason']}. Override in input settings: "
+            f"loom_state keys set {eng.slug} KIBANA_SOLUTION={'|'.join(KIBANA_SOLUTIONS)}"]
 
 
 def is_set(value: str | None) -> bool:
@@ -97,6 +146,8 @@ ES_API_KEY={ph('your-es-api-key')}
 KIBANA_API_KEY={ph('your-kibana-api-key')}
 
 KIBANA_SPACE_PATH=/s/{slug}
+# Space solution view: classic | es | oblt | security — loom suggests one from the notes (oblt / security only when
+# clear, otherwise classic); change it here or with `loom_state keys set {slug} KIBANA_SOLUTION=…`.
 KIBANA_SOLUTION={kibana_solution(solution)}
 
 # Leave blank on a dedicated cluster; required (distinct) when sharing a cluster.
@@ -192,12 +243,11 @@ def _record(eng, values: dict[str, str], source: str | None, cloned_from: str | 
 
 def _identity_defaults(eng) -> dict[str, str]:
     ident = eng.state.get("identity", {})
-    example = parse_env(eng.dir / ".env.example")
     return {
         "DEMO_SLUG": eng.slug,
         "ENGAGEMENT": ident.get("public_display_name", eng.slug),
         "KIBANA_SPACE_PATH": f"/s/{eng.slug}",
-        "KIBANA_SOLUTION": kibana_solution(eng.state.get("solution", ""), example.get("KIBANA_SOLUTION", "es")),
+        "KIBANA_SOLUTION": current_kibana_solution(eng),
     }
 
 
@@ -217,6 +267,7 @@ def init_from_sample(eng) -> dict:
         raise LoomError(".env already exists with values; use `keys set` to edit.")
     template = env_template(eng.slug, eng.state["identity"]["public_display_name"], eng.state.get("solution", ""), False)
     write_text_atomic(env, template, mode=0o600)
+    write_env(env, {"KIBANA_SOLUTION": current_kibana_solution(eng)})
     values = parse_env(env)
     return _record(eng, values, "sample")
 
@@ -227,6 +278,12 @@ def set_values(eng, updates: dict[str, str]) -> dict:
                  (eng.slug, f"/s/{eng.slug}")]
     if forbidden:
         raise LoomError(f"{', '.join(forbidden)} must stay bound to this engagement ({eng.slug}).")
+    if "KIBANA_SOLUTION" in updates:
+        if updates["KIBANA_SOLUTION"] not in KIBANA_SOLUTIONS:
+            raise LoomError(f"KIBANA_SOLUTION must be one of {', '.join(KIBANA_SOLUTIONS)}")
+        prior = eng.state.get("kibana_solution") or {}
+        eng.state["kibana_solution"] = {"value": updates["KIBANA_SOLUTION"], "source": "sa",
+                                        "suggested": prior.get("suggested") or (prior.get("value") if prior.get("source") != "sa" else None)}
     _check_values_public(updates, eng.state.get("identity", {}))
     if not env.exists():
         write_text_atomic(env, env_template(eng.slug, eng.state["identity"]["public_display_name"],

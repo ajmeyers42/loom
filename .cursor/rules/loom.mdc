@@ -29,6 +29,6 @@ alwaysApply: true
 - **hive-mind patterns (D-034):** Reference `hive-mind/patterns/` for: workflow DELETE/search, dashboard stable UUIDs, probe-based feature detection, agent-builder API management, data fidelity. Never copy hive-mind wholesale; loom decisions take precedence.
 - **Probe detection:** Use `attempt_or_skip(label, fn)` for optional capabilities (Agent Builder, Workflows, Cases) — HTTP 404/403/400 → skip gracefully. Complements D-033 version gate.
 - **Stable UUIDs:** All dashboard and saved object IDs use `uuid.uuid5(NS, f"{SLUG}:{name}")` for idempotent re-deploy. See `skills/references/pipeline-constants.md`.
-- **Space solution field:** Space creation includes `"solution": KIBANA_SOLUTION` (es/oblt/security) and `"disabledFeatures": []`. Set `KIBANA_SOLUTION` in `.env`.
+- **Space solution field:** Space creation includes `"solution": KIBANA_SOLUTION` (classic/es/oblt/security) and `"disabledFeatures": []`. loom suggests `KIBANA_SOLUTION` from the notes — `oblt`/`security` only when clearly Observability/Security, otherwise `classic`; the SA can override it in input settings.
 - **Research order:** This repo (`skills/`, `docs/`) first; then **hive-mind** (`../hive-mind`) for patterns; then **github.com/elastic** repos (e.g. **integration-packages-slo** for SLO/Fleet packages — see `docs/runtimes/cursor.md`); **general web or non-Elastic sources — ask the SA before relying on them** (see `AGENTS.md`).
 - **Details:** See repo root `AGENTS.md` and `docs/runtimes/cursor.md`. Skills vs subagents vs CLI: `docs/agent-patterns.md`.

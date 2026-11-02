@@ -283,8 +283,8 @@ are sourced directly by scripts and shell workflows using the root path conventi
 `cloud-provision` stage (bolt-spin created a cluster → `deploy/{slug}-provision-log.md`).
 A keystore is optional for planning (`keys defer`); it is required before live verify, deploy,
 or agent-runtime launch. Reuse a sibling engagement's cluster with `loom_state keys clone
---from <slug>` — it keeps this slug's `DEMO_SLUG` / `KIBANA_SPACE_PATH`, re-derives
-`KIBANA_SOLUTION`, forces a distinct `INDEX_PREFIX` on a shared URL, skips `DEMO_ASSET_TAG` /
+--from <slug>` — it keeps this slug's `DEMO_SLUG` / `KIBANA_SPACE_PATH`, re-derives the
+`KIBANA_SOLUTION` suggestion, forces a distinct `INDEX_PREFIX` on a shared URL, skips `DEMO_ASSET_TAG` /
 `CLUSTER_NAME` / `DEPLOYMENT_ID` unless `--keep`, and never copies private identity.
 
 All output files for this engagement live under the appropriate subfolder. Each skill writes

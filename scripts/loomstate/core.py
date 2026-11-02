@@ -26,7 +26,19 @@ GENERIC_NAME_TOKENS = {
     "the", "inc", "llc", "ltd", "corp", "corporation", "company", "co", "group",
     "holdings", "bank", "global", "international", "services", "systems",
     "technologies", "solutions", "partners", "and", "of",
+    "financial", "insurance", "health", "healthcare", "energy", "capital", "lending", "mutual",
 }
+# Company first words that are everyday English: as a lone token they would flag ordinary prose.
+# The full company name (and any legacy slug) is still protected.
+COMMON_WORD_TOKENS = {
+    "purpose", "summit", "target", "square", "block", "united", "american", "first", "general",
+    "national", "pacific", "atlantic", "pioneer", "liberty", "guardian", "frontier", "horizon",
+    "keystone", "fidelity", "principal", "sovereign", "standard", "central", "southern", "northern",
+    "western", "eastern", "beacon", "compass", "anchor", "harbor", "bridge", "vista", "prime",
+    "premier", "advance", "discover", "insight", "signal", "progressive", "citizens", "heritage",
+    "legacy", "evergreen", "integrity", "unity", "trust", "secure", "direct", "smart", "bright",
+}
+SUBSTRING_TOKEN_MIN = 6
 
 
 class LoomError(Exception):
@@ -151,18 +163,24 @@ def identity_tokens(identity: dict) -> list[str]:
         val = (identity or {}).get(key) or ""
         if val.strip():
             tokens.append(val.strip())
+    tokens.extend(s.strip() for s in (identity or {}).get("legacy_slugs") or [] if s and s.strip())
     company = (identity or {}).get("company_name") or ""
     for word in re.findall(r"[A-Za-z0-9]+", company):
-        if len(word) >= 4 and word.lower() not in GENERIC_NAME_TOKENS:
+        if len(word) >= 4 and word.lower() not in GENERIC_NAME_TOKENS | COMMON_WORD_TOKENS:
             tokens.append(word)
             break
     return tokens
 
 
 def find_identity_leaks(text: str, identity: dict) -> list[str]:
+    """Long tokens match as case-insensitive substrings (catch ``2026NorthwindAgents``); short ones on word bounds."""
     hits = []
     for tok in identity_tokens(identity):
-        if re.search(r"(?<![A-Za-z0-9])" + re.escape(tok) + r"(?![A-Za-z0-9])", text, re.IGNORECASE):
+        if len(tok) >= SUBSTRING_TOKEN_MIN:
+            found = tok.lower() in text.lower()
+        else:
+            found = re.search(r"(?<![A-Za-z0-9])" + re.escape(tok) + r"(?![A-Za-z0-9])", text, re.IGNORECASE)
+        if found:
             hits.append(tok)
     return sorted(set(hits))
 

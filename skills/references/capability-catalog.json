@@ -14,13 +14,13 @@
     { "id": "detection-rules", "name": "Detection rules + alerts", "solutions": ["security"], "audit_feature": "Security / SIEM detection rules", "default_remediation_owner": "pipeline", "build_skills": ["weave-script", "finish-verify"] },
     { "id": "cases", "name": "Cases", "solutions": ["security", "observability"], "audit_feature": "Security / SIEM detection rules", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
     { "id": "attack-discovery", "name": "Attack Discovery", "solutions": ["security"], "audit_feature": "AI Assistant (Security / Observability)", "default_remediation_owner": "manual_once", "build_skills": ["finish-check"] },
-    { "id": "entity-analytics", "name": "Entity analytics / risk scoring", "solutions": ["security"], "audit_feature": "ML anomaly detection (UI + API)", "default_remediation_owner": "pipeline", "build_skills": ["weave-train"] },
+    { "id": "entity-analytics", "name": "Entity analytics / risk scoring", "solutions": ["security"], "audit_feature": "Entity risk scoring / entity analytics", "default_remediation_owner": "pipeline", "build_skills": ["weave-train"] },
     { "id": "ml-anomaly", "name": "ML anomaly detection", "solutions": ["observability", "security", "search"], "audit_feature": "ML anomaly detection (UI + API)", "default_remediation_owner": "pipeline", "build_skills": ["weave-train"] },
     { "id": "fleet-integrations", "name": "Fleet integrations (EPR packages)", "solutions": ["observability", "security"], "audit_feature": "Fleet / Elastic Agent", "default_remediation_owner": "pipeline", "build_skills": ["weave-fleet"] },
     { "id": "apm", "name": "APM / distributed tracing", "solutions": ["observability"], "audit_feature": "Fleet / Elastic Agent", "default_remediation_owner": "pipeline", "build_skills": ["weave-fleet"] },
     { "id": "logs", "name": "Log analytics (Discover / Streams)", "solutions": ["observability", "security"], "audit_feature": "Data streams", "default_remediation_owner": "pipeline", "build_skills": ["weave-model", "weave-fleet"] },
-    { "id": "slos", "name": "SLOs and burn-rate alerting", "solutions": ["observability"], "audit_feature": "Transforms", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
-    { "id": "alerting", "name": "Kibana alerting rules + connectors", "solutions": ["observability", "security", "search"], "audit_feature": "Data streams", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
+    { "id": "slos", "name": "SLOs and burn-rate alerting", "solutions": ["observability"], "audit_feature": "SLOs (+ burn-rate rules)", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
+    { "id": "alerting", "name": "Kibana alerting rules + connectors", "solutions": ["observability", "security", "search"], "audit_feature": "Kibana alerting rules + connectors", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
     { "id": "dashboards", "name": "Kibana dashboards (ES|QL panels)", "solutions": ["search", "observability", "security"], "audit_feature": "ES|QL", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] }
   ]
 }

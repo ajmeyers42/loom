@@ -121,6 +121,9 @@ requirement and mark as unverified.
 | Fleet / Elastic Agent | 7.13 | Basic | All | Fleet Server required |
 | Transforms | 7.2 | Basic | All | Dedicated transform nodes recommended at scale |
 | Security / SIEM detection rules | 7.11 | Basic (limited) / Gold (full) | All | None |
+| Entity risk scoring / entity analytics | 9.0 (privilege model changed in 9.4) | Platinum (Stack); Security Analytics Complete tier (Serverless) | All; risk scoring is enabled per Kibana space | Risk engine uses transforms + ingest pipelines; ~2 GB JVM heap per ~44M risk documents |
+| Kibana alerting rules + connectors | Any 9.x | Rules: Basic. Connectors: some free (Index, Server log), most third-party (Slack, email, webhook, PagerDuty, ITSM) are paid — confirm the tier on elastic.co/subscriptions | All; rules and connectors are space-isolated; self-managed needs `xpack.encryptedSavedObjects.encryptionKey` | A connector per destination, created in the demo space |
+| SLOs (+ burn-rate rules) | 8.12 (GA) | Paid tier on Stack (docs: "appropriate license" — confirm on elastic.co/subscriptions); included in Serverless Observability | Stack: SLO access configured; Serverless: SLO Editor role | Stack: node(s) with both ingest and transform roles (ECH hot nodes cover this); default burn-rate rule has no connector |
 | Elasticsearch Graph API | 5.0 | Platinum | All | None |
 | Watcher | 5.0 | Gold | Self-managed / cloud (not serverless) | None |
 | Data streams | 7.9 | Basic | All | None |

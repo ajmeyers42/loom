@@ -9,6 +9,7 @@ from pathlib import Path
 from .core import (
     SLUG_RE,
     SUBFOLDERS,
+    SUBSTRING_TOKEN_MIN,
     LoomError,
     find_git_worktree,
     find_identity_leaks,
@@ -16,7 +17,8 @@ from .core import (
     normalize_tag_id,
     write_text_atomic,
 )
-from .keystore import env_template, parse_env
+from . import legacy
+from .keystore import env_template, parse_env, refresh_kibana_solution
 from .state import Engagement, initial_state
 
 ENTRY_MODES = ("import", "notes", "scratch")
@@ -134,6 +136,7 @@ def create(root: Path, *, slug: str, company: str | None, opportunity: str | Non
     if import_dir:
         messages.extend(import_package(eng, import_dir))
 
+    messages.extend(refresh_kibana_solution(eng))
     eng.save()
     return eng, messages
 
@@ -155,7 +158,15 @@ def import_package(eng: Engagement, import_dir: Path) -> list[str]:
         raise LoomError(f"Import directory not found: {import_dir}")
     msgs = []
     found_goals = found_discovery = False
-    for f in sorted(p for p in import_dir.rglob("*") if p.is_file() and not p.name.startswith(".")):
+    files = sorted(p for p in import_dir.rglob("*") if p.is_file() and not p.name.startswith("."))
+    prefix, votes = legacy.detect_prefix([f.name for f in files], IMPORT_MAP)
+    if prefix and prefix.lower() != eng.slug and (votes < 2 or len(prefix) < SUBSTRING_TOKEN_MIN):
+        msgs.append(f"warning: file prefix '{prefix}' not rewritten (needs ≥2 artifacts and ≥{SUBSTRING_TOKEN_MIN} "
+                    "chars to be treated as a legacy slug) — review imported files for the old slug")
+        prefix = None
+    prefix = prefix if prefix and prefix.lower() != eng.slug else None
+    rewrites = 0
+    for f in files:
         if f.name in (".env", ".env.example") or f.name.endswith("-pipeline-state.json"):
             msgs.append(f"skipped {f.name} (keystore / state are never imported)")
             continue
@@ -164,11 +175,18 @@ def import_package(eng: Engagement, import_dir: Path) -> list[str]:
             dest = eng.path(target)
             if f.suffix == ".json":
                 data = json.loads(f.read_text())
+                if prefix:
+                    data, n = legacy.rewrite_json(data, prefix, eng.slug)
+                    rewrites += n
                 if "slug" in data:
                     data["slug"] = eng.slug
                 if isinstance(data.get("meta"), dict) and "slug" in data["meta"]:
                     data["meta"]["slug"] = eng.slug
                 write_text_atomic(dest, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+            elif prefix:
+                text, n = legacy.rewrite_text(f.read_text(errors="replace"), prefix, eng.slug)
+                rewrites += n
+                write_text_atomic(dest, text)
             else:
                 shutil.copy2(f, dest)
             found_goals |= target.endswith("demo-goals.md")
@@ -178,6 +196,11 @@ def import_package(eng: Engagement, import_dir: Path) -> list[str]:
             dest = eng.dir / "inputs" / f.name
             shutil.copy2(f, dest)
             msgs.append(f"imported {f.name} → inputs/{f.name}")
+    if prefix:
+        ident = eng.state["identity"]
+        ident["legacy_slugs"] = sorted(set(ident.get("legacy_slugs") or []) | {prefix})
+        msgs.append(f"legacy slug '{prefix}' → '{eng.slug}' ({rewrites} occurrence(s) in imported artifacts; "
+                    "inputs/ left as-is) — recorded as private identity")
     if not found_discovery:
         raise LoomError("Import package has no *-discovery.json — use entry mode 'notes' instead.")
     if not found_goals:

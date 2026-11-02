@@ -53,7 +53,8 @@ def validate_fixtures() -> tuple[int, list[str]]:
     for pattern in FIXTURE_GLOBS:
         for path in sorted(REPO_ROOT.glob(pattern)):
             schema = next((s for suf, s in SCHEMA_BY_SUFFIX.items() if path.name.endswith(suf)), None)
-            if not schema:
+            # legacy-*/ fixtures are deliberately pre-P2 inputs for migration tests
+            if not schema or any(part.startswith("legacy-") for part in path.parent.parts):
                 continue
             checked += 1
             errors += [f"{path.relative_to(REPO_ROOT)}: {e}" for e in validate_file(path, schema)]

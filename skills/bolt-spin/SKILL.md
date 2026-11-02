@@ -143,7 +143,7 @@ ES_API_KEY={api_key}
 KIBANA_API_KEY={kibana_api_key}
 
 KIBANA_SPACE_PATH=/s/{slug}
-KIBANA_SOLUTION={es|oblt|security}
+KIBANA_SOLUTION={classic|es|oblt|security}
 
 INDEX_PREFIX=
 # DEMO_ASSET_TAG=
@@ -201,7 +201,7 @@ ES_API_KEY=<your-es-api-key>
 KIBANA_API_KEY=<your-kibana-api-key>   # Required — do NOT use ES_API_KEY for Kibana APIs (D-016)
 
 KIBANA_SPACE_PATH=/s/{slug}
-KIBANA_SOLUTION={es|oblt|security}
+KIBANA_SOLUTION={classic|es|oblt|security}
 
 INDEX_PREFIX=<optional-e.g.-cb->
 # DEMO_ASSET_TAG=
@@ -269,7 +269,7 @@ def ensure_kibana_space(kb_url, kb_api_key, demo_slug, engagement):
             raise
     # Create the space — include solution and disabledFeatures per loom rules
     import os
-    kibana_solution = os.environ.get("KIBANA_SOLUTION", "es")  # es | oblt | security
+    kibana_solution = os.environ.get("KIBANA_SOLUTION", "classic")  # classic | es | oblt | security
     body = json.dumps({
         "id": space_id,
         "name": engagement,

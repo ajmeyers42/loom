@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "slug": "2026NorthwindSOC",
+    "notes_quality": "raw",
+    "notes_style": ["raw_live_notes"],
+    "extraction_confidence": "medium",
+    "date_parsed": "2026-06-10",
+    "source_files": ["2026NorthwindSOC/raw/call-notes.md"]
+  },
+  "customer": {
+    "company": "Northwind Pharmaceuticals",
+    "industry": "Life sciences",
+    "industry_vertical": "Pharmaceuticals",
+    "location": null,
+    "company_size_signal": "enterprise"
+  },
+  "contacts": [
+    { "name": "Dana R.", "title": "SOC Manager", "role": "champion", "notes": "Reports to the CISO" },
+    { "name": "Priya K.", "title": "Senior Detection Engineer", "role": "technical_user", "notes": "" }
+  ],
+  "elastic_relationship": { "status": "net_new", "version": "", "deployment_model_requirement": "unknown" },
+  "current_state": {
+    "tech_stack": ["On-prem SIEM"],
+    "data_sources": [],
+    "workflows": "Manual pivoting across four consoles (see 2026northwindsoc-gaps.md)"
+  },
+  "pain_points": [
+    { "label": "Alert fatigue", "description": "Most alerts are noise", "severity": "critical",
+      "verbatim_quote": "we are drowning in alerts and most of them are noise" },
+    { "label": "Slow triage", "description": "30-40 minutes per alert", "severity": "high", "verbatim_quote": null },
+    { "label": "Mobile app monitoring", "description": "Raised but parked for a later phase", "severity": "out_of_scope",
+      "verbatim_quote": null }
+  ],
+  "objectives": {
+    "primary": "Reduce time-to-hypothesis for alert triage",
+    "secondary": ["Group related alerts into one investigation"],
+    "success_criteria": ["Analyst reaches a hypothesis in minutes"]
+  },
+  "demo_scope": {
+    "recommended_type": "security_demo",
+    "recommended_features": ["Detection rules", "Cases", "AI Assistant", "ES|QL"],
+    "key_scenarios": ["Alert triage with guided explanation"]
+  },
+  "deal_context": { "stage": "active_evaluation", "urgency": "high", "timeline": "Demo in three weeks", "budget_signal": "unknown" },
+  "next_steps": { "demo_requested": true, "demo_timing": "three weeks", "other_actions": [] },
+  "gaps": [
+    { "field": "meddpic.economic_buyer", "question": "Who owns the SIEM renewal budget?", "impact": "blocks_demo_build",
+      "blocks_qualification": true },
+    { "field": "current_state.data_volumes.ingest_rate", "question": "Daily ingest volume?", "impact": "reduces_personalization" },
+    { "field": "next_steps.demo_timing", "question": "Exact demo date?", "impact": "schedule_only" },
+    { "field": "demo_scope.data_strategy", "question": "Synthetic or sample data?", "impact": "resolved" },
+    { "field": "infosec_review", "question": "Does infosec need to review the LLM connector?", "impact": "out_of_scope" }
+  ]
+}

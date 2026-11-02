@@ -105,6 +105,12 @@ def _ks_human(d):
         print(f"  shared cluster → INDEX_PREFIX={d['index_prefix']} (distinct from siblings)")
     if d.get("elastic_version"):
         print(f"  Elasticsearch {d['elastic_version']} · Kibana {d.get('kibana_version')}")
+    ksol = d.get("kibana_solution")
+    if ksol:
+        tag = "confirmed by SA" if ksol["confirmed"] else "suggested"
+        print(f"  KIBANA_SOLUTION={ksol['value']} ({tag}" + (f" — {ksol['reason']}" if ksol.get("reason") else "") + ")")
+        if not ksol["confirmed"]:
+            print(f"    override: keys set <slug> KIBANA_SOLUTION={'|'.join(ksol['options'])}")
 
 
 def cmd_keys(args):
@@ -118,7 +124,8 @@ def cmd_keys(args):
         data = {"status": ks.get("status") if ks.get("status") == "validated" else status, "missing": missing,
                 "deferred": ks.get("deferred", False), "path": str(eng.dir / ".env"),
                 "source": ks.get("source"), "cloned_from": ks.get("cloned_from"),
-                "elastic_version": ks.get("elastic_version")}
+                "elastic_version": ks.get("elastic_version"),
+                "kibana_solution": keystore.kibana_solution_status(eng)}
         _out(args, data, _ks_human)
         return
     if action == "list":
@@ -166,7 +173,8 @@ def cmd_listen(args):
     if args.listen_action == "plan":
         _out(args, intake.listen_plan(eng))
         return
-    data = intake.listen_record(eng, backfill=args.backfill_gap_ids, strict_excerpts=not args.allow_unverified_excerpts)
+    data = intake.listen_record(eng, backfill=args.backfill_gap_ids, strict_excerpts=not args.allow_unverified_excerpts,
+                                migrate=args.migrate_legacy)
 
     def human(d):
         print(f"✅  discovery-parser complete · {d['claims']} claims · {d['gaps']} gaps")
@@ -214,14 +222,15 @@ def cmd_qualify(args):
     if a == "plan":
         _out(args, qualify.plan(eng))
     elif a == "record":
-        data = qualify.record(eng)
+        data = qualify.record(eng, migrate=args.migrate_legacy)
 
         def human(d):
             if d.get("unchanged"):
                 print(f"  unchanged — decision {d['decision']} still current")
-                return
-            print(f"✅  opportunity-review awaiting decision (recommended: {d['recommended_status']})")
-            _readiness_human(d["readiness"])
+            else:
+                print(f"✅  opportunity-review awaiting decision (recommended: {d['recommended_status']})")
+                _readiness_human(d["readiness"])
+            _print_list("warnings", d.get("warnings"))
         _out(args, data, human)
     elif a == "status":
         _out(args, qualify.readiness(eng), _readiness_human)
@@ -424,6 +433,8 @@ def build_parser() -> argparse.ArgumentParser:
     lr = leaf(lg, "record", cmd_listen, "Validate + register warp-listen outputs")
     lr.add_argument("--backfill-gap-ids", action="store_true")
     lr.add_argument("--allow-unverified-excerpts", action="store_true")
+    lr.add_argument("--migrate-legacy", action=argparse.BooleanOptionalAction, default=None,
+                    help="Normalize pre-P2 gap impact / pain severity values (default: on for entry mode import)")
 
     sg = group("scan", "Optional diagnostic (warp-scan)", "scan_action")
     leaf(sg, "record", cmd_scan)
@@ -440,7 +451,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     qg = group("qualify", "Qualification (thread-qualify) + Record decision", "qualify_action")
     leaf(qg, "plan", cmd_qualify)
-    leaf(qg, "record", cmd_qualify, "Register thread-qualify outputs (awaiting decision)")
+    qr = leaf(qg, "record", cmd_qualify, "Register thread-qualify outputs (awaiting decision)")
+    qr.add_argument("--migrate-legacy", action=argparse.BooleanOptionalAction, default=None,
+                    help="Fill pre-P2 profile omissions, e.g. missing MEDDPIC notes (default: on for entry mode import)")
     leaf(qg, "status", cmd_qualify, "Readiness: MEDDPIC, open blocking gaps, suggested status")
     qd = leaf(qg, "decide", cmd_qualify, "Record decision")
     qd.add_argument("--status", choices=qualify.STATUSES, required=True)

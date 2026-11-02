@@ -584,7 +584,263 @@ class TestCompareHarness(P2Base):
         self.assertIn("identity: no leaks on candidate shared artifacts", [g["gate"] for g in rep["gates"] if not g["ok"]])
 
 
+class TestFunctionalTestFixes(P2Base):
+    """Regressions from the P2 legacy-comparison functional test (synthetic fixtures only)."""
+
+    LEGACY_PKG = FIX / "legacy-pkg"
+    LEGACY_SLUG = "2026NorthwindSOC"
+
+    def _import_legacy(self):
+        return self.create(entry_mode="import", **{"import": str(self.LEGACY_PKG)})
+
+    # 1 — map_exclude duplicate Out-of-Scope line
+    def test_exclude_catalog_id_uses_catalog_name_and_freeze_dedupes(self):
+        self.to_proceed()
+        for cid in ("detection-rules", "cases", "esql"):
+            self.cli("vision", "map", "add", SLUG, cid, "--origin", "vision", "--outcome", "o", "--proof", "p")
+        self.cli("vision", "map", "add", SLUG, "workflows", "--outcome", "o", "--proof", "p")
+        self.cli("vision", "map", "exclude", SLUG, "ai-assistant", "--reason", "Not in this demo")
+        self.cli("vision", "map", "exclude", SLUG, "ai-assistant", "--reason", "Not in this demo")
+        cmap = json.loads((self.eng / "demo" / f"{SLUG}-capability-map.json").read_text())
+        oos = [o for o in cmap["out_of_scope"] if o.get("capability_id") == "ai-assistant"]
+        self.assertEqual(len(oos), 1)
+        self.assertEqual(oos[0]["name"], "Elastic AI Assistant (Security / Observability)")
+        ide = self.put("vision/ideation.md", "demo/{slug}-ideation.md")
+        ide.write_text(ide.read_text().replace(
+            "## Out of Scope\n", "## Out of Scope\n- Elastic AI Assistant — not in this demo\n"))
+        self.cli("vision", "freeze", SLUG)
+        from loomstate.core import find_section, md_sections  # noqa: PLC0415
+        body = find_section(md_sections(ide.read_text()), "out of scope")
+        self.assertEqual(sum("assistant" in ln.lower() for ln in body.splitlines()), 1, body)
+        self.assertNotIn("ai-assistant —", body)
+
+    # 2 + 3 — import a pre-P2 package end-to-end
+    def test_legacy_import_migrates_and_rewrites_legacy_slug(self):
+        res = self._import_legacy()
+        self.assertEqual(self.state()["identity"]["legacy_slugs"], [self.LEGACY_SLUG])
+        for f in self.eng.rglob("*"):
+            if f.is_file() and "inputs" not in f.relative_to(self.eng).parts and not f.name.endswith("-state.json"):
+                self.assertNotIn(self.LEGACY_SLUG.lower(), f.read_text().lower(), f)
+        self.assertIn(self.LEGACY_SLUG, (self.eng / "inputs" / "call-notes.md").read_text())
+        self.assertTrue(any("legacy slug" in m for m in res["messages"]), res["messages"])
+
+        res = self.cli("listen", "record", SLUG)
+        joined = "\n".join(res["warnings"])
+        self.assertIn("backfilled gap_id", joined)
+        self.assertIn("'resolved'", joined)
+        self.assertIn("'schedule_only' → 'low'", joined)
+        self.assertIn("severity 'out_of_scope' → null", joined)
+        d = json.loads((self.eng / "demo" / f"{SLUG}-discovery.json").read_text())
+        self.assertEqual(validate(d, "discovery"), [])
+        self.assertNotIn("demo_scope.data_strategy", [g["field"] for g in d["gaps"]])
+        infosec = next(g for g in d["gaps"] if g["field"] == "infosec_review")
+        self.assertEqual((infosec["impact"], infosec["legacy_impact"]), ("low", "out_of_scope"))
+        self.assertEqual(d["pain_points"][2]["legacy_severity"], "out_of_scope")
+        self.assertIn("g_demo_scope_data_strategy", self.state()["stages"]["discovery-parser"]["closed_gaps"])
+
+        res = self.cli("qualify", "record", SLUG)
+        self.assertTrue(any("meddpic.economic_buyer.notes" in w for w in res["warnings"]), res)
+        profile = self.eng / "opportunity" / f"{SLUG}-opportunity-profile.json"
+        self.assertEqual(validate_file(profile, "opportunity-profile"), [])
+        self.assertEqual(self.state()["stages"]["opportunity-review"]["status"], "awaiting_decision")
+
+    def test_notes_mode_does_not_migrate_without_flag(self):
+        self.create()
+        d = json.loads((FIX / "listen/discovery.json").read_text())
+        d["gaps"][2]["impact"] = "schedule_only"
+        (self.eng / "demo" / f"{SLUG}-discovery.json").write_text(json.dumps(d))
+        self.put("listen/gaps.md", "opportunity/{slug}-gaps.md")
+        self.put("listen/confirmation.md", "opportunity/{slug}-confirmation.md")
+        err = self.cli("listen", "record", SLUG, ok=False)
+        self.assertIn("schedule_only", err)
+        res = self.cli("listen", "record", SLUG, "--migrate-legacy")
+        self.assertTrue(any("schedule_only" in w for w in res["warnings"]))
+
+    # 3 + 12 — identity tokens
+    def test_identity_tokens_substring_and_common_words(self):
+        from loomstate.core import find_identity_leaks  # noqa: PLC0415
+        ident = {"company_name": COMPANY, "public_display_name": "Acme Pharma"}
+        self.assertEqual(find_identity_leaks("2026NorthwindSOC-discovery.json", ident), ["Northwind"])
+        self.assertEqual(find_identity_leaks("folder 2026Acmeshop", {**ident, "legacy_slugs": ["2026Acmeshop"]}),
+                         ["2026Acmeshop"])
+        short = {"company_name": "Zeta Labs", "public_display_name": "Acme Labs"}
+        self.assertEqual(find_identity_leaks("zetaflow pipeline", short), [])
+        self.assertEqual(find_identity_leaks("the Zeta team", short), ["Zeta"])
+        summit = {"company_name": "Summit Lending", "public_display_name": "Acme Lending"}
+        self.assertEqual(find_identity_leaks("we reached the summit of the hill", summit), [])
+        self.assertEqual(find_identity_leaks("Summit Lending renewal", summit), ["Summit Lending"])
+
+    # 4 — KIBANA_SOLUTION: inferred suggestion, classic unless clearly oblt / security, SA can override
+    OBS_NOTES = ("They want observability across services: APM traces with OpenTelemetry, SLOs for checkout, "
+                 "and faster root cause analysis to cut MTTR.")
+    SEC_NOTES = ("The SOC needs a SIEM with threat hunting and detection rules, plus incident response "
+                 "playbooks and alert triage for ransomware.")
+
+    def _notes(self, text: str) -> str:
+        f = self.root / "extra-notes.md"
+        f.write_text(text)
+        return str(f)
+
+    def _solution(self, slug=SLUG) -> dict:
+        return self.state(slug)["kibana_solution"]
+
+    def test_kibana_solution_classic_when_not_clear(self):
+        self.create(solution="cross_solution")  # fixture notes: 2 security signals — not clear
+        rec = self._solution()
+        self.assertEqual((rec["value"], rec["source"], rec["confidence"]), ("classic", "inferred", "unclear"))
+        self.assertIn("KIBANA_SOLUTION=classic", (self.eng / ".env.example").read_text())
+        ks = self.cli("keys", "status", SLUG)["kibana_solution"]
+        self.assertEqual((ks["value"], ks["confirmed"], ks["options"]), ("classic", False, ["classic", "es", "oblt", "security"]))
+        self.assertTrue(any("suggested: classic" in n for n in self.cli("next", SLUG)["notes"]))
+        self.cli("new", "--slug", "acme-search", "--display", "Acme Search", "--entry-mode", "scratch",
+                 "--solution", "search")
+        self.assertEqual(self._solution("acme-search")["value"], "classic")
+
+    def test_kibana_solution_inferred_from_notes_and_declared_solution(self):
+        for slug, text, solution, want in (
+            ("acme-obs", self.OBS_NOTES, "cross_solution", "oblt"),
+            ("acme-sec", self.SEC_NOTES, "unknown", "security"),
+            ("acme-mix", self.OBS_NOTES + " " + self.SEC_NOTES, "cross_solution", "classic"),
+            ("acme-declared", "General planning notes.", "observability", "oblt"),
+        ):
+            self.cli("new", "--slug", slug, "--display", "Acme Test", "--entry-mode", "notes",
+                     "--solution", solution, "--notes", self._notes(text))
+            (self.root / "extra-notes.md").unlink()
+            rec = self._solution(slug)
+            self.assertEqual((rec["value"], rec["source"]), (want, "inferred"), slug)
+            self.assertIn(f"KIBANA_SOLUTION={want}", (self.root / slug / ".env.example").read_text())
+
+    def test_kibana_solution_profile_area_and_sa_override(self):
+        self.create(solution="cross_solution")
+        self.listen()
+        p = json.loads((FIX / "qualify/opportunity-profile.json").read_text())
+        p["demo_scope_signals"]["primary_solution_area"] = "observability"
+        (self.eng / "opportunity" / f"{SLUG}-opportunity-profile.json").write_text(json.dumps(p))
+        self.put("qualify/opportunity-summary.md", "opportunity/{slug}-opportunity-summary.md")
+        self.put("qualify/demo-goals.md", "opportunity/{slug}-demo-goals.md")
+        out = self.cli("qualify", "record", SLUG)
+        self.assertTrue(any("KIBANA_SOLUTION=oblt suggested" in w for w in out["warnings"]))
+        self.assertIn("KIBANA_SOLUTION=oblt", (self.eng / ".env.example").read_text())
+        self.cli("keys", "set", SLUG, "ELASTICSEARCH_URL=https://x.es.example:443")
+        self.assertIn("KIBANA_SOLUTION=oblt", (self.eng / ".env").read_text())
+        # SA overrides in input settings: sticks, remembers the suggestion, silences the note
+        self.cli("keys", "set", SLUG, "KIBANA_SOLUTION=bogus", ok=False)
+        self.cli("keys", "set", SLUG, "KIBANA_SOLUTION=classic")
+        rec = self._solution()
+        self.assertEqual((rec["value"], rec["source"], rec["suggested"]), ("classic", "sa", "oblt"))
+        self.assertFalse(any("Kibana space solution" in n for n in self.cli("next", SLUG)["notes"]))
+        self.cli("qualify", "record", SLUG)
+        self.assertEqual(self._solution()["value"], "classic")
+        self.assertIn("KIBANA_SOLUTION=classic", (self.eng / ".env").read_text())
+        ks = self.cli("keys", "status", SLUG)["kibana_solution"]
+        self.assertEqual((ks["confirmed"], ks["suggested"]), (True, "oblt"))
+
+    # 11 — soft-limit warning only on crossing
+    def test_soft_limit_warns_once_on_crossing(self):
+        self.to_proceed()
+        warned = []
+        for cid in ("detection-rules", "cases", "ai-assistant", "esql", "workflows", "attack-discovery"):
+            msgs = self.cli("vision", "map", "add", SLUG, cid, "--outcome", "o", "--proof", "p")["messages"]
+            warned.append(any("capabilities in scope" in m for m in msgs))
+        self.assertEqual(warned, [False, False, False, False, True, False])
+        msgs = self.cli("vision", "map", "exclude", SLUG, "Something else")["messages"]
+        self.assertFalse(any("capabilities in scope" in m for m in msgs))
+
+
+class TestCompareHarnessFixes(P2Base):
+    _legacy = TestCompareHarness._legacy
+    _compare = TestCompareHarness._compare
+
+    # 5 — manifest covers .git / continual-learning
+    def test_manifest_covers_git_and_continual_learning(self):
+        import compare_engagements  # noqa: PLC0415
+        legacy = self._legacy()
+        for rel in (".git/HEAD", "continual-learning/notes.md", "node_modules/x/index.js"):
+            (legacy / rel).parent.mkdir(parents=True, exist_ok=True)
+            (legacy / rel).write_text("x")
+        m = compare_engagements.manifest(legacy)
+        self.assertIn(".git/HEAD", m)
+        self.assertIn("continual-learning/notes.md", m)
+        self.assertNotIn("node_modules/x/index.js", m)
+        manifest = self.root / "legacy.manifest.json"
+        manifest.write_text(json.dumps(m))
+        self.to_vision_complete()
+        (legacy / ".git" / "HEAD").write_text("changed")
+        rc, rep = self._compare(legacy, "--legacy-manifest", str(manifest), "--through", "vision")
+        self.assertIn("legacy tree unmodified", [g["gate"] for g in rep["gates"] if not g["ok"]])
+
+    def _design_anyway(self):
+        self.create()
+        self.listen()
+        self.qualify_files("continue_discovery")
+        self.cli("qualify", "decide", SLUG, "--status", "continue_discovery")
+        self.cli("qualify", "design-anyway", SLUG, "--rationale", "Demo date fixed; accept EB risk")
+
+    # 6 — --through limits rows; missing side is info
+    def test_through_limits_sections_and_missing_is_info(self):
+        legacy = self._legacy()
+        self._design_anyway()
+        rc, rep = self._compare(legacy, "--through", "qualify")
+        self.assertEqual(rc, 0, [g for g in rep["gates"] if not g["ok"]])
+        self.assertFalse({r["area"] for r in rep["rows"]} & {"vision", "audit", "path"})
+        rows = {(r["area"], r["check"]): r for r in rep["rows"]}
+        self.assertEqual(rows[("schema", "platform-audit errors")]["verdict"], "info")
+
+    # 7 — failure detail never shown on a passing gate
+    def test_gate_detail_only_on_failure(self):
+        legacy = self._legacy()
+        self._design_anyway()
+        rc, rep = self._compare(legacy, "--through", "qualify")
+        gates = {g["gate"]: g for g in rep["gates"]}
+        self.assertTrue(gates["qualify: decision fields written by CLI"]["ok"])
+        self.assertNotIn("lacks", gates["qualify: decision fields written by CLI"]["detail"])
+        self.assertNotIn("status=", gates["stage opportunity-review complete"]["detail"])
+
+    # 8 — drift compares against the latest approval only
+    def test_drift_ignores_superseded_approvals(self):
+        legacy = self._legacy()
+        self._design_anyway()
+        rc, rep = self._compare(legacy, "--through", "qualify")
+        rows = {(r["area"], r["check"]): r for r in rep["rows"]}
+        self.assertEqual(rows[("state", "approved artifacts edited since approval")]["candidate"], "none")
+        profile = self.eng / "opportunity" / f"{SLUG}-opportunity-profile.json"
+        profile.write_text(profile.read_text().replace("Alert fatigue", "Alert fatigue (edited)"))
+        rc, rep = self._compare(legacy, "--through", "qualify")
+        rows = {(r["area"], r["check"]): r for r in rep["rows"]}
+        self.assertEqual(rows[("state", "approved artifacts edited since approval")]["candidate"],
+                         [f"qualification_override:opportunity/{SLUG}-opportunity-profile.json"])
+
+    def test_import_candidate_claims_gate_reads_exempt(self):
+        legacy = self._legacy()
+        self.create(entry_mode="import", **{"import": str(TestFunctionalTestFixes.LEGACY_PKG)})
+        self.cli("listen", "record", SLUG)
+        rc, rep = self._compare(legacy, "--through", "listen")
+        gates = {g["gate"]: g for g in rep["gates"]}
+        self.assertEqual(gates["evidence: claims present"]["detail"], "exempt (import)")
+
+
 class TestFixtureSchemas(unittest.TestCase):
+    # 10 — scope_source matches thread-audit
+    def test_platform_audit_scope_source_ad_hoc(self):
+        audit = json.loads((FIX / "path/platform-audit.json").read_text())
+        audit["meta"]["scope_source"] = "ad_hoc"
+        self.assertEqual(validate(audit, "platform-audit"), [])
+
+    # 9 — every catalog audit_feature names a real thread-audit requirements row
+    def test_catalog_audit_features_exist_in_thread_audit_table(self):
+        import re  # noqa: PLC0415
+        catalog = json.loads((REPO / "skills/references/capability-catalog.json").read_text())
+        skill = (REPO / "skills/thread-audit/SKILL.md").read_text()
+        table = skill.split("### Feature Requirements Reference", 1)[1].split("**Deployment type caveats", 1)[0]
+        rows = {re.sub(r"\\\|", "|", ln.split(" | ")[0].lstrip("| ").strip())
+                for ln in table.splitlines() if ln.startswith("| ") and not ln.startswith("| Feature")}
+        by_id = {c["id"]: c["audit_feature"] for c in catalog["capabilities"]}
+        for cid, feature in by_id.items():
+            self.assertIn(feature, rows, cid)
+        self.assertIn("SLO", by_id["slos"])
+        self.assertIn("alerting", by_id["alerting"].lower())
+        self.assertIn("risk", by_id["entity-analytics"].lower())
+
     def test_fixtures_validate(self):
         self.assertEqual(validate_file(FIX / "listen/discovery.json", "discovery"), [])
         self.assertEqual(validate_file(FIX / "qualify/opportunity-profile.json", "opportunity-profile"), [])

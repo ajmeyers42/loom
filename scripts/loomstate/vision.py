@@ -100,7 +100,7 @@ def _apply_token_visibility(cmap: dict) -> None:
         tv["included"] = bool(has and has["in_scope"] and has["origin"] != "implied")
 
 
-def _touch(eng: Engagement, cmap: dict) -> list[str]:
+def _touch(eng: Engagement, cmap: dict, before: int | None = None) -> list[str]:
     """Persist a map edit; a frozen map returns to draft and invalidates downstream freeze/audit."""
     msgs = []
     _apply_token_visibility(cmap)
@@ -117,15 +117,24 @@ def _touch(eng: Engagement, cmap: dict) -> list[str]:
         raise LoomError("capability map invalid:\n  " + "\n  ".join(errors))
     write_json(eng.path(MAP), cmap)
     n = len(_in_scope(cmap, include_implied=False))
-    if n > MAP_SOFT_LIMIT:
+    if n > MAP_SOFT_LIMIT and (before is None or before <= MAP_SOFT_LIMIT):
         msgs.append(f"warning: {n} capabilities in scope — stories land best with 2–4")
     eng.save()
     return msgs
 
 
+def _scope_count(cmap: dict) -> int:
+    return len(_in_scope(cmap, include_implied=False))
+
+
+def _oos_key(entry: dict) -> str:
+    return entry.get("capability_id") or entry["name"].lower()
+
+
 def map_add(eng: Engagement, cap_id: str | None, name: str | None, outcome: str | None, proof: str | None,
             origin: str | None) -> list[str]:
     cmap = load_map(eng, create=True)
+    before = _scope_count(cmap)
     cat = catalog()
     if cap_id and cap_id in cat:
         entry_name = name or cat[cap_id]["name"]
@@ -152,7 +161,7 @@ def map_add(eng: Engagement, cap_id: str | None, name: str | None, outcome: str 
         cmap["capabilities"].append({"id": cap_id, "name": entry_name, "outcome": outcome, "proof_point": proof,
                                      "origin": origin, "in_scope": True, "catalog": is_catalog, "implied_by": None})
     cmap["out_of_scope"] = [o for o in cmap["out_of_scope"] if o.get("capability_id") != cap_id]
-    msgs = _touch(eng, cmap)
+    msgs = _touch(eng, cmap, before)
     if cap_id == "agent-builder" and cmap["token_visibility"].get("included"):
         msgs.append("D-036: AI Cost + Usage dashboard auto-included (opt out: vision map token-visibility off)")
     return msgs
@@ -160,20 +169,24 @@ def map_add(eng: Engagement, cap_id: str | None, name: str | None, outcome: str 
 
 def map_exclude(eng: Engagement, name_or_id: str, reason: str | None) -> list[str]:
     cmap = load_map(eng, create=True)
+    before = _scope_count(cmap)
     cap = next((c for c in cmap["capabilities"] if c["id"] == name_or_id), None)
     if cap:
         cap["in_scope"] = False
         entry = {"name": cap["name"], "reason": reason, "capability_id": cap["id"]}
+    elif name_or_id in catalog():
+        entry = {"name": catalog()[name_or_id]["name"], "reason": reason, "capability_id": name_or_id}
     else:
-        entry = {"name": name_or_id, "reason": reason, "capability_id": name_or_id if name_or_id in catalog() else None}
-    cmap["out_of_scope"] = [o for o in cmap["out_of_scope"] if o["name"] != entry["name"]] + [entry]
-    return _touch(eng, cmap)
+        entry = {"name": name_or_id, "reason": reason, "capability_id": None}
+    cmap["out_of_scope"] = [o for o in cmap["out_of_scope"] if _oos_key(o) != _oos_key(entry)] + [entry]
+    return _touch(eng, cmap, before)
 
 
 def map_token_visibility(eng: Engagement, on: bool) -> list[str]:
     cmap = load_map(eng, create=True)
+    before = _scope_count(cmap)
     cmap.setdefault("token_visibility", {})["opted_out"] = not on
-    return _touch(eng, cmap)
+    return _touch(eng, cmap, before)
 
 
 def plan(eng: Engagement) -> dict:
@@ -240,6 +253,17 @@ def _parse_map_table(body: str) -> list[dict]:
     return caps
 
 
+def _oos_mentioned(entry: dict, body: str) -> bool:
+    """True if the Out of Scope body already names this entry (by name, catalog id, or catalog name)."""
+    labels = {entry["name"]}
+    cid = entry.get("capability_id")
+    if cid:
+        cat_name = catalog().get(cid, {}).get("name", "")
+        labels |= {cid, cat_name, re.sub(r"\s*\([^)]*\)", "", cat_name).strip()}
+    return any(label and re.search(r"(?<![\w-])" + re.escape(label) + r"(?![\w-])", body, re.IGNORECASE)
+               for label in labels)
+
+
 def _render_map(cmap: dict) -> str:
     label = {"vision": "vision", "sa_added": "SA added", "sa_requested": "SA requested", "implied": "implied (D-036)"}
     lines = ["| Capability | Origin | Outcome Enabled | Proof Point |", "|---|---|---|---|"]
@@ -294,9 +318,10 @@ def freeze(eng: Engagement, approver: str) -> dict:
         raise LoomError("vision freeze failed:\n  " + "\n  ".join(errors))
 
     text = replace_md_section(text, "Elastic Capability Map", _render_map(cmap))
+    cmap["out_of_scope"] = list({_oos_key(o): o for o in cmap["out_of_scope"]}.values())
     oos_body = find_section(md_sections(text), "out of scope") or ""
     extra = [f"- {o['name']}" + (f" — {o['reason']}" if o.get("reason") else "")
-             for o in cmap["out_of_scope"] if o["name"].lower() not in oos_body.lower()]
+             for o in cmap["out_of_scope"] if not _oos_mentioned(o, oos_body)]
     if extra:
         text = replace_md_section(text, "Out of Scope", (oos_body + "\n" + "\n".join(extra)).strip())
     if cmap["token_visibility"].get("included"):

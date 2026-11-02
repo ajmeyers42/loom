@@ -21,7 +21,12 @@
         "company_name": { "type": ["string", "null"] },
         "opportunity_name": { "type": ["string", "null"] },
         "opportunity_id": { "type": ["string", "null"] },
-        "public_display_name": { "type": "string", "minLength": 1 }
+        "public_display_name": { "type": "string", "minLength": 1 },
+        "legacy_slugs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Pre-P2 file prefixes detected on import (often company-derived) — rewritten to the public slug and treated as private identity"
+        }
       },
       "additionalProperties": false
     },
@@ -39,6 +44,20 @@
         "elastic_version": { "type": ["string", "null"] },
         "missing": { "type": "array", "items": { "type": "string" } },
         "updated_at": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "kibana_solution": {
+      "type": "object",
+      "description": "Kibana space solution view for KIBANA_SOLUTION: inferred suggestion until the SA confirms or overrides it in input settings",
+      "required": ["value", "source"],
+      "properties": {
+        "value": { "type": "string", "enum": ["classic", "es", "oblt", "security"] },
+        "source": { "type": "string", "enum": ["inferred", "sa"] },
+        "confidence": { "type": ["string", "null"], "enum": ["clear", "unclear", null] },
+        "reason": { "type": ["string", "null"] },
+        "signals": { "type": "object" },
+        "suggested": { "type": ["string", "null"], "description": "The loom suggestion the SA overrode, when different" }
       },
       "additionalProperties": true
     },

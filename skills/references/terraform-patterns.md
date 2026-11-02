@@ -61,7 +61,7 @@ kibana_api_key    = ""   # set from .env — never hardcode
 # Optional
 ec_api_key     = ""   # needed only for cloud provisioning resources
 elastic_version = "9.4.0"
-kibana_solution = "es"   # es | oblt | security
+kibana_solution = "classic"   # classic | es | oblt | security
 ```
 
 ---
@@ -161,7 +161,7 @@ resource "elasticstack_kibana_alerting_rule" "fraud_burn_rate" {
 resource "elasticstack_kibana_space" "operator" {
   space_id          = "${var.slug}-operator"
   name              = "${var.engagement} — Operator"
-  solution          = var.kibana_solution    # "es" | "oblt" | "security"
+  solution          = var.kibana_solution    # "classic" | "es" | "oblt" | "security"
   disabled_features = []    # all features visible; required on EVERY space
 }
 

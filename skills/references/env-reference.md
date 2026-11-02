@@ -74,8 +74,10 @@ KIBANA_API_KEY=
 KIBANA_SPACE_PATH=
 
 # Kibana solution type — used when creating the Kibana space.
-# es | oblt | security — match to the engagement's primary solution area.
-KIBANA_SOLUTION=es
+# classic | es | oblt | security — loom suggests one from the notes (oblt / security only when clearly
+# Observability or Security, otherwise classic); the SA confirms or overrides it in input settings
+# (`loom_state keys set <slug> KIBANA_SOLUTION=…`, which also stops further re-inference).
+KIBANA_SOLUTION=classic
 
 # ── ECH Deployment Pre-flight (Step 0) ───────────────────
 # Optional. If set, bolt-ech patches Kibana user_settings_json via the ECH
@@ -172,7 +174,7 @@ python3 scripts/loom_state.py keys clone {slug-B} --from {slug-A}  # [--no-secre
 **Clone rules** (`keys clone`):
 - Copies endpoints and, unless `--no-secrets`, API keys / tokens. Secrets are never printed.
 - Keeps **this** slug's `DEMO_SLUG`, `ENGAGEMENT` (public display), and `KIBANA_SPACE_PATH`;
-  re-derives `KIBANA_SOLUTION` from this engagement's solution.
+  re-derives the `KIBANA_SOLUTION` suggestion for this engagement (an SA override on the source is not copied).
 - On a shared `ELASTICSEARCH_URL`, forces an `INDEX_PREFIX` distinct from every sibling on
   that URL (default from the slug, e.g. `aph-`); refuses a colliding `--index-prefix`.
 - Skips `DEMO_ASSET_TAG`, `CLUSTER_NAME`, `DEPLOYMENT_ID` unless opted in with `--keep`.
@@ -238,7 +240,7 @@ ES_API_KEY=<your-es-api-key>
 KIBANA_API_KEY=<your-kibana-api-key>   # Required — do NOT use ES_API_KEY for Kibana APIs (D-016)
 
 KIBANA_SPACE_PATH=/s/<DEMO_SLUG>
-KIBANA_SOLUTION=es   # es | oblt | security
+KIBANA_SOLUTION=classic   # classic | es | oblt | security
 
 INDEX_PREFIX=<optional-e.g.-aph->
 # DEMO_ASSET_TAG=<optional-override-for-loom:-tags>

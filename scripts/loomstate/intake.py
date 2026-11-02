@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from . import keystore, legacy
 from .core import GAP_ID_RE, LoomError, now_iso, read_json, sha256_file, sha256_paths, slugify, write_json
 from .schema import validate
 from .state import Engagement
@@ -92,18 +93,24 @@ def backfill_gap_ids(discovery: dict) -> list[str]:
     return assigned
 
 
-def listen_record(eng: Engagement, backfill: bool = False, strict_excerpts: bool = True) -> dict:
+def listen_record(eng: Engagement, backfill: bool = False, strict_excerpts: bool = True,
+                  migrate: bool | None = None) -> dict:
     dpath = eng.path(DISCOVERY)
     discovery = read_json(dpath)
     errors: list[str] = []
     warnings: list[str] = []
     importing = eng.state.get("entry_mode") == "import"
+    migrate = importing if migrate is None else migrate
 
     assigned = []
-    if backfill or importing:
+    if backfill or importing or migrate:
         assigned = backfill_gap_ids(discovery)
         if assigned:
             warnings.append(f"backfilled gap_id for {len(assigned)} gap(s): {', '.join(assigned)}")
+    migrated_closed: list[str] = []
+    if migrate:
+        notes, migrated_closed = legacy.migrate_discovery(discovery)
+        warnings.extend(notes)
 
     meta = discovery.setdefault("meta", {})
     if meta.get("slug") and meta["slug"] != eng.slug:
@@ -165,8 +172,9 @@ def listen_record(eng: Engagement, backfill: bool = False, strict_excerpts: bool
         gap_fields={g["field"]: g["gap_id"] for g in gaps},
         claim_count=len(claims),
         gap_count=len(gaps),
-        closed_gaps=sorted(set(st.get("closed_gaps", [])) | set(closed)),
+        closed_gaps=sorted(set(st.get("closed_gaps", [])) | set(closed) | set(migrated_closed)),
     )
+    warnings.extend(keystore.refresh_kibana_solution(eng))
     eng.save()
     return {"gaps": len(gaps), "claims": len(claims), "closed_by_reinference": closed,
             "new_gaps": sorted(current_ids - prior_ids) if prior_ids else [], "warnings": warnings}
