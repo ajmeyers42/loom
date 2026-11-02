@@ -37,6 +37,30 @@ from test 1, the set should cover:
 If the SA has no fresh customer inputs, write a synthetic set (Acme / Northwind style) in the sandbox —
 not in `tests/fixtures/` — and say so in the run log.
 
+## Browser mode (how the prototype is used)
+
+The prototype is a **static mockup**: no `fetch`, no localhost, no `loom_state` calls. Clicking it never
+changes engagement state, so the run has two halves that the agent keeps side by side:
+
+- **Screen side** — the Cursor browser (`cursor-ide-browser`) shows the prototype frame for the beat.
+  Open `file://<repo>/docs/ux/sa-first-journey-prototype.html`, `browser_lock` the tab, navigate to the frame
+  (`browser_snapshot` for structure, `browser_take_screenshot` for the log), `browser_lock` unlock at the end.
+- **Backend side** — the `loom_state` CLI does the real work and is the only thing that changes state.
+
+Per beat the agent: navigates to the frame + screenshots it → runs the CLI command(s) with `--json` →
+**diffs** frame vs output → logs friction → shows the SA the screenshot and the diff → waits for go-ahead.
+
+The diff has two directions, and both are friction rows:
+
+1. **Screen promises, backend can't supply** — a field, control, state, or action on the frame with no CLI
+   source (e.g. no place on SB-02 for the suggested `KIBANA_SOLUTION`, or a button with no command).
+2. **Backend returns, screen has no place** — CLI fields the SA needs (warnings, `suggested` values,
+   `closed_gaps`, stale reasons) that no frame displays.
+
+Do not click through the prototype and call a beat "passed": a clickable frame only proves the mockup
+navigates. A beat passes only when the CLI state change matches what the frame said would happen.
+Screenshots go to `~/loom-compare/_runs/{slug}-ux-shots/` (sandbox, never the repo).
+
 ## How a beat runs
 
 For every beat: (1) open the screen in the prototype and name it; (2) show the SA what the screen would
@@ -91,13 +115,22 @@ Friction types: **copy** (screen wording ≠ behavior), **missing-info** (screen
 - Report back: friction rows grouped by type; CLI bugs with repro + file/line; contract gaps for the UX
   chat. Do not fix without SA approval.
 
-## Kickoff prompt (fresh chat)
+## Kickoff prompt (fresh chat, browser mode)
 
 ```text
-Run docs/testing/p2-ux-driven-test.md. Baseline: branch fix/p2-functional-test.
-The storyboard drives: for each beat open the prototype frame, show me what it would show from
-loom_state output, let me act, then run the backend. New inputs are in ~/loom-compare/_runs/ux-inputs/.
+Run docs/testing/p2-ux-driven-test.md in browser mode. Baseline: branch fix/p2-functional-test.
+Open the prototype in the Cursor browser (cursor-ide-browser); it is static and not wired to loom_state,
+so drive the backend with the CLI and diff each frame against the real output. Per beat: screenshot the
+frame, run the command(s) with --json, list what the screen promises that the backend can't supply and what
+the backend returns that no frame shows, then wait for my go-ahead. Screenshots go in
+~/loom-compare/_runs/<slug>-ux-shots/. New inputs are in ~/loom-compare/_runs/ux-inputs/.
 Sandbox LOOM_ENGAGEMENTS_ROOT=~/loom-compare. No cluster access, no docs/ux edits, no commits.
 Log every beat and friction row to ~/loom-compare/_runs/<slug>-ux-run.md.
 At SB-02 / input settings, check the suggested KIBANA_SOLUTION (value, reason, override) and override it once.
 ```
+
+## After the run → UI build-out
+
+Friction rows feed the build-out backlog in [`docs/ux-build/ui-buildout-prep.md`](../ux-build/ui-buildout-prep.md)
+(§7 "Inputs from the browser test"). Hand the run log and screenshots to that chat; do not start building
+from this chat.
