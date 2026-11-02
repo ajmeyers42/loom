@@ -372,21 +372,21 @@ a sha256 `input_hash` of `inputs/`. On failure, fix the JSON (do not pass
 
 ## What Good Looks Like
 
-**Citizens Bank pattern** (polished, champion-building): All pain points captured with
+**Northwind Bank pattern** (polished, champion-building): All pain points captured with
 verbatim quotes. Demo type correctly classified as `champion_enablement`. Confirmation doc
-positions the demo as "internal ammunition." Competitive context (Bain/Bedrock) absent from
+positions the demo as "internal ammunition." Competitive context (a consulting firm and a hosted-LLM vendor) absent from
 customer doc but present in JSON. Gap: budget and timeline are null but low-impact.
 
-**IHG pattern** (raw notes, migration): Typos cleaned, tech specs extracted precisely
-(3 servers, 50GB RAM, 220MM documents, 36GB index). Multiple contacts captured with inferred
+**Contoso Hotels pattern** (raw notes, migration): Typos cleaned, tech specs extracted precisely
+(server count, RAM, document count, index size). Multiple contacts captured with inferred
 roles. Demo type flagged as `migration_assessment`. Confirmation doc shorter, gaps section
 more prominent (no clear demo scenario discussed).
 
-**Thermo Fisher pattern** (polished, urgent RAG): High urgency flagged. Demo type
+**Fabrikam Labs pattern** (polished, urgent RAG): High urgency flagged. Demo type
 `rag_demo` + `technical_deep_dive`. Confirmation doc has tight timeline and specific
-demo scenario ("answer questions about the 2022 Greenville expansion"). Reference to
-"Massachusetts Semiconductor" success story noted as a proof point to use.
+demo scenario ("answer questions about the 2022 plant expansion"). Reference to
+a named peer-company success story noted as a proof point to use.
 
-**Lowe's pattern** (technical, approved demo): Demo script treated as the post-discovery
+**Tailspin Retail pattern** (technical, approved demo): Demo script treated as the post-discovery
 artifact — the demo is already scoped. Confirmation doc reflects what was built rather than
 what will be built.
