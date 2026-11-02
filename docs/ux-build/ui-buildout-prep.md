@@ -137,6 +137,9 @@ retention wizard (P5), hosted/multi-user deployment, and any change to `docs/ux/
 
 ## 9. Kickoff prompt (fresh chat, after the browser run)
 
+To start building before the browser run, use [`ui-handoff.md`](ui-handoff.md) §11 instead — it is the executable
+brief for S0–S2 and assumes the recommendations in §1 and §3 (hand-off for LLM steps).
+
 ```text
 Read docs/ux-build/ui-buildout-prep.md, then the run log and screenshots from the browser-mode UX test
 (~/loom-compare/_runs/<slug>-ux-run.md, <slug>-ux-shots/). Branch off fix/p2-functional-test as feat/ui-s0.
