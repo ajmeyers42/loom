@@ -19,11 +19,12 @@ from datetime import datetime
 from pathlib import Path
 
 STAGE_OUTPUTS = [
-    ("ideation",            "demo/{slug}-ideation.md"),
     ("discovery-parser",    "demo/{slug}-discovery.json"),
     ("diagnostic-analyzer", "demo/{slug}-current-state.json"),
     ("opportunity-review",  "opportunity/{slug}-opportunity-summary.md"),
+    ("ideation",            "demo/{slug}-ideation.md"),
     ("platform-audit",      "demo/{slug}-platform-audit.json"),
+    ("build-path",          None),
     ("script-template",     "demo/{slug}-demo-script.md"),
     ("agent-design",        "demo/{slug}-agent-builder-spec.md"),
     ("vulcan-generate",     "data/{slug}-vulcan-queries.json"),
@@ -31,15 +32,20 @@ STAGE_OUTPUTS = [
     ("fleet-integrations",  "deploy/{slug}-integrations-manifest.json"),
     ("ml-designer",         "data/{slug}-ml-config.json"),
     ("validator",           "deploy/{slug}-demo-checklist.md"),
-    ("cloud-provision",     ".env"),
-    ("deploy",              "deploy/bootstrap.py"),
+    ("cloud-provision",     "deploy/{slug}-provision-log.md"),
+    ("deploy",              "deploy/bootstrap-data.py"),
 ]
 
 STATUS_ICONS = {
-    "complete": "✅",
-    "skipped":  "⏭ ",
-    "pending":  "🔲",
-    "unknown":  "❓",
+    "complete":              "✅",
+    "skipped":               "⏭ ",
+    "pending":               "🔲",
+    "running":               "⏳",
+    "awaiting_decision":     "🟡",
+    "awaiting_confirmation": "🟡",
+    "stale":                 "♻️ ",
+    "blocked":               "⛔",
+    "unknown":               "❓",
 }
 
 
@@ -72,6 +78,9 @@ def infer_state_from_files(eng_dir: Path, slug: str) -> dict:
     """Fall back to file scan when no pipeline-state.json exists."""
     stages = {}
     for stage, template in STAGE_OUTPUTS:
+        if template is None:
+            stages[stage] = {"status": "pending", "output": None}
+            continue
         filename = template.replace("{slug}", slug)
         output_path = eng_dir / filename
         if output_path.exists():
@@ -102,16 +111,24 @@ def print_summary(eng_dir: Path, slug: str, verbose: bool = False):
 
     if verbose:
         for stage, template in STAGE_OUTPUTS:
-            info = stages.get(stage, {"status": "unknown"})
-            icon = STATUS_ICONS.get(info.get("status", "unknown"), "❓")
-            filename = template.replace("{slug}", slug)
+            info = stages.get(stage, {"status": "pending"})
+            status = info.get("status", "unknown")
+            icon = STATUS_ICONS.get(status, "❓")
+            filename = template.replace("{slug}", slug) if template else f"(state) path={state.get('path', 'unset')}"
             mtime = info.get("mtime", "")
             suffix = f"  ({mtime})" if mtime else ""
-            print(f"  {icon}  {stage:<24}  {filename}{suffix}")
+            label = "" if status in ("complete", "pending", "skipped") else f"  [{status}]"
+            print(f"  {icon}  {stage:<24}  {filename}{suffix}{label}")
 
-    # Show .env presence and cluster hint
+    if source == "pipeline-state" and state.get("path"):
+        print(f"\n  🧭  demo path: {state['path']}")
+
+    # Keystore (credentials file) is separate from cloud-provision (cluster created by bolt-spin)
+    keystore = (state.get("keystore") or {}).get("status")
     env_file = eng_dir / ".env"
-    if env_file.exists():
+    if keystore:
+        print(f"  🔑  keystore: {keystore}" + ("  (.env present)" if env_file.exists() else ""))
+    elif env_file.exists():
         es_url = ""
         try:
             for line in env_file.read_text().splitlines():
@@ -122,7 +139,7 @@ def print_summary(eng_dir: Path, slug: str, verbose: bool = False):
             pass
         print(f"\n  🔑  .env present" + (f"  →  {es_url}" if es_url else ""))
     else:
-        print(f"\n  ⬜  .env absent (no cluster provisioned)")
+        print(f"\n  ⬜  .env absent (keystore empty)")
 
     print()
 
@@ -141,7 +158,7 @@ def main():
         print(f"    Set LOOM_ENGAGEMENTS_ROOT or create ~/engagements", file=sys.stderr)
         sys.exit(1)
 
-    print(f"\nDEMOBUILDER INVENTORY")
+    print(f"\nLOOM INVENTORY")
     print(f"Root: {root}")
 
     if args.slug:

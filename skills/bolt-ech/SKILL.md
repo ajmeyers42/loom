@@ -134,8 +134,8 @@ Add warm/cold/frozen phases only when explicitly required by the engagement. Nev
 
 ## Step 5: Generate `deploy/bootstrap-data.py`
 
-Read `skills/bolt-launch/templates/bootstrap-template.py` as the base structure.
-Fill in engagement-specific values. Operations list (D-046 — nothing else):
+There is no shared bootstrap template file. Generate `deploy/bootstrap-data.py` from the
+operations list in `skills/bolt-bootstrap/SKILL.md` (D-046 — nothing else):
 
 ```python
 #!/usr/bin/env python3

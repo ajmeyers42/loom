@@ -42,10 +42,14 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = REPO_ROOT / "docs" / "ext-registry.yaml"
 
-# Known Cursor plugin base paths (first match wins)
-PLUGIN_SEARCH_PATHS = [
+# Cursor plugin caches are nested. Claude and Agents installs are flat skill dirs.
+# A sibling git clone also counts.
+PLUGIN_SEARCH_ROOTS = [
     Path.home() / ".cursor" / "plugins",
     Path.home() / ".cursor" / "extensions",
+    Path.home() / ".claude" / "skills",
+    Path.home() / ".agents" / "skills",
+    Path.home() / "Documents" / "GitHub" / "agent-skills",
 ]
 
 
@@ -148,15 +152,44 @@ def _git_rev(path: Path) -> str:
         return "unknown"
 
 
+def _looks_like_agent_skills(path: Path) -> bool:
+    """True when path is an agent-skills root or a skills directory inside one."""
+    if (path / "skills" / "elasticsearch").is_dir() or (path / "skills" / "cloud").is_dir():
+        return True
+    if (path / "elasticsearch").is_dir() and (path / "cloud").is_dir():
+        return True
+    if (path / "elasticsearch-esql").exists() or (path / "elasticsearch-esql" / "SKILL.md").exists():
+        return True
+    return False
+
+
 def check_cursor_plugin(dep: dict) -> tuple[str, str]:
     plugin_id = dep.get("plugin_id", dep.get("id", ""))
-    # Elastic agent-skills symlinks to known paths
-    for base in PLUGIN_SEARCH_PATHS:
+    needle = plugin_id.split("/")[-1]
+    found: list[Path] = []
+    for base in PLUGIN_SEARCH_ROOTS:
         if not base.exists():
             continue
-        candidates = list(base.glob(f"*{plugin_id.split('/')[-1]}*"))
-        if candidates:
-            return "✅", f"installed at {candidates[0].relative_to(Path.home())}"
+        if _looks_like_agent_skills(base):
+            found.append(base)
+        if needle and needle in base.name:
+            found.append(base)
+        # Plugin caches nest the skills dir several levels down.
+        for hit in base.glob("**/skills/elasticsearch"):
+            if hit.is_dir():
+                found.append(hit.parent.parent)
+                break
+        for hit in base.glob("**/elasticsearch-esql/SKILL.md"):
+            found.append(hit.parent.parent)
+            break
+    if found:
+        rel = found[0]
+        try:
+            rel = found[0].relative_to(Path.home())
+        except ValueError:
+            pass
+        extra = f" (+{len(found) - 1} more)" if len(found) > 1 else ""
+        return "✅", f"installed at {rel}{extra}"
     install = dep.get("install_cmd", "")
     return "⚠️ ", f"not found in plugin paths — install: {install}"
 
@@ -175,7 +208,15 @@ def check_github_release(dep: dict, fast: bool) -> tuple[str, str]:
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read())
         latest = data.get("tag_name", "unknown")
-        return "✅", f"latest release: {latest}"
+        if latest.startswith("v0.0.0-"):
+            return "⚠️ ", (
+                f"latest tag {latest} is a pseudo-version — confirm the pin in "
+                "deploy/providers.tf before generating HCL"
+            )
+        return "⚠️ ", (
+            f"latest tag {latest} — compare it to the pin in deploy/providers.tf "
+            "when generating HCL (no pin lives in this repo)"
+        )
     except Exception as e:
         return "⚠️ ", f"could not fetch release info: {e}"
 

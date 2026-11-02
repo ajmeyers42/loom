@@ -106,11 +106,11 @@ Clone as a **sibling of loom** (same parent directory):
 ```bash
 git clone https://github.com/elastic/vulcan ../vulcan
 cd ../vulcan
-pip install -r requirements.txt
-cp .env.example .env   # fill in ELASTICSEARCH credentials + LLM provider keys
+./setup.sh
+source venv/bin/activate
 ```
 
-Vulcan needs its own `.env` with cluster credentials (can point to the same cluster as the engagement `.env`) and an LLM provider key (`LLM_PROVIDER=claude-sdk` recommended).
+Vulcan 2.1 needs its own `.env` with cluster credentials and `OPENROUTER_API_KEY` (or a direct Claude SDK / Anthropic / OpenAI key). `LITELLM_*` variables are ignored. `LLM_PROVIDER=claude-sdk` still takes priority when it is set.
 
 ### Keeping it current
 
@@ -127,6 +127,18 @@ The `weave-query` skill handles invocation — either through Vulcan's Streamlit
 If the cluster is unavailable or Vulcan is not installed:
 - Set `skip_indexing: true` in the Vulcan context to generate query strategy only (no cluster needed)
 - Or skip Stage 4.5 entirely — `weave-model` will proceed without Vulcan outputs
+
+---
+
+## elastic/elastic-demo-starter (optional)
+
+**https://github.com/elastic/elastic-demo-starter**
+
+Optional UI target for Vulcan 2.0+ Export Handoff. Loom does not require it. `weave-query` still copies query and seed artifacts into the engagement directory. If a local clone exists, Vulcan can place `vulcan-handoff/` into that clone's customer-context layout.
+
+```bash
+git clone https://github.com/elastic/elastic-demo-starter ../elastic-demo-starter
+```
 
 ---
 

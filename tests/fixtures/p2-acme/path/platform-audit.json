@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "slug": "acme-pharma",
+    "audit_date": "2026-11-02",
+    "audit_mode": "partial",
+    "scope_source": "capability_map",
+    "capability_map_hash": "__MAP_HASH__",
+    "platform_summary": "Greenfield — target latest GA Serverless Security (version unverified until keystore probe)"
+  },
+  "platform": { "version": "latest GA", "license_type": "serverless", "deployment_type": "serverless", "version_verified": false, "license_verified": false },
+  "feature_audit": [
+    { "feature": "Security / SIEM detection rules", "capability_id": "detection-rules", "origin": "vision", "planned": true, "status": "ready", "remediation_owner": null, "requirement_met": { "version": true, "license": true }, "demo_impact": "none" },
+    { "feature": "Cases", "capability_id": "cases", "origin": "vision", "planned": true, "status": "ready", "remediation_owner": null, "requirement_met": { "version": true }, "demo_impact": "none" },
+    { "feature": "AI Assistant (Security)", "capability_id": "ai-assistant", "origin": "vision", "planned": true, "status": "setup_required", "remediation_owner": "manual_once", "requirement_met": { "configuration": false }, "gap": "LLM connector selection", "remediation": "Pick Elastic Managed LLM connector in the space", "effort": "quick", "demo_impact": "blocks_scene" },
+    { "feature": "ES|QL", "capability_id": "esql", "origin": "vision", "planned": true, "status": "ready", "remediation_owner": null, "requirement_met": { "version": true }, "demo_impact": "none" },
+    { "feature": "Agent Builder", "capability_id": "agent-builder", "origin": "sa_added", "planned": true, "status": "setup_required", "remediation_owner": "pipeline", "requirement_met": { "version": true, "configuration": false }, "gap": "Agent, tools, and workflows not yet authored", "remediation": "weave-agent spec → bootstrap creates them in the space", "effort": "half_day", "demo_impact": "reduces_realism" },
+    { "feature": "AI Cost + Usage dashboard", "capability_id": "ai-cost-dashboard", "origin": "implied", "planned": true, "status": "setup_required", "remediation_owner": "pipeline", "requirement_met": { "version": true }, "effort": "quick", "demo_impact": "talking_point" }
+  ],
+  "overall_status": "amber",
+  "blocking_count": 0,
+  "setup_required_count": 3,
+  "ready_count": 3,
+  "pre_demo_tasks": [],
+  "descoped_features": [],
+  "recommended_alternatives": []
+}

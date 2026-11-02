@@ -47,7 +47,7 @@ DEPLOYMENT_TYPE   → one of: ech, serverless, eck
 DEPLOY_MODE       → terraform (default) | python (legacy fallback)
 INDEX_PREFIX      → engagement namespace prefix
 DEMO_SLUG         → engagement slug
-KIBANA_SOLUTION   → es | oblt | security
+KIBANA_SOLUTION   → classic | es | oblt | security
 ELASTIC_VERSION   → informational; must match asset-schema.json platform.es_version
 ```
 

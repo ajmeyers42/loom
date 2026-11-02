@@ -4,8 +4,8 @@ wind-pulse — live checks for a loom engagement workspace.
 
 Reads `{engagement}/.env`, then validates:
   • Elasticsearch: cluster health, data model indices / data streams (doc counts)
-  • Kibana saved objects: every object listed in `kibana-objects/*.ndjson` (and optional
-    `kibana/**/*.ndjson`) via GET /api/saved_objects/{type}/{id}
+  • Kibana saved objects: every object listed in `deploy/kibana-objects/*.ndjson` (and optional
+    `deploy/kibana/**/*.ndjson`, plus the pre-D-037 root paths) via GET /api/saved_objects/{type}/{id}
   • Observability SLOs: all SLOs whose tags include loom:<engagement_id> (D-026)
   • Agent Builder: agent id from AGENT_BUILDER_AGENT_ID or parsed from kibana/deploy_fraud_assistant_agent.py
   • ML jobs: state + datafeed state from {slug}-ml-config.json (if present)
@@ -148,6 +148,9 @@ def collect_ndjson_objects(engagement_dir: Path) -> list[dict]:
     """Each item: {file, type, id, title}."""
     out: list[dict] = []
     globs = [
+        engagement_dir / "deploy" / "kibana-objects",
+        engagement_dir / "deploy" / "kibana",
+        # Pre-D-037 layout, kept so older engagement folders still resolve.
         engagement_dir / "kibana-objects",
         engagement_dir / "kibana",
     ]
@@ -251,7 +254,7 @@ def main() -> None:
         "--engagement-dir",
         type=Path,
         default=Path.cwd(),
-        help="Engagement workspace (contains .env and kibana-objects/)",
+        help="Engagement workspace (contains .env and deploy/kibana-objects/)",
     )
     args = ap.parse_args()
     engagement_dir = args.engagement_dir.resolve()
@@ -405,7 +408,7 @@ def main() -> None:
                         print(f"  {FAIL}{idx} missing one or more required metric ECS fields (`host.name`, `event.dataset`, `service.type|agent.type`)")
                         fix_cmds.append(
                             f"# Ensure default pipeline populates ECS fields for {idx}\n"
-                            f"python3 bootstrap.py --step 4"
+                            f"terraform -chdir=deploy apply  # ingest pipeline for {idx}"
                         )
 
                     # Check 2c: entity discoverability baseline
@@ -454,7 +457,7 @@ def main() -> None:
             except Exception as e:
                 print(f"  {FAIL}{idx}: {e}")
                 failures.append(f"count {idx}")
-                fix_cmds.append(f"python3 bootstrap.py  # reload data for {idx}")
+                fix_cmds.append(f"python3 deploy/bootstrap-data.py  # reload data for {idx}")
         for idx_name in dm.get("indices") or []:
             index_name = idx_name if isinstance(idx_name, str) else (idx_name or {}).get("name")
             if not index_name:
@@ -469,7 +472,7 @@ def main() -> None:
             except Exception as e:
                 print(f"  {FAIL}{name}: {e}")
                 failures.append(f"count {name}")
-                fix_cmds.append(f"python3 bootstrap.py  # reload data for {name}")
+                fix_cmds.append(f"python3 deploy/bootstrap-data.py  # reload data for {name}")
         print()
     else:
         warnings.append(f"no {dm_path.name} — data model index checks skipped")
@@ -565,8 +568,8 @@ def main() -> None:
     else:
         objs = collect_ndjson_objects(engagement_dir)
         if not objs:
-            warnings.append("no *.ndjson under kibana-objects/ or kibana/ — no saved object inventory")
-            print(f"  {WARN}No *.ndjson found — add exports under kibana-objects/")
+            warnings.append("no *.ndjson under deploy/kibana-objects/ or deploy/kibana/ — no saved object inventory")
+            print(f"  {WARN}No *.ndjson found — add exports under deploy/kibana-objects/")
         else:
             objs.sort(key=lambda x: (0 if x["type"] == "dashboard" else 1, x["file"], x["type"]))
             tag_ref_id = f"loom-{engagement_id_for_tag()}"

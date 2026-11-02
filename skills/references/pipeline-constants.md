@@ -1,6 +1,6 @@
 # Pipeline Constants
 
-**Loaded by:** `skills/bolt-launch/SKILL.md`, `skills/wind-reset/SKILL.md`, `skills/wind-pulse/SKILL.md`, `skills/weave-cost/SKILL.md`
+**Loaded by:** `skills/bolt-bootstrap/SKILL.md`, `skills/wind-reset/SKILL.md`, `skills/wind-pulse/SKILL.md`, `skills/weave-cost/SKILL.md`
 
 This file is the **single source of truth** for numeric thresholds, special index names, header values, and other constants that appear in generated scripts and skill logic. Update here; skills read from here rather than hardcoding values.
 
@@ -10,7 +10,7 @@ This file is the **single source of truth** for numeric thresholds, special inde
 
 | Constant | Value | Used in |
 |----------|-------|---------|
-| Seed data skip threshold | `0.9` (90%) | `bootstrap.py` / `bootstrap-data.py` seed step; `wind-pulse` doc count check |
+| Seed data skip threshold | `0.9` (90%) | `bootstrap-data.py` seed step; `wind-pulse` doc count check |
 | Bulk batch size | `500` documents per `_bulk` call | `bootstrap-data.py` seed loop |
 | Seed count floor (always load at least N docs regardless of skip) | `50` | `bootstrap-data.py` |
 
@@ -32,7 +32,7 @@ This file is the **single source of truth** for numeric thresholds, special inde
 
 | Constant | Value | Used in |
 |----------|-------|---------|
-| UUID5 namespace | `6ba7b810-9dad-11d1-80b4-00c04fd430c8` | All `stable_id()` calls in `bootstrap.py` / `bootstrap-data.py` |
+| UUID5 namespace | `6ba7b810-9dad-11d1-80b4-00c04fd430c8` | All `stable_id()` calls in Terraform locals and `bootstrap-data.py` |
 
 **Critical:** This namespace must never change. All Kibana dashboard and saved object IDs are derived from it via `uuid.uuid5(NS, f"{SLUG}:{name}")`. Changing it would shift every stable ID across all existing engagements.
 

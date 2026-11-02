@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loom — SA control plane</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="shell" role="banner">
+      <div class="chrome">
+        <h1>Loom</h1>
+        <p class="flow-note">Approver: <span id="approver">…</span></p>
+      </div>
+      <nav class="phase-rail" aria-label="Phase">
+        <span class="phase-pill" aria-current="true">Intake</span>
+        <span class="phase-pill">Qualify</span>
+        <span class="phase-pill">Vision</span>
+        <span class="phase-pill">Demo path</span>
+      </nav>
+      <div class="layout">
+        <nav class="nav" aria-label="Screens">
+          <span class="nav-label">Hub</span>
+          <button type="button" data-screen="overview" aria-current="true">Overview</button>
+          <span class="nav-label">Intake</span>
+          <button type="button" data-screen="create">Create engagement</button>
+          <button type="button" data-screen="keystore">Input settings</button>
+          <button type="button" data-screen="evidence">Evidence</button>
+        </nav>
+        <main class="stage" id="main" role="main"></main>
+      </div>
+    </header>
+    <aside id="warnings" class="callout" role="status" aria-live="polite" hidden></aside>
+    <section id="activity" class="callout" aria-label="Activity log" hidden>
+      <strong>Activity</strong>
+      <pre id="activity-log" class="meta"></pre>
+    </section>
+  </div>
+  <script src="/static/app.js?v=5" defer></script>
+</body>
+</html>

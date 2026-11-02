@@ -1,0 +1,36 @@
+{
+  "slug": "2026NorthwindSOC",
+  "customer": "Northwind Pharmaceuticals",
+  "last_updated": "2026-06-11",
+  "qualification_status": "continue_discovery",
+  "qualification_rationale": "Pain confirmed; economic buyer not yet identified.",
+  "meddpic": {
+    "metrics": { "status": "partial", "notes": "30-40 min per alert" },
+    "economic_buyer": { "status": "not_captured", "name": "" },
+    "decision_criteria": { "status": "partial", "notes": "Alert grouping" },
+    "decision_process": { "status": "not_captured", "notes": "" },
+    "paper_process": { "status": "not_captured", "notes": "" },
+    "identify_pain": { "status": "confirmed", "notes": "Alert fatigue" },
+    "champion": { "status": "partial", "notes": "SOC Manager engaged" }
+  },
+  "technical_landscape": {
+    "current_elastic": { "present": false, "deployment_type": "none", "version": "", "license_tier": "unknown",
+                         "solution_areas": [], "existing_indices": [], "clarifications_needed": [] },
+    "interfacing_systems": [],
+    "data_sources": [],
+    "tooling_stack": [],
+    "competing_software": [],
+    "key_technical_questions": []
+  },
+  "open_questions": { "business": ["Who owns the renewal budget?"], "technical": [], "stakeholder": [] },
+  "proceed_blockers": ["Economic buyer not identified"],
+  "related_files": ["opportunity/2026NorthwindSOC-opportunity-summary.md"],
+  "demo_scope_signals": {
+    "primary_solution_area": "security",
+    "agent_builder_in_scope": false,
+    "ml_in_scope": false,
+    "siem_in_scope": true,
+    "slo_in_scope": false,
+    "noted_wow_moments": []
+  }
+}

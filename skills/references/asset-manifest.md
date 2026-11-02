@@ -1,6 +1,6 @@
 # Asset Manifest Reference
 
-Per **`docs/decisions.md` D-039** — `bootstrap.py` / `bootstrap-data.py` writes a manifest document to the target cluster so `teardown.py` has a fresh, authoritative inventory of every created resource. The manifest is **cluster-resident** and survives local file loss or re-generation.
+Per **`docs/decisions.md` D-039** — `bootstrap-data.py` writes a manifest document to the target cluster so `teardown.py` has a fresh, authoritative inventory of every created resource. The manifest is **cluster-resident** and survives local file loss or re-generation.
 
 **Teardown ordering and dispatch:** See `teardown-dispatch.md` for the canonical deletion order and asset-type → API path table.
 

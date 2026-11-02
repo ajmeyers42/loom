@@ -6,7 +6,7 @@ description: >
   workflow linkage. Aligns with Kibana 9.3+ Agent Builder (GA on Elastic Stack since 9.3).
   Use when the demo script includes a custom agent (e.g. Fraud Assistant), when the SA asks
   to "define the Agent Builder agent", "spec the Kibana agent", or when refreshing agent
-  prompts/tools after script changes. Does not replace bootstrap.py or elastic/agent-skills
+  prompts/tools after script changes. Does not replace finish-verify, bolt-bootstrap, or elastic/agent-skills
   for API execution — it documents what to build in Kibana.
 
   ALWAYS use this skill when the user is defining or revising an Agent Builder agent for a
@@ -119,8 +119,8 @@ Write **`demo/{slug}-agent-builder-spec.md`** in the engagement `demo/` subfolde
 - **Tools** table + test prompts for each tool.
 - **Demo prompts** (3–5) copied from or aligned with the demo script scenes.
 
-If the SA only wants an inline section inside `{slug}-demo-script.md`, merge the same content there instead of a separate file — but prefer a **spec file** in `demo/` when tools/workflows are non-trivial so `bolt-launch` / SA handoff stays traceable.
+If the SA only wants an inline section inside `{slug}-demo-script.md`, merge the same content there instead of a separate file — but prefer a **spec file** in `demo/` when tools/workflows are non-trivial so the finish-verify handoff stays traceable.
 
 ## Handoff
 
-Point the SA to **elastic/agent-skills** for Kibana API automation if they generate configs via API; otherwise UI build following the spec is sufficient for POC.
+`demo/{slug}-agent-builder-spec.md` is the input to `finish-verify`. Do not deploy the agent from this skill. `finish-verify` authors the Agent Builder assets; `bolt-bootstrap` places them in Terraform. Point the SA to **elastic/agent-skills** (`kibana-agent-builder`) when the API shape needs a check.

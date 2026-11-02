@@ -1,0 +1,34 @@
+{
+  "slug": "acme-pharma",
+  "customer": "Northwind Pharmaceuticals",
+  "last_updated": "2026-11-02",
+  "qualification_status": "continue_discovery",
+  "qualification_rationale": "Pain confirmed and quantified; economic buyer not yet identified.",
+  "meddpic": {
+    "metrics": { "status": "partial", "notes": "30-40 min per alert" },
+    "economic_buyer": { "status": "not_captured", "notes": "Budget owner unknown", "name": "", "engaged": false },
+    "decision_criteria": { "status": "partial", "notes": "Detections as code; alert grouping" },
+    "decision_process": { "status": "not_captured", "notes": "" },
+    "paper_process": { "status": "not_captured", "notes": "", "timeline": "" },
+    "identify_pain": { "status": "confirmed", "notes": "Alert fatigue", "primary_pain": "Alert fatigue", "quantified": true },
+    "champion": { "status": "partial", "notes": "SOC Manager engaged", "name": "Dana R.", "strength": "developing" }
+  },
+  "technical_landscape": {
+    "current_elastic": { "present": false, "deployment_type": "none", "version": "", "license_tier": "unknown", "solution_areas": [], "existing_indices": [], "clarifications_needed": [] },
+    "interfacing_systems": [],
+    "data_sources": [],
+    "tooling_stack": [{ "tool": "On-prem SIEM", "category": "SIEM", "role_in_demo": "displacement" }],
+    "competing_software": [],
+    "key_technical_questions": [{ "question": "Daily ingest volume?", "status": "open" }]
+  },
+  "open_questions": { "business": ["Who owns the renewal budget?"], "technical": ["Daily ingest volume?"], "stakeholder": [] },
+  "proceed_blockers": ["Economic buyer not identified"],
+  "demo_scope_signals": {
+    "primary_solution_area": "security",
+    "agent_builder_in_scope": false,
+    "ml_in_scope": false,
+    "siem_in_scope": true,
+    "slo_in_scope": false,
+    "noted_wow_moments": ["Guided triage explains an alert in plain language"]
+  }
+}

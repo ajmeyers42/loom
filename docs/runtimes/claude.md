@@ -24,4 +24,4 @@ Write artifacts to **`$LOOM_ENGAGEMENTS_ROOT/{slug}/`** — default **`~/engagem
 
 ## Human vs agent execution
 
-The SA should not be the default runner of `bootstrap.py` or import scripts; the agent runs them when the user approves deploy. See [`AGENTS.md`](../../AGENTS.md).
+The SA should not be the default runner of `terraform apply` or `bootstrap-data.py`; the agent runs them when the user approves deploy. See [`AGENTS.md`](../../AGENTS.md).

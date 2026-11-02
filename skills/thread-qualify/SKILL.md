@@ -41,14 +41,23 @@ Read every file available for this engagement in order of recency:
 | `demo/{slug}-discovery.json` | warp-listen | Required |
 | `opportunity/{slug}-confirmation.md` | warp-listen | Optional (cross-check) |
 | `opportunity/{slug}-gaps.md` | warp-listen | Required |
+| `opportunity/{slug}-gap-responses.json` | `loom_state gaps respond` (Path B) | Optional |
 | `demo/{slug}-current-state.json` | warp-scan | Optional |
 | `demo/{slug}-architecture.md` | warp-scan | Optional |
 | `demo/{slug}-findings.md` | warp-scan | Optional |
-| `demo/{slug}-ideation.md` | warp-spark | Optional |
-| Raw notes (any format) | SA/user-provided | Optional (supplement) |
+| `demo/{slug}-ideation.md` | warp-spark | Optional (re-runs only — qualification precedes ideation) |
+| `opportunity/{slug}-opportunity-profile.json` (prior) | this skill | Optional — preserve decision fields |
 
 If `demo/{slug}-discovery.json` is missing, stop and tell the user to run `warp-listen`
 first. All other inputs are additive — the richer the input, the more complete the summary.
+`python3 scripts/loom_state.py qualify plan <slug>` lists what is present and the open
+blocking gaps.
+
+**New raw notes are not a direct input.** Path A: add them to `inputs/` (`loom_state inputs
+add`) and re-run `warp-listen` first, so every fact stays evidence-linked. **Gap responses
+(Path B)** are a direct input: an `answered` response counts as captured evidence (cite it as
+"per gap response {gap_id}"); `accepted_risk` keeps the gap open but non-blocking; `deferred`
+stays open.
 
 ---
 
@@ -150,8 +159,9 @@ stakeholders, timelines, technical environment. One bullet per fact, source-attr
 where possible (e.g. "CTO said...", "from post-call notes"). Keep it factual.}
 
 ### What may need clarification
-{Pull directly from `opportunity/{slug}-gaps.md`. Group into: Business gaps | Technical gaps |
-Stakeholder gaps. This is the open question set for the next call or email.}
+{Pull directly from `opportunity/{slug}-gaps.md`, keyed by `gap_id`, minus gaps answered in
+`{slug}-gap-responses.json`. Mark accepted-risk gaps "(accepted risk)". Group into: Business
+gaps | Technical gaps | Stakeholder gaps. This is the open question set for the next call or email.}
 
 ---
 
@@ -233,7 +243,7 @@ before committing to a build direction or sizing approach.}
 
 {Known source systems, APIs, ETL pipelines, connectors, or feeds that would flow data
 into or receive data from Elastic. Hosting model and API access status directly determine
-which bootstrap.py integration steps are available vs. manual.}
+which Fleet packages finish-verify can install vs. what stays manual.}
 
 | System | Category | Hosting | Version / API | Integration status | Data it produces | Follow-up / Clarification needed |
 |---|---|---|---|---|---|---|
@@ -415,6 +425,12 @@ downstream skills.
 }
 ```
 
+`qualification_status` is **your recommendation**. Do **not** write `qualification_decision`
+or `accepted_risk` — `loom_state qualify decide` writes them from the SA's recorded call.
+On re-run, **carry both fields forward unchanged** from the prior profile (the CLI archives
+the old decision into stage history when the inputs change). Validate against
+`schemas/opportunity-profile.schema.json`.
+
 ---
 
 ## Step 3b: Produce the Demo Goals Brief
@@ -500,8 +516,24 @@ Outputs written:
   ✅  opportunity/{slug}-demo-goals.md            (SA handoff brief — ideation input)
 
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
-Ask the team to review {slug}-opportunity-summary.md before proceeding to platform audit.
+Ask the team to review {slug}-opportunity-summary.md, then record the SA's decision.
 SA: read opportunity/{slug}-demo-goals.md before running warp-spark.
+
+### Register and record the decision
+
+1. `python3 scripts/loom_state.py qualify record <slug>` — validates the profile and marks
+   `stages.opportunity-review` as `awaiting_decision` (with the recommendation and open
+   blocking gaps). Unchanged inputs + an existing decision → no-op.
+2. Ask the SA for the call, then run `loom_state qualify decide <slug> --status <status>`:
+   - `proceed` — requires every blocking gap (`blocks_demo_build` or `blocks_qualification`)
+     answered or accepted: `--accept-risk g_… --rationale "…"`. Add `--ae-aligned` (and
+     `--ae-note`) once the AE/SDR reviewed the summary.
+   - `continue_discovery` — parks the engagement; Vision stays locked. The SA may later
+     unlock design explicitly with `loom_state qualify design-anyway <slug> --rationale "…"`.
+   - `not_qualified` — stops the pipeline.
+   - A decision that differs from your recommendation requires `--rationale`.
+3. The decision is an approval (`approvals[]`, action `qualification_decision`) — never record
+   it on the SA's behalf without their explicit call in chat.
 
 ---
 
@@ -524,7 +556,9 @@ This skill is designed to be re-run. When re-run with updated notes or new infor
 - {date}: Initial summary from discovery parse
 ```
 
-5. Increment `last_updated` in the JSON.
+5. Increment `last_updated` in the JSON; preserve `qualification_decision` / `accepted_risk`.
+6. Re-register with `loom_state qualify record <slug>` — changed inputs return the stage to
+   `awaiting_decision`, so the SA re-decides on the refreshed evidence.
 
 ---
 

@@ -63,7 +63,7 @@ Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 - **Scenario adaptability:** Analytic, not prescriptive. Read the inputs; do not retrofit every engagement into a template that worked for a prior customer.
 
 **Additional skills (planning / Kibana / Security):**
-- `warp-spark` — consultative SA coaching to choose demo direction, archetype, and wow moments before discovery. Produces `{slug}-ideation.md` (see Stage 0 above).
+- `warp-spark` — consultative SA coaching to choose demo direction, archetype, wow moments, and the capability map **after the qualification decision** (or immediately for scratch engagements). Produces `{slug}-ideation.md` + `{slug}-capability-map.json` (see Stage 2c).
 - `thread-qualify` — consolidates all discovery and diagnostic outputs into a living Opportunity Summary for SDR/AE/SA team alignment. MEDDPIC qualification assessment + technical landscape. Acts as the gate between intelligence gathering and demo planning. Produces `{slug}-opportunity-summary.md` and `{slug}-opportunity-profile.json`. Re-run after any follow-up call. See Stage 2b.
 - `weave-agent` — when the demo script includes **Elastic Agent Builder** (custom agent, tools, workflows), produce `{slug}-agent-builder-spec.md` per `skills/weave-agent/SKILL.md`.
 - `weave-cost` — two-dimensional: (A) SA tooling for tracking own Claude Code / Cursor spend; (B) demo feature that adds an **AI Cost + Usage dashboard** to any Agent Builder demo. Included by default when Agent Builder is in scope (D-036). Read `skills/weave-cost/SKILL.md`.
@@ -72,6 +72,7 @@ Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 **Reference libraries (hive-mind):**
 The `hive-mind` local clone provides validated patterns. Path: `{hive-mind-root}` = `$HIVE_MIND_PATH` if set, otherwise `../hive-mind` (sibling clone). See `docs/ext-registry.yaml`.
 - Kibana dashboards: `{hive-mind-root}/patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md`
+- Kibana custom panels: `{hive-mind-root}/skills/hive-kibana-custom-panels/SKILL.md` — technical preview, Kibana 9.6+ or Serverless. Prefer standard ES|QL visualizations on the 9.4 floor and on 9.5. Do not reimplement custom panels in loom.
 - Workflows API: `{hive-mind-root}/patterns/workflows/WORKFLOWS_API_REFERENCE.md`
 - Agent Builder API: `{hive-mind-root}/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md`
 - Probe-based feature detection: `{hive-mind-root}/patterns/deployment/SERVERLESS_FEATURE_DETECTION.md`
@@ -88,16 +89,19 @@ loom-specific decisions; use hive-mind for upstream pattern reference.
 
 Two distinct starting points exist for the loom pipeline. Choose based on who is running it:
 
-### AE/SDR Entry Point — 
+### AE/SDR Entry Point — `warp-scout`
 
 **Who uses this:** AE or SDR who has discovery notes and wants to structure them and hand
-off a brief to the SA. This is the early-funnel pipeline.
+off a brief to the SA. This is the early-funnel pipeline. Non-technical users use the
+Gemini Gem (`warp-discovery`) instead of this skill.
 
-Read  and execute it. This skill runs three stages:
+Read `skills/warp-scout/SKILL.md` and execute it. This skill runs three stages:
 discovery parsing, optional diagnostic analysis, and opportunity review. It produces the
-full discovery package plus  as the SA handoff brief.
+full discovery package plus `opportunity/{slug}-demo-goals.md` as the SA handoff brief.
 
-The AE/SDR pipeline ends at . The SA picks up from there.
+The AE/SDR pipeline ends at `opportunity/{slug}-demo-goals.md`. The SA picks up from there
+with `loom`: import the package into a new engagement (`loom_state new --entry-mode import
+--import <package-dir>`), register intake, record the qualification decision, then ideate (D-050).
 
 Trigger phrases: "parse these notes", "qualify this deal", "structure the discovery",
 "hand off to SA", "what do we know about [company]".
@@ -108,6 +112,28 @@ Trigger phrases: "parse these notes", "qualify this deal", "structure the discov
 ( and ) or from scratch.
 
 This is the primary pipeline — proceed through the stages below.
+
+### Engagement state CLI — `loom_state` (D-052)
+
+Skills **author** content (discovery JSON, profiles, ideation, audits). `scripts/loom_state.py`
+**registers** that content: it scaffolds engagements, validates outputs against `schemas/`,
+enforces gates, and writes `{slug}-pipeline-state.json` + `approvals[]`. Run it on the SA's
+behalf; never hand-edit pipeline-state for stages it owns.
+
+| Step | Command (`python3 scripts/loom_state.py …`) |
+|---|---|
+| Create engagement | `new --slug acme-… --display "…" [--company … --opportunity … --opportunity-id …] --entry-mode import\|notes\|scratch --solution …` |
+| Keystore | `keys status\|list\|init\|defer\|set K=V…\|clone --from <slug>\|validate [--probe]` |
+| Add input | `inputs add <slug> <file>` (Path A source of truth: `inputs/`) |
+| Intake | `listen plan\|record <slug>`, `scan record\|skip <slug>` |
+| Gaps | `gaps list <slug>`, `gaps respond <slug> <gap_id> --status answered\|accepted_risk\|deferred` (Path B) |
+| Qualify | `qualify plan\|record\|status <slug>`, `qualify decide <slug> --status …`, `qualify design-anyway <slug> --rationale …` |
+| Vision | `vision plan\|freeze\|confirm <slug>`, `vision map show\|add\|exclude\|token-visibility <slug> …` |
+| Demo path | `path plan\|check <slug>`, `path commit <slug> --path custom\|predefined` |
+| Resume | `next <slug>` (phase + next action derived from state), `hygiene` |
+
+Add `--json` for machine-readable output. `loom_state` never mutates a cluster; `keys validate
+--probe` is a read-only `GET /` + Kibana `/api/status`.
 
 ---
 
@@ -184,68 +210,57 @@ If the SA wants visibility into token spend across pipeline stages, invoke `hive
 This is SA tooling — not required per engagement, but useful for full pipeline runs where
 multiple models and stages accumulate cost. Run once per SA setup, not per engagement.
 
-## Step 0b: Ideation (always runs — SA commit gate)
+## Step 0b: Ideation timing (D-050)
 
-Ideation **always runs** before platform-audit. It is the SA’s explicit commit to demo direction.
-No technical build work (script-template, data-modeler, asset-verifier) begins until
-`{slug}-ideation.md` is frozen and the post-ideation confirmation refresh is approved (D-050).
+Ideation **always runs**, but **after** intake and the recorded qualification decision — it
+is Stage 2c below, not a pre-discovery step. It is the SA’s explicit commit to demo direction:
+no platform audit, demo-path commit, or build work begins until `{slug}-ideation.md` +
+`{slug}-capability-map.json` are frozen (`loom_state vision freeze`) and the refreshed
+confirmation is approved (`loom_state vision confirm`).
 
-**Operating mode selection:**
-
-| Condition | Mode |
-|---|---|
-| `opportunity/{slug}-demo-goals.md` exists | **Mode 1 — SA Expansion:** pre-seeded from AE/SDR outputs |
-| Discovery notes or `{slug}-discovery.json` exist but no goals brief | **Mode 2 — Customer context** |
-| No prior context | **Mode 3 — From scratch** |
-
-- Read: `skills/warp-spark/SKILL.md`
-- Outputs: `demo/{slug}-ideation.md` (frozen) + updated `opportunity/{slug}-confirmation.md`
-- **Gate:** SA must approve the updated confirmation before pipeline continues to Step 3
-
-**Skip condition:** Only skip if `demo/{slug}-ideation.md` already exists in `{engagement_dir}`
-**and** the SA explicitly confirms the existing contract is still current. Do not skip silently.
+Exception: **scratch** engagements with no discovery go straight to ideation (Mode 3) — there
+is nothing to qualify yet.
 
 ## Step 1: Identify the Engagement and Set the Engagement Directory
 
-**Determine `{engagement_dir}` first, then derive the slug from it.**
+**Existing engagement:** If the user points at a folder under `LOOM_ENGAGEMENTS_ROOT`
+(e.g. `~/engagements/acme-pharma/inputs/notes.md`), that folder is `{engagement_dir}` and
+its **name is the slug** — use it exactly as on disk; do not re-normalize it. Run
+`loom_state next <slug>` to orient. Legacy folders without pipeline-state still work via the
+file-scan fallback (Step 2).
 
-**Path-first resolution (preferred):** If the user provides a path to discovery
-documents or files that are already inside a folder under `LOOM_ENGAGEMENTS_ROOT`
-(e.g., `~/engagements/2026acmecorp/discovery/notes.md`), the **parent of that
-discovery folder is `{engagement_dir}`**:
+**New engagement — public slug, private identity (dual identity):** The slug is a **public
+demo codename** the SA chooses (convention `acme-<vertical>`, e.g. `acme-pharma`). It is
+**never derived from the customer name** — it lands on Kibana spaces, tags, index prefixes,
+and shared files. The real company / opportunity live only in pipeline-state `identity`:
 
+```bash
+python3 scripts/loom_state.py new --slug acme-pharma --display "Acme Pharma" \
+  --company "<company>" --opportunity "<opportunity>" --opportunity-id "<crm id>" \
+  --entry-mode notes --solution security --notes /path/to/call-notes.md
 ```
-user provides: ~/engagements/2026acmecorp/discovery/
-                               ^^^^^^^^^^^
-engagement_dir = ~/engagements/2026acmecorp/   ← use exactly as-is
-slug           = 2026acmecorp                  ← taken from folder name, not re-normalized
-```
 
-Use the **folder name exactly as it exists on disk** for the slug in this case.
-Do not normalize or lowercase it when an existing folder was provided.
+`new` refuses a slug or display name containing the company / opportunity identity,
+normalizes the tag id per D-026 (`acme-pharma` → `loom:acmepharma`), auto-suffixes on
+folder or tag-id collision (`acme-pharma-2`), refuses a root inside a git work tree, warns
+on cloud-synced roots, and writes `.env.example` with public values only.
 
-**Name-first resolution (fallback):** If no path is provided and you only have a
-customer name, derive slug and engagement_dir from the user's prompt:
-
-```
-slug           = lowercase-hyphenated form of customer name
-                 "Citizens Bank" → citizens-bank
-                 "Deutsche Telekom SOC-T" → dt-soct
-engagement_dir = "${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}/{slug}/"
-```
+Entry modes: `import` (AE/SDR package — `--import <dir>`; files are renamed to the public
+slug), `notes` (raw notes copied into `inputs/`), `scratch` (no discovery yet → Mode 3).
 
 > **Important:** `{engagement_dir}` is always a folder under `~/engagements/` (or the
 > configured root). **Never** name it `workspace`, `workspace-{slug}`, or any path
 > relative to the loom repo root. The repo holds skills only; all customer
 > artifacts live outside it under `{engagement_dir}`.
 
-Create the directory and its four audience-scoped subfolders if they don’t exist:
+`new` creates the audience-scoped subfolders:
 
-```bash
-mkdir -p "{engagement_dir}/opportunity"   # AE / SDR / SA — sales alignment, customer-facing docs
-mkdir -p "{engagement_dir}/demo"          # SA — discovery intel, platform audit, scripts
-mkdir -p "{engagement_dir}/data"          # SA / engineer — data model, ML config, Vulcan, seed data
-mkdir -p "{engagement_dir}/deploy"        # SA — bootstrap, teardown, Kibana objects, readiness
+```
+{engagement_dir}/inputs/       # Path A source of truth — raw notes, transcripts, AE follow-ups
+{engagement_dir}/opportunity/  # AE / SDR / SA — sales alignment, customer-facing docs
+{engagement_dir}/demo/         # SA — discovery intel, ideation, capability map, platform audit, scripts
+{engagement_dir}/data/         # SA / engineer — data model, ML config, Vulcan, seed data
+{engagement_dir}/deploy/       # SA — bootstrap, teardown, Kibana objects, readiness
 ```
 
 Only per-demo artifacts belong in `{engagement_dir}/`; pipeline code stays in the
@@ -254,13 +269,23 @@ loom clone (`skills/`, `docs/`).
 **Folder → audience mapping:**
 | Folder | Primary audience | What lives here |
 |--------|----------------|----------------|
+| `inputs/` | SA, AE | Raw discovery inputs; every `source_ref.file` in discovery JSON points here |
 | `opportunity/` | AE, SDR, SA | Opportunity summary, qualification profile, customer confirmation, gaps, demo brief |
 | `demo/` | SA | Ideation contract, discovery JSON, diagnostic outputs, platform audit, demo script, agent spec |
 | `data/` | SA, engineer | Data model, ML config, Vulcan outputs, `mappings/`, `pipelines/`, `seed/` |
-| `deploy/` | SA | `bootstrap.py`, `teardown.py`, provision log, deploy log, checklist, risks, Kibana objects |
+| `deploy/` | SA | `main.tf`, `providers.tf`, `bootstrap-data.py`, `teardown.py`, provision log, deploy log, checklist, risks, Kibana objects |
 
 `.env` and `.env.example` remain at the **engagement root** (not inside any subfolder) — they
 are sourced directly by scripts and shell workflows using the root path convention.
+
+**Keystore ≠ cloud provisioning.** `.env` is the engagement's credential keystore; its
+`keystore.status` (`empty|partial|complete|validated`) is tracked separately from the
+`cloud-provision` stage (bolt-spin created a cluster → `deploy/{slug}-provision-log.md`).
+A keystore is optional for planning (`keys defer`); it is required before live verify, deploy,
+or agent-runtime launch. Reuse a sibling engagement's cluster with `loom_state keys clone
+--from <slug>` — it keeps this slug's `DEMO_SLUG` / `KIBANA_SPACE_PATH`, re-derives the
+`KIBANA_SOLUTION` suggestion, forces a distinct `INDEX_PREFIX` on a shared URL, skips `DEMO_ASSET_TAG` /
+`CLUSTER_NAME` / `DEPLOYMENT_ID` unless `--keep`, and never copies private identity.
 
 All output files for this engagement live under the appropriate subfolder. Each skill writes
 to the correct folder; the slug prefix is still used on each file so files remain identifiable
@@ -275,19 +300,31 @@ scanning all output files individually — it is the authoritative record of wha
 what inputs each stage last saw. If it does not exist yet, fall back to the file scan below
 and write the state file once inventory is complete.
 
-Pipeline-state schema (write and update this after every stage completes):
+Pipeline-state schema — canonical: `schemas/pipeline-state.schema.json`. `loom_state` writes
+the intake → demo-path stages (P2); later stages are still updated by the orchestrator after
+each stage completes:
 
 ```json
 {
+  "schema_version": "2",
   "slug": "{slug}",
   "engagement_dir": "{engagement_dir}",
   "last_updated": "ISO-8601 timestamp",
+  "tag_id": "acmepharma",
+  "solution": "search|observability|security|cross_solution|unknown",
+  "identity": { "company_name": "…", "opportunity_name": "…", "opportunity_id": "…", "public_display_name": "Acme Pharma" },
+  "entry_mode": "import|notes|scratch",
+  "path": "custom|predefined|unset",
+  "keystore": { "status": "empty|partial|complete|validated", "deferred": false, "source": "manual|sample|clone", "cloned_from": null },
+  "approvals": [ { "action": "qualification_decision|qualification_override|vision_freeze|confirmation_approve|demo_path_commit|spend|deploy_apply|teardown",
+                   "approver": "…", "timestamp": "…", "artifacts": { "demo/{slug}-ideation.md": "sha256:…" }, "rationale": "…" } ],
   "stages": {
-    "ideation":            { "status": "complete|skipped|pending", "output": "demo/{slug}-ideation.md",           "input_hash": "…" },
-    "discovery-parser":    { "status": "complete|skipped|pending", "output": "demo/{slug}-discovery.json",        "input_hash": "…" },
-    "diagnostic-analyzer": { "status": "complete|skipped|pending", "output": "demo/{slug}-current-state.json",    "input_hash": "…" },
-    "opportunity-review":  { "status": "complete|skipped|pending", "output": "opportunity/{slug}-opportunity-summary.md","input_hash": "…" },
-    "platform-audit":      { "status": "complete|skipped|pending", "output": "demo/{slug}-platform-audit.json",   "input_hash": "…" },
+    "discovery-parser":    { "status": "…", "output": "demo/{slug}-discovery.json",        "input_hash": "sha256:…" },
+    "diagnostic-analyzer": { "status": "…", "output": "demo/{slug}-current-state.json",    "input_hash": "sha256:…" },
+    "opportunity-review":  { "status": "…", "output": "opportunity/{slug}-opportunity-summary.md", "input_hash": "sha256:…", "decision": "proceed" },
+    "ideation":            { "status": "…", "outputs": ["demo/{slug}-ideation.md", "demo/{slug}-capability-map.json"], "map_hash": "sha256:…" },
+    "platform-audit":      { "status": "…", "output": "demo/{slug}-platform-audit.json",   "input_hash": "sha256:…" },
+    "build-path":          { "status": "…", "path": "custom|predefined", "custom_required": true },
     "script-template":     { "status": "complete|skipped|pending", "output": "demo/{slug}-demo-script.md",        "input_hash": "…" },
     "agent-design":        { "status": "complete|skipped|pending", "output": "demo/{slug}-agent-builder-spec.md", "input_hash": "…" },
     "vulcan-generate":     { "status": "complete|skipped|pending", "output": "data/{slug}-vulcan-queries.json",        "input_hash": "…" },
@@ -295,29 +332,40 @@ Pipeline-state schema (write and update this after every stage completes):
     "fleet-integrations":  { "status": "complete|skipped|pending", "output": "deploy/{slug}-integrations-manifest.json","input_hash": "…" },
     "ml-designer":         { "status": "complete|skipped|pending", "output": "data/{slug}-ml-config.json",              "input_hash": "…" },
     "validator":           { "status": "complete|skipped|pending", "output": "deploy/{slug}-demo-checklist.md",     "input_hash": "…" },
-    "cloud-provision":     { "status": "complete|skipped|pending", "output": ".env",                         "input_hash": "…" },
-    "deploy":              { "status": "complete|skipped|pending", "output": "deploy/bootstrap.py",                 "input_hash": "…" }
+    "cloud-provision":     { "status": "complete|skipped|pending", "output": "deploy/{slug}-provision-log.md", "input_hash": "…" },
+    "deploy":              { "status": "complete|skipped|pending", "output": "deploy/bootstrap-data.py",            "input_hash": "…" }
   }
 }
 ```
 
-`input_hash` is a short fingerprint (first 8 chars of the last-modified timestamp of the
-primary input file, or `"none"` if no input). Use it to detect when re-runs are needed —
-if the hash on disk differs from the hash recorded here, mark the stage pending.
+Stage statuses: `pending`, `running`, `complete`, `skipped`, `awaiting_decision`
+(qualification recorded, SA decision pending), `awaiting_confirmation` (vision frozen,
+refreshed confirmation pending), `stale` (inputs changed since the stage ran), `blocked`.
 
-If `{slug}-pipeline-state.json` is missing (first run), scan for individual output files to
-populate it, then write it.
+**Phase is derived, never stored.** `loom_state next <slug>` derives phase (Intake → Qualify →
+Design → Build & Validate), next action, and blockers from stages + `path` + approvals +
+keystore. `--no-fs` resumes from pipeline-state alone.
+
+`input_hash` is a **sha256 content hash** (`sha256:<64 hex>`) of the stage's inputs — e.g.
+discovery-parser hashes every file under `inputs/`; opportunity-review hashes discovery +
+gaps + current-state; platform-audit is stamped with the capability-map hash. If the hash
+of the current inputs differs from the recorded one, the stage is `stale` and must re-run.
+Never use mtimes.
+
+If `{slug}-pipeline-state.json` is missing (legacy engagement), scan for individual output
+files to populate it, then write it.
 
 **File scan fallback** (only when no state file exists):
 
 ```
 Stage                    | Output file                     | Re-run if...
 -------------------------|----------------------------------|---------------------------
-warp-spark            | demo/{slug}-ideation.md                    | No discovery notes; SA needs direction
-warp-listen    | demo/{slug}-discovery.json                 | New/changed discovery notes
+warp-listen    | demo/{slug}-discovery.json                 | New/changed files under inputs/
 warp-scan | demo/{slug}-current-state.json             | New/changed diagnostic file
 thread-qualify  | opportunity/{slug}-opportunity-summary.md  | discovery or diagnostic changed; follow-up notes added
-thread-audit      | demo/{slug}-platform-audit.json            | opportunity-profile or current-state changed
+warp-spark            | demo/{slug}-ideation.md + capability-map   | Qualification decided (or scratch); not yet frozen
+thread-audit      | demo/{slug}-platform-audit.json            | capability map changed since audit
+thread-suggest    | (state) path + stages.build-path           | audit changed; path unset
 weave-script     | demo/{slug}-demo-script.md                 | platform-audit or ideation changed or user requested
 weave-agent | demo/{slug}-agent-builder-spec.md          | script includes Agent Builder and script/audit changed
 weave-query     | data/{slug}-vulcan-queries.json            | ES|QL-heavy script; RAG/semantic search in scope; integrations needed
@@ -330,16 +378,16 @@ finish-check           | deploy/{slug}-demo-checklist.md            | always run
 Conditional skills without a standalone required file (`weave-cost`, Security-specific
 sample data, SLO authoring helpers) should still be invoked when the script or audit scopes
 those capabilities. Record their outputs in the downstream artifact they enrich (usually
-`{slug}-data-model.json`, `{slug}-demo-checklist.md`, or `bootstrap.py`).
+`{slug}-data-model.json`, `{slug}-demo-checklist.md`, or `deploy/bootstrap-data.py`).
 
 **Model tier guidance** — use this when the SA can configure per-stage models or when cost matters:
 
 | Stage | Skill | Model tier | Reason |
 |---|---|---|---|
-| 0 | warp-spark | **Best** | Creative ideation; high-stakes SA commit gate |
 | 1 | warp-listen | Fast | Structured extraction from notes; predictable schema |
 | 2a | warp-scan | Fast | Structured extraction from diagnostic JSON |
 | 2b | thread-qualify | **Best** | Analytical judgment; MEDDPIC scoring; deal decision |
+| 2c | warp-spark | **Best** | Creative ideation; high-stakes SA commit gate |
 | 3 | thread-audit | Fast | Lookup and comparison against feature matrix |
 | 4 | thread-suggest | Fast | Catalog lookup; predefined vs custom decision |
 | 5 | weave-script | **Best** | Customer-facing narrative; highest-stakes artifact |
@@ -349,22 +397,24 @@ those capabilities. Record their outputs in the downstream artifact they enrich 
 | 6d | weave-train | **Best** | ML job config accuracy; detector/datafeed shapes |
 | 6e | weave-agent | **Best** | Agent system prompt quality; tool API shapes |
 | 7 | finish-check | Fast | Template-driven checklist generation |
-| 8 | finish-verify | Fast | Probe, compare, and template |
+| 8 | bolt-spin | Fast | Provisioning; spend approval required |
+| 8b | finish-verify | Fast | Probe, compare, and template |
 | 9 | bolt-bootstrap | Fast | Template generation from verified asset-bundle |
 
 Report the inventory to the user before executing:
 ```
-📋 Engagement: [Company] ([slug])
+📋 Engagement: [slug] — sales: [Company] (internal only)
 📁 Engagement dir: {engagement_dir}
 
 Stage                    Status
 ─────────────────────────────────────────
 Currency check           ✅ Up to date (loom rev abc1234, hive-mind rev def5678)
-Ideation                 ⏭  Skipped  (discovery notes provided)
 Discovery parser         ✅ Complete  ({slug}-discovery.json)
 Diagnostic analyzer      ⏭  Skipped  (no diagnostic provided)
 Opportunity review       🔲 Pending
-Platform audit           🔲 Pending  (runs after opportunity review)
+Ideation                 🔲 Pending  (after qualification decision — D-050)
+Platform audit           🔲 Pending  (scoped to the frozen capability map)
+Demo path                🔲 Pending  (custom / predefined commit)
 Script template          🔲 Pending
 Data modeler             🔲 Pending
 ML designer              🔲 Pending  (will check for ML scenes in script)
@@ -445,7 +495,7 @@ these **Tier A** stages as subagents instead of running them inline:
 
 1. Brief the worker with: engagement slug, `{engagement_dir}`, skill path, input file list, and exit condition (which artifacts to write).
 2. Prefer parallel pairs from `docs/efficiency.md` §4 when both sides are pending (e.g. warp-listen ∥ warp-scan; weave-fleet ∥ weave-train).
-3. After each worker returns, **read the artifacts it claims to have written**, then **update `{slug}-pipeline-state.json`** in the parent (mark stage `complete`, output filename, input hash). Do not trust the summary alone.
+3. After each worker returns, **read the artifacts it claims to have written**, then **update `{slug}-pipeline-state.json`** in the parent (`loom_state listen record` / `scan record` for intake workers; otherwise mark stage `complete`, output filename, input hash). Do not trust the summary alone.
 4. Keep Tier C stages (warp-spark, thread-qualify, weave-script, bolt-spin, wind-reset) and all approval gates in the **main** interactive chat.
 5. Prefer CLI (`scripts/inventory.py`, `wind_pulse.py`) over an AI subagent for deterministic status/health.
 
@@ -459,7 +509,7 @@ For each stage that needs to run, in order:
    `{loom_repo}/skills/<skill>/SKILL.md` from the repo root instead.
 3. **Execute the stage** using the loaded instructions and available inputs.
 4. **Write outputs** to `{engagement_dir}` with the slug prefix.
-5. **Update `{slug}-pipeline-state.json`** — mark the stage `complete`, record the output filename and input hash. This keeps the next session's inventory instant.
+5. **Update `{slug}-pipeline-state.json`** — for intake → demo-path stages, run the stage's `loom_state … record` / `decide` / `freeze` / `confirm` / `commit` command (it validates and records the hash); for later stages, mark the stage `complete` with output filename and sha256 input hash. This keeps the next session's inventory instant.
 6. **Announce completion:** `✅ Stage N complete — {stage-name} → {output-file}. Proceeding to Stage N+1.`
    Example: `✅ Stage 1 complete — warp-listen → demo/{slug}-discovery.json. Proceeding to Stage 2a.`
 7. **Emit session handoff:** `🔁 Next session: attach {primary-output-file} — run {next-stage} [{model-tag}]`
@@ -478,23 +528,21 @@ For each stage that needs to run, in order:
 
 ### Stage execution order and skip conditions
 
-**Stage 0 — warp-spark** `[fast-model ok]` *(optional — run when no discovery notes or diagnostic exist)*
-- Skip if: `{slug}-discovery.json` OR `{slug}-ideation.md` exists, OR discovery notes provided
-- Read: `../warp-spark/SKILL.md`
-- Inputs: SA description, customer vertical, or "I have a meeting with X" context
-- Outputs: `{slug}-ideation.md` (frozen contract: archetype, wow moments, capability map, data strategy)
-
 **Stage 1 — warp-listen** `[fast-model ok]`
-- Skip if: `demo/{slug}-discovery.json` exists AND no new discovery notes provided
+- Skip if: `stages.discovery-parser` is `complete` and not stale (`loom_state next` reports no new `inputs/` content)
 - Read: `../warp-listen/SKILL.md`
-- Inputs: discovery notes (PDF/text/markdown); optionally `{slug}-ideation.md` for narrative validation
-- Outputs: `{slug}-discovery.json`, `{slug}-confirmation.md`, `{slug}-gaps.md`
+- Inputs: every file under `inputs/` (`loom_state listen plan <slug>` lists them plus the prior gap ids to keep stable)
+- Outputs: `{slug}-discovery.json` (claims + gaps with `source_ref` evidence), `{slug}-confirmation.md`, `{slug}-gaps.md`
+- **Register:** `loom_state listen record <slug>` — validates the schema, verifies every
+  `source_ref` excerpt against `inputs/`, enforces gap-id stability, and reports gaps closed
+  by re-inference. Fix and re-run on failure; do not hand-mark the stage complete.
 
 **Stage 2 — warp-scan** `[fast-model ok]` *(optional)*
 - Skip if: no diagnostic file provided OR `demo/{slug}-current-state.json` already exists
 - Read: `../warp-scan/SKILL.md`
 - Inputs: diagnostic ZIP or API exports
 - Outputs: `{slug}-current-state.json`, `{slug}-architecture.md`, `{slug}-findings.md`
+- **Register:** `loom_state scan record <slug>` (or `scan skip <slug>` when no diagnostic exists)
 
 **Stage 2b — thread-qualify** `[fast-model ok]`
 - Skip if **all** of the following are true:
@@ -510,39 +558,73 @@ For each stage that needs to run, in order:
     the parsed JSON files appear unchanged, fresh input always warrants a re-run so the living
     document reflects the latest intelligence
 - Read: `../thread-qualify/SKILL.md`
-- Inputs: `{slug}-discovery.json` (required), `{slug}-gaps.md`, `{slug}-current-state.json`,
-  `{slug}-findings.md`, `{slug}-architecture.md` (all optional but used when present),
-  plus any raw follow-up notes or supplemental files provided in the current session
+- Inputs: `{slug}-discovery.json` (required), `{slug}-gaps.md`, `{slug}-gap-responses.json`
+  (Path B answers, if present), `{slug}-current-state.json`, `{slug}-findings.md`,
+  `{slug}-architecture.md` (all optional but used when present). New raw notes go into
+  `inputs/` first (`loom_state inputs add`) and re-run Stage 1 — Path A is the source of truth.
 - Outputs: `{slug}-opportunity-summary.md`, `{slug}-opportunity-profile.json`
-- **Team alignment gate:** After writing outputs, surface the qualification recommendation
-  and prompt the SA to share `{slug}-opportunity-summary.md` with the SDR and AE for review
-  before continuing. Do not proceed to platform audit until the SA confirms alignment
-  (or explicitly says "proceed anyway").
-- **Qualification gate:** If `qualification_status` is `not_qualified`, **stop the pipeline**
-  and report clearly. Do not run platform audit or demo build for unqualified opportunities.
-  If `continue_discovery`, surface the open questions and ask the SA whether to continue
-  building or wait for answers.
+- **Register:** `loom_state qualify record <slug>` → stage `awaiting_decision`.
+- **Decision gate (SA, in the main chat):** surface the recommendation, open blocking gaps
+  (`loom_state gaps list`), and prompt the SA to share the summary with SDR/AE. Record the
+  SA's call with `loom_state qualify decide <slug> --status proceed|continue_discovery|not_qualified`
+  (`--ae-aligned`, `--rationale`, `--accept-risk <gap_id>…`). This writes `approvals[]` and
+  `qualification_decision` into the profile.
+  - `proceed` requires every blocking gap answered or accepted as risk (rationale required).
+  - `not_qualified` **stops the pipeline**.
+  - `continue_discovery` **parks** the engagement — Vision stays locked until new inputs
+    close the gaps, or the SA explicitly runs `loom_state qualify design-anyway <slug>
+    --rationale "…"`.
+
+**Stage 2c — warp-spark** `[best-model]` *(always runs — D-050)*
+- Runs after the qualification decision is `proceed` (or design-anyway); scratch engagements
+  without discovery run it first (Mode 3).
+- Skip if: `stages.ideation` is `complete` and not stale. Discovery notes do not skip ideation.
+- Read: `../warp-spark/SKILL.md`. `loom_state vision plan <slug>` reports the mode:
+
+  | Condition | Mode |
+  |---|---|
+  | `opportunity/{slug}-demo-goals.md` exists | **Mode 1 — SA Expansion** (pre-seeded from AE/SDR outputs) |
+  | Discovery exists but no goals brief | **Mode 2 — Customer context** |
+  | Scratch, no discovery | **Mode 3 — From scratch** |
+
+- Outputs: `demo/{slug}-ideation.md`, `demo/{slug}-capability-map.json` (built with
+  `loom_state vision map add|exclude` from `skills/references/capability-catalog.json`;
+  ≥1 SA-added feature expected; Agent Builder implies `ai-cost-dashboard` per D-036),
+  refreshed `opportunity/{slug}-confirmation.md`, and a `Demo direction:` line in the summary TL;DR.
+- **Freeze:** `loom_state vision freeze <slug>` — checks required sections, renders the map
+  table, records `vision_freeze`. Stage → `awaiting_confirmation`.
+- **Confirm (SA gate):** SA approves the refreshed confirmation → `loom_state vision confirm <slug>`.
+  Editing the map after freeze returns it to draft and marks ideation stale.
 
 **Stage 3 — thread-audit** `[fast-model ok]`
-- Skip if: `demo/{slug}-platform-audit.json` exists AND neither discovery, current-state, nor
-  opportunity-profile have changed
+- Runs after Stage 2c is `complete` (vision frozen + confirmation approved).
+- Skip if: `demo/{slug}-platform-audit.json` exists AND its `meta.capability_map_hash` matches
+  the current capability map
 - Read: `../thread-audit/SKILL.md`
-- Inputs: `{slug}-discovery.json`, `{slug}-current-state.json` (if available),
-  `{slug}-opportunity-profile.json` (use `demo_scope_signals` to pre-scope the audit)
-- Outputs: `{slug}-platform-audit.json`, `{slug}-platform-audit.md`
-- **Blocker check:** If overall_status is RED, surface the blocking features before
-  proceeding. Auto-adjust scope: remove blocked features from the script brief, continue.
+- Inputs: **the selected capability map** (`loom_state path plan <slug>` lists the in-scope
+  capability ids, catalog audit features, default `remediation_owner`, and the map hash to
+  stamp), `{slug}-current-state.json` (if available), `{slug}-opportunity-profile.json`
+- Outputs: `{slug}-platform-audit.json` (one row per in-scope `capability_id`;
+  `scope_source: capability_map`), `{slug}-platform-audit.md`
+- **Check:** `loom_state path check <slug>` — coverage, map-hash match, `remediation_owner`
+  on every amber row.
+- **Blocker check:** RED rows (`blocked` / `upgrade_required`) block the path commit. Re-scope
+  in the capability map (`vision map exclude`), re-freeze, and re-audit — do not silently drop scenes.
 
 **Stage 3b — thread-suggest** `[fast-model ok]` *(required — D-049)*
-- **Decision gate: predefined vs. custom build.** Every engagement must make this decision
-  explicitly before scripting begins.
+- **Decision gate: Demo path — predefined vs. custom build.** Every engagement must make this
+  decision explicitly before scripting begins.
 - Read: `../thread-suggest/SKILL.md`
-- Inputs: `demo/{slug}-ideation.md` (required), `opportunity/{slug}-opportunity-profile.json`,
-  `demo/{slug}-platform-audit.json`, `skills/thread-suggest/references/standard-demos.md`
+- Inputs: `demo/{slug}-ideation.md` + `demo/{slug}-capability-map.json` (required),
+  `opportunity/{slug}-opportunity-profile.json`, `demo/{slug}-platform-audit.json`,
+  `skills/thread-suggest/references/standard-demos.md`
+- **Commit:** `loom_state path commit <slug> --path predefined|custom` — sets top-level
+  `path`, `stages.build-path`, completes `platform-audit`, and records `demo_path_commit`.
 - **PREDEFINED path:** Produces `opportunity/{slug}-predefined-recommendation.md` and
-  updates `opportunity/{slug}-confirmation.md`. **Pipeline ends here.** Do not run Stage 4+.
-- **CUSTOM path:** Sets `custom_required: true`, proceeds to Stage 4.
-- Skip if: `{slug}-ideation.md` is missing — halt and run Stage 0b first.
+  updates `opportunity/{slug}-confirmation.md`. **Pipeline ends here** — custom Build stays
+  locked. Do not run Stage 4+.
+- **CUSTOM path:** `stages.build-path.custom_required: true`, proceeds to Stage 4.
+- Halt if: vision is not confirmed — run Stage 2c first.
 
 **Stage 4 — weave-script** `[full-model required]` *(custom path only — skip if predefined was recommended)*
 - Skip if: `demo/{slug}-demo-script.md` exists AND platform-audit hasn't changed AND ideation hasn't changed
@@ -566,7 +648,7 @@ For each stage that needs to run, in order:
 - Read: `../weave-cost/SKILL.md`
 - Inputs: `{slug}-demo-script.md`, `{slug}-data-model.json` if it exists, `.env` if available
 - Outputs: guidance and schema content that downstream stages must materialize in
-  `{slug}-data-model.json`, `{slug}-demo-checklist.md`, dashboards, and `bootstrap.py`
+  `{slug}-data-model.json`, `{slug}-demo-checklist.md`, and dashboards. Deploy materializes them through `finish-verify` and `bolt-bootstrap`.
 - Include by default for Agent Builder demos per D-036.
 
 **Stage 4.5 — weave-query** `[full-model required]` *(conditional — ES|QL / RAG / integration-grounded data)*
@@ -632,15 +714,15 @@ For each stage that needs to run, in order:
 **Stage 8 — bolt-spin** `[fast-model ok]` *(optional — new cluster path only)*
 - **Requires explicit SA approval** to spend resources / create infrastructure (unless
   the user already clearly requested provisioning this session)
-- Skip if: `{engagement_dir}/.env` already exists at the engagement root and credentials are valid
-- Run if: user requests "create a new cluster", "spin up a serverless project", or no `.env`
-  exists and deployment was requested
+- Skip if: keystore status is `complete` or `validated` (`loom_state keys status <slug>`)
+- Run if: user requests "create a new cluster", "spin up a serverless project", or the
+  keystore is empty/partial and deployment was requested
 - Read: `../bolt-spin/SKILL.md`
 - Inputs: deployment type preference, region, engagement slug
-- Outputs: `{engagement_dir}/.env`, `{engagement_dir}/.env.example`, `{slug}-provision-log.md`
-- Note: if user wants to reuse an existing cluster for a new engagement, copy the `.env`
-  from the prior engagement's workspace and update `DEMO_SLUG`, `ENGAGEMENT`, and `INDEX_PREFIX` —
-  no re-provisioning needed
+- Outputs: `{engagement_dir}/.env`, `{engagement_dir}/.env.example`, `deploy/{slug}-provision-log.md`
+- Note: to reuse an existing cluster from another engagement, run
+  `loom_state keys clone <slug> --from <other-slug>` (never copy `.env` by hand) — no
+  re-provisioning needed
 
 **Stage 8b — finish-verify** `[full-model required]` *(required before deployment — D-045)*
 - **Mandatory gate between planning and deployment.** No Terraform or Python deployment
@@ -671,7 +753,7 @@ When all stages are complete, produce a structured handoff:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- DEMOBUILDER COMPLETE — [Company]
+ LOOM COMPLETE — [Company]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📁 Workspace: $LOOM_ENGAGEMENTS_ROOT/{slug}/  (default: ~/engagements/{slug}/)
@@ -686,7 +768,8 @@ opportunity/  (AE / SDR / SA — team alignment gate)
   ✅  opportunity/{slug}-demo-brief.md            — one-page AE brief
 
 demo/  (SA — planning & design intelligence)
-  ✅  demo/{slug}-ideation.md          — frozen demo direction contract (if run)
+  ✅  demo/{slug}-ideation.md          — frozen demo direction contract (D-050)
+  ✅  demo/{slug}-capability-map.json  — selected capabilities (audit + build scope)
   ✅  demo/{slug}-discovery.json       — structured customer profile
   ⏭   or ✅  demo/{slug}-current-state.json  — diagnostic (optional)
   ✅  demo/{slug}-platform-audit.json  — feature feasibility matrix
@@ -704,7 +787,8 @@ deploy/  (SA — cluster assets & readiness)
   ✅  deploy/{slug}-demo-checklist.md  — pre-demo checklist (timed)
   ✅  deploy/{slug}-risks.md           — risks and fallbacks
   ✅  deploy/{slug}-provision-log.md   — cluster info (if provisioned)
-  ✅  deploy/bootstrap.py              — generated deployment (15 steps; step 13 = scoped Kibana/platform APIs)
+  ✅  deploy/main.tf                   — infrastructure (D-046)
+  ✅  deploy/bootstrap-data.py         — data operations only (seed, warm-up, anomaly injection, manifest)
   ✅  deploy/{slug}-deploy-log.md      — what was created for this engagement
   ⏭   (skipped — no cluster target provided)
 
@@ -719,9 +803,10 @@ PLATFORM STATUS: [Green / Amber / Red from platform audit]
 
 BEFORE YOU BUILD  *(shown only if cluster not yet deployed)*
 ─────────────────
-  1. Run bolt-spin or copy an existing .env
-  2. Run bolt-launch → python3 bootstrap.py --dry-run first
-  3. Run end-to-end checks from {slug}-demo-checklist.md (scenes vary by demo)
+  1. Run bolt-spin or `loom_state keys clone <slug> --from <other-slug>`
+  2. Run finish-verify, then bolt-bootstrap
+  3. Review deploy/main.tf and deploy/bootstrap-data.py; terraform plan and bootstrap-data.py --dry-run are safe
+  4. Run end-to-end checks from {slug}-demo-checklist.md (scenes vary by demo)
 
   *(If already deployed, check {slug}-deploy-log.md)*
 
@@ -739,7 +824,7 @@ DEMO DAY
 ## Handling Partial Inputs
 
 **Only discovery notes, no diagnostic:**
-Run stages 1, 2b, 3, 4, 4b/4c if in scope, 5, 6 (if ML), 7. Skip stage 2. Platform audit runs in partial mode after opportunity review.
+Run stages 1, 2b, 2c, 3, 3b, 4, 4b/4c if in scope, 5, 6 (if ML), 7 (`scan skip` for stage 2). Platform audit runs in partial mode against the frozen capability map.
 
 **Only a diagnostic file, no discovery notes:**
 Run stage 2 only. Output the current-state and findings. Tell the user: "Run
@@ -759,17 +844,19 @@ Leave all other artifacts unchanged unless downstream stages must react.
 
 **User wants to deploy to a new cluster:**
 "Create a new serverless project for this demo and deploy it."
-Run stage 8 (bolt-spin) to provision and write `.env`, then stage 9 (bolt-launch)
-to generate and execute `bootstrap.py`. Stages 1–7 already complete — skip them.
+Run stage 8 (bolt-spin) to provision and write `.env`, then stage 8b (finish-verify)
+and stage 9 (bolt-bootstrap). Live `terraform apply` and `bootstrap-data.py` stay behind
+the D-024 approval gate. Stages 1–7 already complete — skip them.
 
 **User wants to deploy to an existing cluster:**
-"I already have a cluster — here are my credentials." Or they copy a `.env` from another
-engagement. Skip stage 8. Run stage 9 only. Verify the `.env` has all required fields before
-generating `bootstrap.py`.
+"I already have a cluster — here are my credentials." Record them with `loom_state keys set`
+(or `keys clone --from <slug>`), then `keys validate --probe`. Skip stage 8. Run stages 8b and 9 only. Verify the `.env` has all required fields before
+generating `main.tf` and `bootstrap-data.py`.
 
 **User running a second engagement on the same cluster:**
-"Reuse this cluster for another customer." Copy `.env`, update `DEMO_SLUG`, `ENGAGEMENT`,
-and `INDEX_PREFIX` (e.g. `cb-` → `acme-`). Run stage 9 with the new slug’s artifacts.
+"Reuse this cluster for another customer." Run `loom_state keys clone <new-slug> --from
+<old-slug>` — it binds `DEMO_SLUG` / `KIBANA_SPACE_PATH` / `ENGAGEMENT` to the new slug and
+forces a distinct `INDEX_PREFIX` (e.g. `are-` → `aph-`). Run stage 9 with the new slug’s artifacts.
 No re-provisioning unless credentials or endpoint change; rebuild data model only if scope differs.
 
 ## What Good Looks Like
@@ -789,12 +876,13 @@ under "Scope adjustments."
 
 **End-to-end with deploy:** User provides discovery notes and says "create a serverless
 project and deploy this demo." Orchestrator runs all 9 stages: builds the full artifact
-set, provisions the cluster, generates and executes `bootstrap.py`. Delivers a deploy log
+set, provisions the cluster, runs finish-verify and bolt-bootstrap, then applies the
+reviewed Terraform and `bootstrap-data.py`. Delivers a deploy log
 confirming 4 indices created, seed data loaded, ELSER endpoint warmed.
 
-**Multi-customer on shared cluster:** First engagement deployed with `INDEX_PREFIX=cb-`.
-User adds a second engagement with `INDEX_PREFIX=acme-`. Orchestrator copies `.env`,
-updates slug fields, skips provisioning, runs stage 9 for the new artifacts. Both demos
+**Multi-customer on shared cluster:** First engagement deployed with `INDEX_PREFIX=are-`.
+User adds a second engagement; `keys clone` gives it `INDEX_PREFIX=aph-` and its own
+space, skips provisioning, runs stage 9 for the new artifacts. Both demos
 coexist on the same cluster.
 
 **Pre-demo morning check:** Demo was deployed yesterday. SE asks "is this engagement ready?"

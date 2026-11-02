@@ -1,17 +1,31 @@
 # Demo Environment Reference
 
-**Canonical source of truth** for all `.env` variables. All fields listed here are read by `bootstrap.py` / `bootstrap-data.py` at runtime — never hardcoded in scripts.
+**Canonical source of truth** for all `.env` variables. Deployment reads these from `main.tf` variable inputs and `bootstrap-data.py`. Never hardcode them in scripts.
 
-**Two paths to a populated `.env`:**
+**Paths to a populated `.env` (the engagement keystore):**
 - **New deployment** — `bolt-spin` writes all available endpoints directly from the provisioning API response.
-- **Existing deployment** — `bolt-spin` generates a pre-filled `.env-sample` scoped to your `DEPLOYMENT_TYPE`. Fill in values and save as `.env`.
+- **Existing deployment** — `bolt-spin` generates a pre-filled `.env-sample` scoped to your `DEPLOYMENT_TYPE`, or record values with `python3 scripts/loom_state.py keys set <slug> KEY=VALUE …`.
+- **Reuse a sibling engagement's cluster** — `loom_state keys clone <slug> --from <other-slug>` (see Multi-Customer Workflow).
+- **Not yet** — `loom_state keys defer <slug>`: planning stages do not need credentials.
+
+**Keystore status** (`loom_state keys status <slug>`; stored in pipeline-state `keystore`):
+`empty` → `partial` (some of `ELASTICSEARCH_URL`, `KIBANA_URL`, `ES_API_KEY`, `KIBANA_API_KEY`
+set) → `complete` (all four) → `validated` (`keys validate --probe`: read-only `GET /` +
+Kibana `/api/status`; records `ELASTIC_VERSION`, warns below the 9.4 floor). Keystore status is
+**not** the `cloud-provision` stage — that tracks whether bolt-spin created a cluster
+(`deploy/{slug}-provision-log.md`). Placeholders like `<your-es-api-key>` count as unset.
+
+**Dual identity — `.env` holds public values only.** The real company / opportunity live in
+pipeline-state `identity`, never in `.env`, `.env.example`, tags, spaces, or seed data.
+`loom_state keys set` refuses values that contain the private identity and refuses
+`COMPANY*` / `CUSTOMER*` / `OPPORTUNITY*` / `SFDC*` / `CRM*` / `ACCOUNT_NAME*` keys.
 
 ## .env File — All Fields
 
 ```bash
-# ── Identity ──────────────────────────────────────────────
-DEMO_SLUG=citizens-bank          # slug used for file naming throughout pipeline
-ENGAGEMENT=Citizens Bank         # human-readable company name
+# ── Identity (public only) ────────────────────────────────
+DEMO_SLUG=acme-pharma            # public demo codename; folder + file prefix; bound to this engagement
+ENGAGEMENT=Acme Pharma           # public display name — never the real company name
 DEPLOYMENT_TYPE=serverless       # serverless | ech | self_managed | docker
 
 # ── Cluster Endpoints (written by bolt-spin) ──────────────────────────
@@ -53,18 +67,20 @@ ES_API_KEY=VuaCfGcBCdbkQm...     # base64-encoded API key or ApiKey header value
 # Set this at provisioning time alongside ES_API_KEY.
 KIBANA_API_KEY=
 
-# Kibana Space — written by bolt-spin / bootstrap.py ensure_kibana_space().
+# Kibana Space — created by bolt-bootstrap as a Terraform resource.
 # Set to /s/{DEMO_SLUG} for per-engagement asset isolation; leave blank for default Space only.
 # All bootstrap Kibana API calls (saved objects, SLOs, Agent Builder, Workflows) target this Space.
 # wind-pulse checks the space exists and warns if KIBANA_SPACE_PATH is unset.
 KIBANA_SPACE_PATH=
 
 # Kibana solution type — used when creating the Kibana space.
-# es | oblt | security — match to the engagement's primary solution area.
-KIBANA_SOLUTION=es
+# classic | es | oblt | security — loom suggests one from the notes (oblt / security only when clearly
+# Observability or Security, otherwise classic); the SA confirms or overrides it in input settings
+# (`loom_state keys set <slug> KIBANA_SOLUTION=…`, which also stops further re-inference).
+KIBANA_SOLUTION=classic
 
 # ── ECH Deployment Pre-flight (Step 0) ───────────────────
-# Optional. If set, bootstrap.py patches Kibana user_settings_json via the ECH
+# Optional. If set, bolt-ech patches Kibana user_settings_json via the ECH
 # Management API *before* the space is created — enabling Workflows and other
 # deployment-level feature flags without a manual ECH-UI step + re-run.
 # EC_API_KEY:    Elastic Cloud org-level API key (cloud.elastic.co → Account → API Keys)
@@ -76,17 +92,20 @@ KIBANA_SOLUTION=es
 
 # ── Version (informational, set by bolt-spin) ──
 # Must match live cluster version (D-020). Run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
-ELASTIC_VERSION=9.4.0
+# Informational. bolt-spin sets this from the live cluster.
+# New deployments: latest GA (9.5.5 as of 2026-10-26). Generated-script floor: 9.4.
+ELASTIC_VERSION=
 
 # ── Deploy Mode (D-038) ────────────────────────────────────
-# python (default) — generated bootstrap.py drives all resource creation
-# terraform — generated main.tf + bootstrap-data.py; requires terraform CLI
-DEPLOY_MODE=python
+# terraform (default) — main.tf + providers.tf + bootstrap-data.py
+# python — legacy fallback only
+DEPLOY_MODE=terraform
 
 # ── Index Namespace ───────────────────────────────────────
 # Leave blank for isolated clusters (default — recommended)
 # Set a short prefix when sharing a cluster across multiple demos
-# Example: INDEX_PREFIX=cb-  →  fraud-claims becomes cb-fraud-claims
+# Example: INDEX_PREFIX=aph-  →  fraud-claims becomes aph-fraud-claims
+# Default derived from the slug: acme-pharma → aph- (keys clone enforces uniqueness per URL)
 INDEX_PREFIX=
 
 # ── Loom tagging (D-026) ────────────────────────────
@@ -104,9 +123,10 @@ INDEX_PREFIX=
 # WORKFLOWS_REPO_PATH=~/Documents/GitHub/workflows
 # AGENT_BUILDER_SDK_PATH=~/Documents/GitHub/kibana-agent-builder-sdk
 # VULCAN_PATH=../vulcan
+# DEMO_STARTER_PATH=../elastic-demo-starter
 
 # ── Cluster Metadata (informational) ──────────────────────
-CLUSTER_NAME=loom-citizens-bank-20260415
+CLUSTER_NAME=loom-demo
 REGION=us-east-1
 PROVISIONED_BY=loom
 ```
@@ -146,26 +166,31 @@ $LOOM_ENGAGEMENTS_ROOT/
 ├── {slug-B}/.env    → https://shared.es.io  INDEX_PREFIX=b-
 └── {slug-C}/.env    → https://shared.es.io  INDEX_PREFIX=c-
 
-# Copy workflow for a new demo on the same cluster:
-ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
-cp "$ROOT/{slug-A}/.env" "$ROOT/{slug-B}/.env"
-# Then edit {slug-B}/.env:
-#   DEMO_SLUG={slug-B}
-#   ENGAGEMENT={Company B}
-#   INDEX_PREFIX=b-
+# Clone workflow for a new demo on the same cluster (never cp .env by hand):
+python3 scripts/loom_state.py keys list {slug-B}                  # sibling keystores (no secrets shown)
+python3 scripts/loom_state.py keys clone {slug-B} --from {slug-A}  # [--no-secrets] [--index-prefix b-] [--keep CLUSTER_NAME …]
 ```
+
+**Clone rules** (`keys clone`):
+- Copies endpoints and, unless `--no-secrets`, API keys / tokens. Secrets are never printed.
+- Keeps **this** slug's `DEMO_SLUG`, `ENGAGEMENT` (public display), and `KIBANA_SPACE_PATH`;
+  re-derives the `KIBANA_SOLUTION` suggestion for this engagement (an SA override on the source is not copied).
+- On a shared `ELASTICSEARCH_URL`, forces an `INDEX_PREFIX` distinct from every sibling on
+  that URL (default from the slug, e.g. `aph-`); refuses a colliding `--index-prefix`.
+- Skips `DEMO_ASSET_TAG`, `CLUSTER_NAME`, `DEPLOYMENT_ID` unless opted in with `--keep`.
+- Never copies private-identity keys; writes a real file (mode `0600`), never a symlink.
+- Sets keystore `source: clone`, `cloned_from: {slug-A}`.
 
 ### Prefix behavior
 
-When `INDEX_PREFIX=cb-` is set, bootstrap.py applies it everywhere:
+When `INDEX_PREFIX` is set, Terraform and `bootstrap-data.py` apply it everywhere:
 - Index names: `fraud-claims` → `cb-fraud-claims`
 - Pipeline names: `fraud-ingest-pipeline` → `cb-fraud-ingest-pipeline`
 - Template names: `fraud-template` → `cb-fraud-template`
 - ML job IDs: `fraud-sla-monitor` → `cb-fraud-sla-monitor`
 - Kibana index patterns: automatically updated in saved objects on import
 
-The demo script ES|QL queries also need updating when a prefix is in use — bootstrap.py
-patches the query strings in the Kibana saved objects before import.
+The demo script ES|QL queries also need updating when a prefix is in use. Saved-object import patches query strings before they are applied.
 
 ## .env.example Template
 
@@ -175,11 +200,11 @@ Every workspace should have one alongside the `.env`:
 
 ```bash
 # .env.example — copy to .env and fill in values
-# See: skills/bolt-launch/references/env-reference.md
+# See: skills/references/env-reference.md
 # Generated by: bolt-spin
 
-DEMO_SLUG=<slug-e.g.-citizens-bank>
-ENGAGEMENT=<company-name>
+DEMO_SLUG=<slug-e.g.-acme-pharma>
+ENGAGEMENT=<public-display-name-e.g.-Acme-Pharma>   # never the real company name
 DEPLOYMENT_TYPE=<serverless|ech|self_managed|docker>
 DEPLOY_MODE=python   # python | terraform
 
@@ -215,9 +240,9 @@ ES_API_KEY=<your-es-api-key>
 KIBANA_API_KEY=<your-kibana-api-key>   # Required — do NOT use ES_API_KEY for Kibana APIs (D-016)
 
 KIBANA_SPACE_PATH=/s/<DEMO_SLUG>
-KIBANA_SOLUTION=es   # es | oblt | security
+KIBANA_SOLUTION=classic   # classic | es | oblt | security
 
-INDEX_PREFIX=<optional-e.g.-cb->
+INDEX_PREFIX=<optional-e.g.-aph->
 # DEMO_ASSET_TAG=<optional-override-for-loom:-tags>
 # INCLUDE_TOKEN_VISIBILITY=true
 

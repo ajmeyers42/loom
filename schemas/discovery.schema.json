@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elastic.co/loom/schemas/discovery.schema.json",
+  "title": "Loom Discovery Profile",
+  "description": "demo/{slug}-discovery.json — produced by warp-listen. Claims carry source_ref into inputs/; gaps carry a stable gap_id. Lightweight: validates core shape, not every extracted field.",
+  "type": "object",
+  "required": ["meta", "customer", "contacts", "pain_points", "objectives", "demo_scope", "gaps"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["extraction_confidence"],
+      "properties": {
+        "notes_quality": { "type": "string" },
+        "notes_style": { "type": "array", "items": { "type": "string" } },
+        "extraction_confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+        "date_parsed": { "type": "string" },
+        "slug": { "type": "string" },
+        "inputs": { "type": "array", "items": { "type": "string", "pattern": "^inputs/" } }
+      },
+      "additionalProperties": true
+    },
+    "customer": {
+      "type": "object",
+      "properties": {
+        "company": { "type": ["string", "null"] },
+        "industry": { "type": ["string", "null"] },
+        "company_size_signal": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "contacts": { "type": "array", "items": { "type": "object" } },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label"],
+        "properties": {
+          "label": { "type": "string" },
+          "description": { "type": ["string", "null"] },
+          "severity": { "type": ["string", "null"], "enum": ["critical", "high", "medium", "low", null] },
+          "verbatim_quote": { "type": ["string", "null"] },
+          "source_ref": { "$ref": "#/$defs/sourceRef" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "objectives": { "type": "object" },
+    "demo_scope": { "type": "object" },
+    "claims": {
+      "type": "array",
+      "description": "Evidence-linked extracted claims, editable by the SA (SB-03).",
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "gaps": { "type": "array", "items": { "$ref": "#/$defs/gap" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "sourceRef": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {
+        "file": { "type": "string", "pattern": "^inputs/", "description": "Path relative to the engagement dir" },
+        "locator": { "type": "string", "description": "Human locator, e.g. ¶12 or L40-L44" },
+        "excerpt": { "type": "string", "description": "Verbatim span from the file (whitespace/case-insensitive match)" }
+      },
+      "additionalProperties": false
+    },
+    "claim": {
+      "type": "object",
+      "required": ["claim_id", "field", "text", "source_ref"],
+      "properties": {
+        "claim_id": { "type": "string", "pattern": "^c_[a-z0-9_]+$" },
+        "field": { "type": "string", "description": "Discovery field the claim supports, e.g. pain_points[0]" },
+        "text": { "type": "string", "minLength": 1 },
+        "source_ref": { "$ref": "#/$defs/sourceRef" },
+        "status": { "type": "string", "enum": ["extracted", "edited", "confirmed", "rejected"] }
+      },
+      "additionalProperties": true
+    },
+    "gap": {
+      "type": "object",
+      "required": ["gap_id", "field", "question", "impact"],
+      "properties": {
+        "gap_id": { "type": "string", "pattern": "^g_[a-z0-9_]+$", "description": "Stable across re-listen for the same field" },
+        "field": { "type": "string" },
+        "question": { "type": "string" },
+        "impact": { "type": "string", "enum": ["blocks_demo_build", "reduces_personalization", "low"] },
+        "blocks_qualification": { "type": "boolean" },
+        "how_to_answer": { "type": "string" },
+        "suggested_input": { "type": "string", "description": "Which inputs/ file to update (Path A)" },
+        "source_ref": { "$ref": "#/$defs/sourceRef" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

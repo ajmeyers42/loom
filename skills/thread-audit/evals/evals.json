@@ -49,6 +49,21 @@
         "ML anomaly detection marked ready (serverless auto-scales ML)",
         "pre_demo_tasks list is short (quick setup items only)"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "acme-pharma vision is confirmed. The capability map has detection-rules, cases, ai-assistant, esql (vision), agent-builder (SA added), and ai-cost-dashboard (implied). Audit it against a Serverless Security 9.4 project.",
+      "expected_output": "platform-audit.json with scope_source capability_map, the current capability_map_hash, one feature_audit row per in-scope capability_id (including the implied ai-cost-dashboard), remediation_owner on every non-ready row; loom_state path check passes.",
+      "files": [],
+      "assertions": [
+        "Runs loom_state path plan to get the scope and map hash",
+        "Audits exactly the six in-scope capability ids — no extra capabilities from discovery signals",
+        "meta.scope_source is capability_map and meta.capability_map_hash matches the plan",
+        "ai-assistant row is setup_required with remediation_owner manual_once (LLM connector)",
+        "agent-builder and ai-cost-dashboard rows carry remediation_owner pipeline",
+        "Red rows, if any, are surfaced as blocking the demo-path commit with a re-scope suggestion",
+        "Runs loom_state path check"
+      ]
     }
   ]
 }

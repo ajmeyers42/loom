@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "notes_quality": "raw",
+    "notes_style": ["raw_live_notes"],
+    "extraction_confidence": "medium",
+    "date_parsed": "2026-11-02"
+  },
+  "customer": {
+    "company": "Northwind Pharmaceuticals",
+    "industry": "Life sciences",
+    "industry_vertical": "Pharmaceuticals",
+    "location": null,
+    "company_size_signal": "enterprise"
+  },
+  "contacts": [
+    { "name": "Dana R.", "title": "SOC Manager", "role": "champion", "notes": "Reports to the CISO" },
+    { "name": "Priya K.", "title": "Senior Detection Engineer", "role": "technical_user", "notes": "" }
+  ],
+  "elastic_team": { "ae": "", "sa": "", "se": "", "other": [] },
+  "meeting": { "date": "2026-10-28", "type": "discovery", "crm_link": "" },
+  "elastic_relationship": { "status": "net_new", "version": "", "deployment_model_requirement": "unknown" },
+  "current_state": { "tech_stack": ["On-prem SIEM"], "data_sources": [], "workflows": "Manual pivoting across four consoles" },
+  "pain_points": [
+    {
+      "label": "Alert fatigue",
+      "description": "Most alerts are noise; analysts are overwhelmed",
+      "severity": "critical",
+      "verbatim_quote": "we are drowning in alerts and most of them are noise",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "Notes ¶3", "excerpt": "we are drowning in alerts and most of them are noise" }
+    },
+    {
+      "label": "Slow triage",
+      "description": "30-40 minutes per alert across four consoles",
+      "severity": "high",
+      "verbatim_quote": null,
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "Notes ¶4", "excerpt": "Analysts spend 30-40 minutes per alert pivoting across four consoles" }
+    }
+  ],
+  "objectives": {
+    "primary": "Reduce time-to-hypothesis for alert triage",
+    "secondary": ["Detections as code", "Group related alerts into one investigation"],
+    "success_criteria": ["Analyst reaches a hypothesis in minutes, not 30-40 minutes"]
+  },
+  "demo_scope": {
+    "recommended_type": "security_demo",
+    "recommended_features": ["Detection rules", "Cases", "AI Assistant", "ES|QL"],
+    "key_scenarios": ["Alert triage with guided explanation"]
+  },
+  "deal_context": { "stage": "active_evaluation", "urgency": "high", "timeline": "Demo in three weeks", "budget_signal": "unknown" },
+  "next_steps": { "demo_requested": true, "demo_timing": "three weeks", "other_actions": [] },
+  "claims": [
+    {
+      "claim_id": "c_alert_noise",
+      "field": "pain_points[0]",
+      "text": "Analysts are overwhelmed by noisy alerts",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "Notes ¶3", "excerpt": "we are drowning in alerts and most of them are noise" },
+      "status": "extracted"
+    },
+    {
+      "claim_id": "c_triage_time",
+      "field": "pain_points[1]",
+      "text": "Triage takes 30-40 minutes per alert",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "Notes ¶4", "excerpt": "30-40 minutes per alert pivoting across four consoles" },
+      "status": "extracted"
+    },
+    {
+      "claim_id": "c_ai_assistant",
+      "field": "demo_scope.recommended_features",
+      "text": "Wants an AI assistant to explain alerts for junior analysts",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "Notes ¶6", "excerpt": "AI assistant that can explain an alert in plain language" },
+      "status": "extracted"
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "g_economic_buyer",
+      "field": "meddpic.economic_buyer",
+      "question": "Who owns the SIEM renewal budget?",
+      "impact": "blocks_demo_build",
+      "blocks_qualification": true,
+      "how_to_answer": "AE follow-up with Dana",
+      "suggested_input": "inputs/call-notes.md",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "Notes ¶7", "excerpt": "Budget owner not identified on this call" }
+    },
+    {
+      "gap_id": "g_ingest_volume",
+      "field": "current_state.data_volumes.ingest_rate",
+      "question": "What is the daily ingest volume on the current SIEM?",
+      "impact": "reduces_personalization",
+      "how_to_answer": "Priya to pull numbers"
+    },
+    {
+      "gap_id": "g_budget",
+      "field": "deal_context.budget_signal",
+      "question": "Is budget allocated for the renewal?",
+      "impact": "low"
+    }
+  ]
+}

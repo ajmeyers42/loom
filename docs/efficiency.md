@@ -40,7 +40,8 @@ and provide only the files that stage needs:
 | thread-audit | `{slug}-discovery.json`, `{slug}-opportunity-profile.json`, `{slug}-current-state.json` |
 | weave-script | `{slug}-discovery.json`, `{slug}-platform-audit.json` |
 | weave-model | `{slug}-demo-script.md`, `{slug}-discovery.json` |
-| bolt-launch | `{slug}-data-model.json`, `.env`, `{slug}-demo-script.md` |
+| finish-verify | `{slug}-data-model.json`, `{slug}-demo-script.md`, `{slug}-platform-audit.json`, `.env` |
+| bolt-bootstrap | `deploy/asset-bundle/`, `.env` |
 
 Avoid pasting all engagement files into context "just in case." The pipeline-state file
 tells you exactly what exists; load only what the stage explicitly requires.
@@ -92,7 +93,7 @@ merge their outputs before moving to the next dependent stage. Parent merges via
 - `wind_pulse.py` (in `skills/wind-pulse/`) runs as a subprocess — it checks cluster health
   without loading the full pipeline context into the conversation.
 - `scripts/inventory.py` reads engagement state instantly without an AI session at all.
-- `bootstrap.py` and `teardown.py` run entirely outside the AI context.
+- `bootstrap-data.py`, `terraform plan`, and `teardown.py` run entirely outside the AI context.
 
 Use these as the first line of investigation before opening a full agent chat.
 
@@ -105,7 +106,8 @@ Use these as the first line of investigation before opening a full agent chat.
 | `scripts/inventory.py` | Show all engagements and stage status | Before starting a session; morning check |
 | `scripts/inventory.py <slug> -v` | Full stage-by-stage status for one engagement | Picking up mid-pipeline |
 | `skills/wind-pulse/wind_pulse.py` | Live cluster health check | Pre-demo verification |
-| `{engagement_dir}/bootstrap.py --dry-run` | Validate deploy script without cluster changes | Before any live run |
+| `{engagement_dir}/deploy/bootstrap-data.py --dry-run` | Validate data operations without cluster changes | Before any live run |
+| `terraform -chdir={engagement_dir}/deploy plan` | Review infrastructure changes | Before any live apply |
 | `{engagement_dir}/teardown.py --dry-run` | Preview what teardown would delete | Before cleanup |
 
 **Zero-AI pre-session workflow:**
@@ -114,10 +116,10 @@ Use these as the first line of investigation before opening a full agent chat.
 python3 /path/to/loom/scripts/inventory.py
 
 # Check a specific engagement in detail
-python3 /path/to/loom/scripts/inventory.py 2026CitizensAI -v
+python3 /path/to/loom/scripts/inventory.py {slug} -v
 
 # Check cluster health (requires .env)
-cd ~/engagements/2026CitizensAI && python3 /path/to/wind_pulse.py
+cd ~/engagements/{slug} && python3 /path/to/loom/skills/wind-pulse/wind_pulse.py
 ```
 
 Running these before opening Cursor/Claude means you come into the AI session already knowing

@@ -110,7 +110,7 @@ flowchart TD
 |------|------|
 | `scripts/inventory.py` | Stage status without a chat |
 | `skills/wind-pulse/wind_pulse.py` | Pre-demo health |
-| `bootstrap.py --dry-run` / `teardown.py --dry-run` | Safe validation |
+| `bootstrap-data.py --dry-run` / `terraform plan` / `teardown.py --dry-run` | Safe validation |
 
 ---
 

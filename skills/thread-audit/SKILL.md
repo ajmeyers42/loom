@@ -1,7 +1,7 @@
 ---
 name: thread-audit
 description: >
-  Cross-references the planned demo scope (from warp-listen output) against the
+  Cross-references the selected demo scope (the frozen capability map from warp-spark) against the
   customer's actual Elastic deployment (from warp-scan output, if available)
   to produce a feature feasibility matrix. Flags version gaps, license tier mismatches,
   infrastructure requirements, and setup work needed before the demo can be built or run.
@@ -32,10 +32,20 @@ assumptions and mark them as unverified. Recommend getting a diagnostic before b
 
 ## Step 1: Read the Inputs
 
-Read all available files:
+**Scope = the selected capability map.** In the loom pipeline the audit runs after the
+vision is frozen and confirmed. Run `python3 scripts/loom_state.py path plan <slug>` — it
+refuses until vision is confirmed and returns the audit scope: every in-scope
+`capability_id` with its origin, catalog `audit_feature` (the row to use in the Feature
+Requirements table below), default `remediation_owner`, and the **capability map hash** to
+stamp into `meta.capability_map_hash`. Audit exactly those capabilities — one
+`feature_audit` row each — including SA-added and implied ones (e.g. `ai-cost-dashboard`).
+Do not add capabilities the map does not select; do not drop selected ones.
 
-- `demo/{slug}-discovery.json` — from warp-listen. Focus on `demo_scope.recommended_features`,
-  `demo_scope.recommended_type`, `elastic_relationship`, and `deal_context`.
+Read for platform context:
+
+- `demo/{slug}-capability-map.json` — the scope (above).
+- `demo/{slug}-discovery.json` — from warp-listen. Focus on `elastic_relationship`,
+  `deal_context`, and any version/license statements.
 - `demo/{slug}-current-state.json` — from warp-scan (if available). Focus on
   `cluster.version`, `cluster.license_type`, `cluster.deployment_type`, `features_in_use`,
   `resource_signals`, and `findings_summary`.
@@ -54,15 +64,16 @@ Read all available files:
   }
   ```
 
-  **When opportunity-profile is present:** use `demo_scope_signals` to narrow the feature
-  compatibility matrix in Step 2 — only evaluate features flagged as in-scope. Do not audit
-  the full feature table for capabilities the qualification review has already determined are
-  out of scope. This keeps the audit focused and actionable.
+  Use `demo_scope_signals` only as context (e.g. to explain why a capability matters) —
+  the capability map, not the signals, decides scope.
 
-  **When opportunity-profile is absent:** run a full audit against all features in
-  `demo_scope.recommended_features` from the discovery JSON, as before.
+  **Standalone use (no capability map — ad-hoc "can we demo X on their cluster"):** audit the
+  features the SA names, or `demo_scope.recommended_features` from discovery, and set
+  `meta.scope_source` to `discovery` (or `ad_hoc`). Such an audit cannot be used for the
+  loom demo-path commit.
 
-If `demo/{slug}-discovery.json` is missing, ask the user to run `warp-listen` first.
+If `demo/{slug}-discovery.json` is missing and no capability map exists, ask the user to run
+`warp-listen` first.
 
 **Version anchoring:** When the target is an **existing** cluster (diagnostic present or
 the SA supplied endpoints/credentials), the audit **must** use the **observed**
@@ -110,6 +121,9 @@ requirement and mark as unverified.
 | Fleet / Elastic Agent | 7.13 | Basic | All | Fleet Server required |
 | Transforms | 7.2 | Basic | All | Dedicated transform nodes recommended at scale |
 | Security / SIEM detection rules | 7.11 | Basic (limited) / Gold (full) | All | None |
+| Entity risk scoring / entity analytics | 9.0 (privilege model changed in 9.4) | Platinum (Stack); Security Analytics Complete tier (Serverless) | All; risk scoring is enabled per Kibana space | Risk engine uses transforms + ingest pipelines; ~2 GB JVM heap per ~44M risk documents |
+| Kibana alerting rules + connectors | Any 9.x | Rules: Basic. Connectors: some free (Index, Server log), most third-party (Slack, email, webhook, PagerDuty, ITSM) are paid — confirm the tier on elastic.co/subscriptions | All; rules and connectors are space-isolated; self-managed needs `xpack.encryptedSavedObjects.encryptionKey` | A connector per destination, created in the demo space |
+| SLOs (+ burn-rate rules) | 8.12 (GA) | Paid tier on Stack (docs: "appropriate license" — confirm on elastic.co/subscriptions); included in Serverless Observability | Stack: SLO access configured; Serverless: SLO Editor role | Stack: node(s) with both ingest and transform roles (ECH hot nodes cover this); default burn-rate rule has no connector |
 | Elasticsearch Graph API | 5.0 | Platinum | All | None |
 | Watcher | 5.0 | Gold | Self-managed / cloud (not serverless) | None |
 | Data streams | 7.9 | Basic | All | None |
@@ -140,7 +154,20 @@ For each non-Ready feature, determine the remediation path and its cost/effort:
 
 For upgrade-required and blocked features, always suggest an alternative that works on the
 current platform if one exists. The demo should not fail because of a version gap — it
-should be re-scoped.
+should be re-scoped. In the loom pipeline, re-scoping means the SA edits the capability map
+(`vision map exclude` / `add`), re-freezes, and the audit re-runs — red rows block the
+demo-path commit.
+
+**Remediation owner (required on every non-ready row):** who closes the gap —
+- `pipeline` — loom's build stages automate it (deploy an inference endpoint, create an
+  Agent Builder agent, seed an index).
+- `manual_once` — a one-time manual step in the target environment (configure an LLM
+  connector, enable a Kibana feature, accept a license prompt).
+- `customer` — needs customer- or SA-supplied evidence or action (license upgrade, network
+  access, a version confirmation, sample data).
+
+Start from the catalog default reported by `path plan`; override it when the platform
+facts say otherwise.
 
 ## Step 4: Write the Two Output Files
 
@@ -155,7 +182,9 @@ should be re-scoped.
     "discovery_version": "",
     "diagnostic_version": "",
     "opportunity_profile_version": "",
-    "scope_pre_filtered": false,
+    "scope_source": "capability_map | discovery | ad_hoc",
+    "capability_map_hash": "sha256:… (from loom_state path plan)",
+    "scope_pre_filtered": true,
     "platform_summary": ""
   },
   "platform": {
@@ -167,9 +196,12 @@ should be re-scoped.
   },
   "feature_audit": [
     {
+      "capability_id": "agent-builder",
+      "origin": "vision | sa_added | sa_requested | implied",
       "feature": "",
       "planned": true,
       "status": "ready | setup_required | upgrade_required | blocked | unverified",
+      "remediation_owner": "pipeline | manual_once | customer (required unless ready)",
       "requirement_met": {
         "version": true,
         "license": true,
@@ -207,6 +239,10 @@ should be re-scoped.
 - 🔴 **red** — one or more features are blocked or require upgrade/infra change; demo scope
   must be revised or timeline extended
 
+`descoped_features` / `recommended_alternatives` items may be strings or objects
+(`{capability_id, reason}` / `{capability_id, alternative}`). Validate against
+`schemas/platform-audit.schema.json`.
+
 ### Output 2: `demo/{slug}-platform-audit.md`
 
 A concise SE briefing — not sent to the customer. Written so an SE who hasn't read the
@@ -214,16 +250,16 @@ discovery notes can pick this up and know exactly what to do before building.
 
 Structure:
 ```
-# Platform Audit — [Company Name]
+# Platform Audit — [Public Display Name] ([slug])
 **Status:** 🟢 Green / 🟡 Amber / 🔴 Red
 **Platform:** [version] · [license] · [deployment type]
-**Audit date:** [date]
+**Audit date:** [date] · **Scope:** capability map `sha256:…` (first 12 chars)
 
 ## Feature Feasibility
 
-| Feature | Status | Gap | Remediation | Effort |
-|---|---|---|---|---|
-[One row per planned feature]
+| Capability | Status | Gap | Remediation | Owner | Effort |
+|---|---|---|---|---|---|
+[One row per in-scope capability in the map]
 
 ## Pre-Demo Task List
 [Ordered by dependency — tasks that unblock other tasks come first]
@@ -235,6 +271,14 @@ Structure:
 [2–3 sentences: is the demo buildable as scoped? What's the critical path?
 What conversation needs to happen with the customer before build starts?]
 ```
+
+### Register
+
+Run `python3 scripts/loom_state.py path check <slug>`. It validates the JSON, requires the
+markdown, `scope_source: capability_map`, a `capability_map_hash` matching the current map,
+one row per in-scope capability, and a `remediation_owner` on every non-ready row, then
+reports amber rows grouped by owner and any red rows. Fix and re-run until it passes; the
+SA then commits the Demo path (thread-suggest → `loom_state path commit`).
 
 ## What Good Looks Like
 

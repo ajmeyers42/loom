@@ -26,7 +26,7 @@ dependencies:
     check_type: git
     scope: always
     blocking: true
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     notes: "If HEAD is behind origin, ask SA before continuing. Record the rev."
 
   - id: hive-mind
@@ -37,7 +37,7 @@ dependencies:
     scope: always
     blocking: false
     install_cmd: "git clone https://github.com/elastic/hive-mind ../hive-mind"
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     key_paths:
       - "patterns/dashboards/DASHBOARD_NDJSON_FORMAT.md"
       - "patterns/workflows/WORKFLOWS_API_REFERENCE.md"
@@ -60,7 +60,7 @@ dependencies:
     install_cmd: "npx skills add elastic/agent-skills"
     update_cmd: "npx skills update elastic/agent-skills"
     github_releases_url: "https://api.github.com/repos/elastic/agent-skills/releases/latest"
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     notes: >
       Full install required (Search + Observability + Security). Not a local clone —
       installed as a Cursor/Claude plugin. If missing, surface install command rather than failing silently.
@@ -73,7 +73,7 @@ dependencies:
     scope: "agent-builder or workflow-yaml in demo scope"
     blocking: false
     install_cmd: "git clone https://github.com/elastic/workflows ~/Documents/GitHub/workflows"
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     key_paths:
       - "examples/"
       - "docs/liquid-reference.md"
@@ -87,7 +87,7 @@ dependencies:
     scope: "agent-builder in demo scope"
     blocking: false
     install_cmd: "git clone https://github.com/elastic/kibana-agent-builder-sdk ~/Documents/GitHub/kibana-agent-builder-sdk"
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     notes: "Read before writing any Agent Builder API call. API shapes change with Kibana releases."
 
   - id: vulcan
@@ -99,8 +99,20 @@ dependencies:
     blocking: false
     optional: true
     install_cmd: "git clone https://github.com/elastic/vulcan ../vulcan && cd ../vulcan && pip install -r requirements.txt"
-    last_validated: "2026-08-04"
-    notes: "Optional. If absent, log ⏭ not installed — skipping. Never error."
+    last_validated: "2026-10-26"
+    notes: "Optional. If absent, log ⏭ not installed — skipping. Never error. v2.1 uses OPENROUTER_* not LITELLM_*."
+
+  - id: elastic-demo-starter
+    description: "elastic/elastic-demo-starter — optional UI handoff target for Vulcan v2 exports"
+    local_path: "../elastic-demo-starter"
+    env_override: DEMO_STARTER_PATH
+    check_type: git
+    scope: "weave-query in scope"
+    blocking: false
+    optional: true
+    install_cmd: "git clone https://github.com/elastic/elastic-demo-starter ../elastic-demo-starter"
+    last_validated: "2026-10-26"
+    notes: "Optional. Vulcan Export Handoff can place files into a Demo Starter clone. Not required for loom deploy. A feature branch is fine; do not merge origin/main into it during a currency check."
 
   - id: terraform-provider-elasticstack
     description: "elastic/terraform-provider-elasticstack — Terraform resources for ES/Kibana"
@@ -110,7 +122,7 @@ dependencies:
     github_releases_url: "https://api.github.com/repos/elastic/terraform-provider-elasticstack/releases/latest"
     scope: "DEPLOY_MODE=terraform"
     blocking: false
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     notes: >
       Compare latest release tag against pin in deploy/providers.tf.
       Warn SA to confirm pin before HCL generation. See skills/references/reference-repos.md for resource list.
@@ -123,7 +135,7 @@ dependencies:
     github_releases_url: "https://api.github.com/repos/elastic/terraform-provider-ec/releases/latest"
     scope: "DEPLOY_MODE=terraform"
     blocking: false
-    last_validated: "2026-08-04"
+    last_validated: "2026-10-26"
     notes: >
       Compare latest release tag against pin in deploy/providers.tf.
       Scope: cloud provisioning only. Stack config belongs in elasticstack provider.

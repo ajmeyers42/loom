@@ -1,15 +1,24 @@
 ---
 name: wind-streams
 description: >
-  Creates, configures, and wires Kibana Streams with ingest pipelines for demo
-  environments. Handles write-side Streams operations not covered by kibana-streams.
+  NOT IMPLEMENTED. If this skill is selected, stop immediately and tell the SA that
+  wind-streams is backlog. Do not create Kibana Streams or call a cluster.
+  Use the read-only kibana-streams skill to inspect Streams. The notes below are a design sketch only.
 status: planned
 ---
 
 # wind-streams
 
-**Status: BACKLOG — not yet implemented**
-**Scoped: 2026-05-01**
+**Status: BACKLOG — do not execute.**
+
+```
+⛔ wind-streams is not implemented.
+   Do not create streams, attach pipelines, or call Kibana.
+   Inspect existing streams with the kibana-streams skill. Authoring stays with
+   finish-verify once a stream schema is confirmed.
+```
+
+**Scoped: 2026-05-01. Design notes below are not a procedure.**
 **Extends: `kibana-streams` (read-only list/inspect/resync)**
 
 ## Purpose
@@ -38,7 +47,7 @@ Creates, configures, and wires Kibana Streams with ingest pipelines for demo env
 ## Outputs
 
 - `deploy/streams-manifest.json` — list of created streams, pipeline IDs, routing config
-- Additions to `bootstrap.py` step 4 (ingest pipelines) for stream creation and wiring
+- Stream wiring is infrastructure for `finish-verify` / `bolt-bootstrap`, not a `bootstrap-data.py` step
 - Prints stream topology: stream name → ingest pipeline → backing index pattern
 
 ## Key Capabilities to Implement
@@ -97,7 +106,7 @@ This pattern isolates tenant data at the stream level, enabling per-space data v
 ## Relationship to Other Skills
 
 ```
-weave-pipe → wind-streams → bootstrap.py (step 4)
+weave-pipe → wind-streams → finish-verify / bolt-bootstrap
 weave-fleet     ← can coexist; Fleet manages its own indices
 ```
 
@@ -115,12 +124,12 @@ Streams and Fleet integrations are complementary:
 ## Pipeline Position
 
 ```
-weave-model → weave-pipe → wind-streams → bootstrap.py
+weave-model → weave-pipe → wind-streams → finish-verify / bolt-bootstrap
 ```
 
 ## Acceptance Criteria
 
-- [ ] `python3 bootstrap.py --step 4` creates all defined streams with ingest pipelines
+- [ ] Stream creation is represented in the asset bundle and applied as infrastructure, not by this skill
 - [ ] Per-tenant routing correctly isolates documents to sub-streams
 - [ ] Re-run is idempotent (streams already exist → skip, not error)
 - [ ] Resync completes without errors after creation

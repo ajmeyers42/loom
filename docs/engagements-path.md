@@ -91,7 +91,7 @@ mkdir -p "$LOOM_ENGAGEMENTS_ROOT"
 | **Credentials (`.env`)** | Each engagement's `.env` holds `ES_API_KEY` and cluster URLs. These **will sync to the cloud provider**. For Elastic-managed Google/OneDrive this is acceptable; for personal accounts or shared drives, consider keeping `.env` local and symlinking it. |
 | **Offline / poor connectivity** | Writes land on the local Drive cache immediately; sync resumes when connected. No data loss on a train or spotty connection. |
 | **Large files** | `vulcan-data/*.csv` and diagnostic ZIPs can be large. They will count toward cloud storage and sync time. Exclude them from Drive sync if needed. |
-| **Python scripts** | `bootstrap.py` and `teardown.py` run fine from paths with spaces as long as you invoke them with the path quoted. |
+| **Python scripts** | `bootstrap-data.py` and `teardown.py` run fine from paths with spaces as long as you invoke them with the path quoted. |
 | **Migrating an existing root** | Copy with `cp -Rp ~/engagements/. "$LOOM_ENGAGEMENTS_ROOT/"`, verify in Drive, then `rm -rf ~/engagements`. |
 
 ## Decision record

@@ -54,6 +54,22 @@
         "opportunity-profile.json opportunity_overview.solution is one of: search | observability | security | cross_solution",
         "TL;DR is deal-focused (2-3 sentences on sales situation, not opportunity_overview content)"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "acme-pharma: discovery is registered; the economic buyer gap is still open. Qualify the opportunity and record my decision — I want to keep discovering for now.",
+      "expected_output": "opportunity-profile.json + summary + demo-goals; loom_state qualify record → awaiting_decision; SA decision recorded with loom_state qualify decide --status continue_discovery; Vision stays locked until new inputs close the gap or the SA runs qualify design-anyway.",
+      "files": [
+        "../../tests/fixtures/p2-acme/listen/discovery.json"
+      ],
+      "assertions": [
+        "Profile qualification_status is the recommendation; the skill does not write qualification_decision itself",
+        "Open blocking gaps are listed by gap_id in the summary's clarification section",
+        "Runs loom_state qualify record before asking for the decision",
+        "Does not record proceed while a blocking gap is open unless --accept-risk with a rationale is given",
+        "Records the SA's explicit call with loom_state qualify decide (approval written)",
+        "States that continue_discovery parks the engagement and Vision is locked"
+      ]
     }
   ]
 }

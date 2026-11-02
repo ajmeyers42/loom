@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elastic.co/loom/schemas/capability-map.schema.json",
+  "title": "Loom Capability Map",
+  "description": "demo/{slug}-capability-map.json — structured edit model behind the ideation Elastic Capability Map. Rendered into demo/{slug}-ideation.md on vision freeze; consumed by thread-audit (selected map) and Build.",
+  "type": "object",
+  "required": ["slug", "status", "capabilities", "out_of_scope"],
+  "properties": {
+    "slug": { "type": "string" },
+    "status": { "type": "string", "enum": ["draft", "frozen"] },
+    "updated_at": { "type": "string" },
+    "frozen_at": { "type": ["string", "null"] },
+    "token_visibility": {
+      "type": "object",
+      "properties": {
+        "included": { "type": "boolean" },
+        "opted_out": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/capability" }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "reason": { "type": ["string", "null"] },
+          "capability_id": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "required": ["id", "name", "origin", "in_scope"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "outcome": { "type": ["string", "null"], "description": "Why it is in the story (outcome enabled)" },
+        "proof_point": { "type": ["string", "null"] },
+        "origin": {
+          "type": "string",
+          "enum": ["vision", "sa_added", "sa_requested", "implied"],
+          "description": "vision = model proposal; sa_added = catalog chip; sa_requested = custom free text; implied = auto-included (e.g. D-036)"
+        },
+        "in_scope": { "type": "boolean" },
+        "catalog": { "type": "boolean", "description": "true when id exists in skills/references/capability-catalog.json" },
+        "implied_by": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

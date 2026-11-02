@@ -5,13 +5,14 @@ description: >
   loom engagement. Reads discovery and data model to determine which packages to
   install, performs an asset catalog review to surface use-as-is / clone-and-modify /
   storyline-enhancement opportunities, generates deploy/{slug}-integrations-manifest.json
-  and demo/{slug}-integration-assets.md, and injects an idempotent install step into
-  bootstrap.py. Supports ECH (full Fleet) and Serverless (asset-only mode).
+  and demo/{slug}-integration-assets.md for finish-verify and bolt-bootstrap.
+  Supports ECH (full Fleet) and Serverless (asset-only mode). Package install is
+  infrastructure (D-046), not a bootstrap-data.py step.
 
   ALWAYS use this skill when the data model includes any logs-* or metrics-* data streams.
   This skill decides whether each stream should be backed by a real integration package
   (Path A) or managed-template fallback naming (Path B). Also trigger when the SA says
-  trigger when the SA says "install the kubernetes integration", "use Fleet for log
+  "install the kubernetes integration", "use Fleet for log
   collection", "EPM package install", "I want the out-of-the-box dashboards", "set up the
   integration", or "install integration packages for the demo".
 ---
@@ -20,7 +21,7 @@ description: >
 
 You are selecting, cataloging, and registering Elastic integration packages (EPM) for a
 pre-sales demo environment. This is a **planning stage** — you produce a manifest and an
-asset guide that `bolt-launch` consumes when generating `deploy/bootstrap.py`. You do not
+asset guide that `finish-verify` and `bolt-bootstrap` consume. You do not
 install packages directly unless the SA explicitly asks for a live cluster operation and
 a `.env` is present.
 
@@ -238,12 +239,14 @@ Set `"agent_policy": { "create": false }` when `mode` is `"asset-only"` (Serverl
 
 ---
 
-## Step 4: Generate bootstrap step 1c
+## Step 4: Fleet install sequence
 
-Produce the Python function to embed in `deploy/bootstrap.py` as **step 1c** — inserted
-after step 1b (Kibana Space creation) and before step 2 (ILM policies). Fleet packages
-must be installed before custom index templates because packages register their own
-templates; installing after causes name-collision errors.
+**Deploy target (D-046):** do not embed this in a monolithic `bootstrap.py` or in
+`bootstrap-data.py`. The manifest is an input to `finish-verify` and `bolt-bootstrap`.
+Package install is infrastructure and must happen before custom index templates, because
+packages register their own templates.
+
+The Python below is the API sequence those skills should preserve, not a step number.
 
 ```python
 # ── Step 1c: Fleet integration packages ─────────────────────────────────────
@@ -323,7 +326,7 @@ def teardown_fleet_integrations(manifest):
 
 | File | Location | Purpose |
 |---|---|---|
-| `{slug}-integrations-manifest.json` | `deploy/` | Machine-readable: packages, versions, policies, asset catalog, warnings — consumed by `bootstrap.py` and `teardown.py` |
+| `{slug}-integrations-manifest.json` | `deploy/` | Machine-readable: packages, versions, policies, asset catalog, warnings — consumed by `finish-verify`, `bolt-bootstrap`, and `teardown.py` |
 | `{slug}-integration-assets.md` | `demo/` | SA-facing: use-as-is / clone-modify / storyline enhancements per package; shared taxonomy with future platform-audit asset discovery |
 
 ---
@@ -351,7 +354,7 @@ consume both outputs — giving the SA a unified view before the script is final
 
 ## Acceptance criteria
 
-- [ ] `python3 deploy/bootstrap.py --step 1c` installs all scoped packages idempotently
+- [ ] Package install is represented in the asset bundle and applied as infrastructure, before custom templates
 - [ ] Re-run does not reinstall already-installed packages (checks version match)
 - [ ] `deploy/{slug}-integrations-manifest.json` records all installed package names, versions, managed index patterns, and asset catalog classification
 - [ ] `demo/{slug}-integration-assets.md` is written with at least one entry per installed package, classified using the shared taxonomy

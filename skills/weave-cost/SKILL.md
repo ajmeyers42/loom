@@ -155,16 +155,16 @@ Include panels for:
 
 ---
 
-## Integration with bolt-launch
+## Integration with finish-verify and bolt-bootstrap
 
-When the demo script includes Agent Builder, `bootstrap.py` should:
+When the demo script includes Agent Builder, the asset bundle should:
 
-1. **Create the `{prefix}agent-sessions` index** with the mapping above (step 4, alongside other indices)
-2. **Load seed data** with 30-60 synthetic session documents (step 10, data load)
+1. **Create the `{prefix}agent-sessions` index** with the mapping above (Terraform, with the other indices)
+2. **Load seed data** with 30-60 synthetic session documents (`bootstrap-data.py`)
 3. **Create the AI Usage data view** in the demo Kibana space
 4. **Create the AI Usage & Cost dashboard** with the ES|QL panels above
 5. **Tag all created assets** with `loom:{engagement_id}` (D-026)
-6. **Add to manifest** (D-031)
+6. **Add to manifest** (D-039)
 
 Add `INCLUDE_TOKEN_VISIBILITY=true` to `.env` (default: `true` when demo includes Agent Builder).
 Set to `false` to skip if the customer engagement does not include an AI component.

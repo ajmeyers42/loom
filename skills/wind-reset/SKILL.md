@@ -2,7 +2,7 @@
 name: wind-reset
 description: >
   Generates and optionally executes a `teardown.py` script that deletes every Elastic
-  resource created by `bootstrap.py` for a specific demo engagement — indices, data
+  resource recorded in the loom manifest for a specific demo engagement — indices, data
   streams, ML jobs, ELSER endpoint, Kibana objects, ingest pipelines, index templates,
   component templates, ILM/DSL policies, and enrich policies. Uses INDEX_PREFIX to
   scope all deletes so only this engagement's resources are removed, even on a shared
@@ -13,15 +13,14 @@ description: >
   "post-demo cleanup", "we're done with the demo", "wipe the cluster", "delete everything
   for [company]", "the demo is over — clean up", "shut down the demo environment", or
   any mention of cleanup, decommission, or removing resources after a demo. Also trigger
-  when the user asks what teardown would do, wants a dry run, or asks how to undo what
-  bootstrap created.
+  when the user asks what teardown would do, wants a dry run, or asks how to undo the deploy.
 ---
 
 # Demo Teardown
 
 You are cleaning up a demo environment after the engagement is complete. You generate a
 `teardown.py` script from the `.env` credentials and execute it. The script deletes only
-what `bootstrap.py` created — scoped to this engagement's `INDEX_PREFIX` — and confirms
+what the manifest and `INDEX_PREFIX` cover — Terraform state plus `bootstrap-data.py` — and confirms
 each resource is gone with a follow-up check.
 
 Safety is the priority. The script never touches system indices, `.kibana`, or anything

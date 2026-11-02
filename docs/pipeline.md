@@ -106,10 +106,10 @@ For a quick lookup of when to invoke a specific skill without running the full p
            │              deploy phase  (SA approval req.) │
            │                                               │
     ┌──────▼───────────────┐               ┌──────────────▼──────────┐
-    │  bolt-spin           │               │  bolt-launch            │
-    │                      ├──────────────►│                         │
-    │  new cluster or      │               │ → bootstrap.py          │
-    │  copy existing .env  │               │ → deploy-log.md         │
+    │  bolt-spin           │               │  finish-verify          │
+    │                      ├──────────────►│  then bolt-bootstrap    │
+    │  new cluster or      │               │ → main.tf               │
+    │  copy existing .env  │               │ → bootstrap-data.py     │
     │  → .env              │               └──────────────┬──────────┘
     └──────────────────────┘                              │
                                           ┌───────────────┴────────────┐
@@ -140,7 +140,8 @@ For a quick lookup of when to invoke a specific skill without running the full p
 | `weave-agent` | Demo script + discovery (Agent Builder in scope) | `demo/{slug}-agent-builder-spec.md` | v2 |
 | `weave-cost` | Engagement slug + `.env` | Token tracking index + AI Cost dashboard (auto-included in Agent Builder demos) | v2 |
 | `bolt-spin` | Deployment type, region, slug | `{slug}/.env`, `{slug}/.env.example`, `deploy/{slug}-provision-log.md` | v1 |
-| `bolt-launch` | `.env` + pipeline outputs | `deploy/bootstrap.py`, `deploy/{slug}-deploy-log.md` | v2 |
+| `finish-verify` | `.env` + script + data model + platform audit | `deploy/asset-bundle/` | v1 |
+| `bolt-bootstrap` | `asset-bundle/` + `.env` | `deploy/main.tf`, `deploy/providers.tf`, `deploy/bootstrap-data.py` | v1 |
 | `wind-pulse` | `.env` | Terminal readiness report (✅/❌ per resource, fix commands) | v1 |
 | `wind-reset` | `.env` | `deploy/teardown.py`, `deploy/{slug}-teardown-log.md` | v1 |
 
@@ -184,7 +185,9 @@ Every engagement produces a folder under `$LOOM_ENGAGEMENTS_ROOT/{slug}/` (defau
 │   └── pipelines/                      ← per-pipeline JSON files
 │
 └── deploy/                           ← SA: cluster assets + readiness
-    ├── bootstrap.py                    ← single deploy driver
+    ├── main.tf                         ← infrastructure (D-046)
+    ├── providers.tf
+    ├── bootstrap-data.py               ← data operations only
     ├── teardown.py                     ← generated on first teardown run
     ├── {slug}-provision-log.md         ← cluster provisioning record
     ├── {slug}-demo-checklist.md        ← timed pre-demo checklist
@@ -214,7 +217,7 @@ See [docs/engagements-path.md](engagements-path.md) for the env-var override and
 | `weave-cost` | Evals written — Agent Builder default inclusion + opt-out behavior |
 | `finish-check` | Sample pipeline outputs from multiple customer interactions |
 | `bolt-spin` | Evals written — serverless project + shared cluster namespace copy |
-| `bolt-launch` | Evals written — isolated cluster full deploy + shared cluster prefix deploy |
+| `finish-verify` + `bolt-bootstrap` | Replaces retired `bolt-launch`. Live apply stays behind the D-024 review gate. |
 | `wind-pulse` | Evals written — readiness check + ML-focused readiness check |
 | `wind-reset` | Evals written — isolated cluster teardown + shared cluster prefix teardown |
 

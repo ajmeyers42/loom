@@ -14,7 +14,16 @@
         "audit_mode": { "type": "string", "enum": ["partial", "full"] },
         "discovery_version": { "type": ["string", "null"] },
         "diagnostic_version": { "type": ["string", "null"] },
-        "platform_summary": { "type": "string" }
+        "platform_summary": { "type": "string" },
+        "scope_source": {
+          "type": "string",
+          "enum": ["capability_map", "discovery", "ad_hoc"],
+          "description": "capability_map = audited the frozen ideation map (required once ideation is frozen); discovery / ad_hoc = standalone audit, not valid for demo-path commit"
+        },
+        "capability_map_hash": {
+          "type": ["string", "null"],
+          "description": "sha256 of demo/{slug}-capability-map.json at audit time — must match the frozen map for demo-path commit"
+        }
       },
       "additionalProperties": true
     },
@@ -37,8 +46,15 @@
         "required": ["feature", "planned", "status", "requirement_met", "demo_impact"],
         "properties": {
           "feature": { "type": "string" },
+          "capability_id": { "type": ["string", "null"], "description": "Capability map id this row audits" },
+          "origin": { "type": ["string", "null"], "enum": ["vision", "sa_added", "sa_requested", "implied", null] },
           "planned": { "type": "boolean" },
-          "status": { "type": "string", "enum": ["ready", "setup_required", "upgrade_required", "blocked", "descoped"] },
+          "status": { "type": "string", "enum": ["ready", "setup_required", "upgrade_required", "blocked", "unverified", "descoped"] },
+          "remediation_owner": {
+            "type": ["string", "null"],
+            "enum": ["pipeline", "manual_once", "customer", null],
+            "description": "Amber subtype: pipeline = Loom authors it in Build (default); manual_once = one non-automatable step surfaced on Readiness; customer = needs customer/SA evidence or action (version, license, diagnostic)"
+          },
           "requirement_met": {
             "type": "object",
             "properties": {
@@ -63,8 +79,8 @@
     "setup_required_count": { "type": "integer", "minimum": 0 },
     "ready_count": { "type": "integer", "minimum": 0 },
     "pre_demo_tasks": { "type": "array", "items": { "type": "object" } },
-    "descoped_features": { "type": "array", "items": { "type": "object" } },
-    "recommended_alternatives": { "type": "array", "items": { "type": "object" } }
+    "descoped_features": { "type": "array", "items": { "type": ["object", "string"] } },
+    "recommended_alternatives": { "type": "array", "items": { "type": ["object", "string"] } }
   },
   "additionalProperties": true
 }

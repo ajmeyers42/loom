@@ -16,7 +16,7 @@
 ## D-001: Per-engagement `.env` file for credential isolation
 
 **Status:** Active  
-**Enforced by:** `bolt-spin` writes `.env` to `{engagement_dir}/` on create; `bolt-bootstrap` reads `.env` from `{engagement_dir}/` and halts if missing. Copy workflow for shared clusters: `cp {slug1}/.env {slug2}/.env` then update 3 fields.
+**Enforced by:** `bolt-spin` writes `.env` to `{engagement_dir}/` on create; `bolt-bootstrap` reads `.env` from `{engagement_dir}/` and halts if missing. Shared-cluster reuse: `loom_state keys clone {slug2} --from {slug1}` (D-052; replaces the manual `cp` + edit workflow).
 
 **Rationale:** An SE running demos for multiple customers simultaneously needs clean credential and namespace separation. A global config risks cross-contamination.
 
@@ -29,7 +29,7 @@
 ## D-002: Idempotent deployment with check-before-create
 
 **Status:** Active  
-**Enforced by:** `skills/bolt-launch/templates/bootstrap-template.py` — every step function checks existence before creating. `--step N` flag resumes from a specific step. Data load checks doc count before loading (90% threshold). These patterns are in the template and cannot be removed without breaking the template contract.
+**Enforced by:** `bolt-bootstrap` and the ECH/Serverless variants. Terraform apply is idempotent. `bootstrap-data.py` checks before writing (enrich execute, seed counts, manifest upsert). The old `skills/bolt-launch/templates/bootstrap-template.py` file is gone with the retired skill.
 
 **Rationale:** A failed deploy at step 9 shouldn't require tearing down steps 1–8. Demo environments are time-pressured.
 
@@ -399,8 +399,8 @@
 
 ## D-035: Demo ideation as Stage 0 in the pipeline
 
-**Status:** Active  
-**Enforced by:** Orchestrator Step 0b skip condition — ideation is skipped only when discovery notes, diagnostic, or prior pipeline outputs (`{slug}-discovery.json`, `{slug}-ideation.md`) already exist. No fallback to a "default demo" shape.
+**Status:** Superseded by D-050  
+**Enforced by:** D-050. Ideation always runs unless `demo/{slug}-ideation.md` is already frozen. Discovery notes do not skip it. The earlier skip-when-notes-exist rule is retired.
 
 **Date:** 2026-04-21 | **Session:** hive-mind comparison and adoption
 
@@ -586,7 +586,7 @@ No dashboard panel, alerting rule, SLO query, workflow step, or Agent Builder to
 ## D-049: Predefined vs. custom decision gate is mandatory before scripting
 
 **Status:** Active  
-**Enforced by:** Stage 3b (`thread-suggest`) in the loom orchestrator. This stage runs after platform-audit and before weave-script on every engagement. It is not optional — if `{slug}-ideation.md` exists, the recommender always evaluates predefined fit. The orchestrator does not route to Stage 4 (script-template) without a `custom_required: true` decision recorded in the pipeline state. Predefined path produces `{slug}-predefined-recommendation.md` and ends the pipeline.
+**Enforced by:** Stage 3b (`thread-suggest`) in the loom orchestrator. This stage runs after platform-audit and before weave-script on every engagement. It is not optional — if `{slug}-ideation.md` exists, the recommender always evaluates predefined fit. The orchestrator does not route to Stage 4 (script-template) without a custom Demo path committed in pipeline state (`loom_state path commit --path custom` → top-level `path: custom`, `stages.build-path.custom_required: true`, `demo_path_commit` approval — D-052). Predefined path produces `{slug}-predefined-recommendation.md`, commits `path: predefined`, and ends the pipeline; custom Build stays locked.
 
 **Rationale:** Building a full custom demo when a standard Elastic demo already serves the customer's needs wastes build time and increases the risk of deployment failures. The gate forces an explicit evaluation and decision before any technical build work begins.
 
@@ -597,7 +597,7 @@ No dashboard panel, alerting rule, SLO query, workflow step, or Agent Builder to
 ## D-050: Ideation always runs as SA commit step; post-ideation assets refreshed with technical-win framing
 
 **Status:** Active  
-**Enforced by:** `warp-spark` SKILL.md (expansion mode) and `loom` orchestrator Step 0b. Ideation runs in one of three modes depending on available inputs (Mode 1: pre-seeded from demo-goals.md; Mode 2: from discovery context; Mode 3: from scratch). In all modes, the skill does not exit until `{slug}-ideation.md` is frozen and the SA has approved the updated `opportunity/{slug}-confirmation.md`. The orchestrator does not proceed to platform-audit without this approval. `weave-script` requires `{slug}-ideation.md` as a required input (not optional).
+**Enforced by:** `warp-spark` SKILL.md (expansion mode), `loom` orchestrator Stage 2c (after intake and the recorded qualification decision; scratch engagements go first — D-052), and `loom_state vision freeze|confirm`. Ideation runs in one of three modes depending on available inputs (Mode 1: pre-seeded from demo-goals.md; Mode 2: from discovery context; Mode 3: from scratch). In all modes, the skill does not exit until `{slug}-ideation.md` is frozen and the SA has approved the updated `opportunity/{slug}-confirmation.md`. The orchestrator does not proceed to platform-audit without this approval. `weave-script` requires `{slug}-ideation.md` as a required input (not optional).
 
 **Post-ideation refresh rule:** After ideation freezes, `opportunity/{slug}-confirmation.md` is updated using technical-win framing — what problem, what they will see, what defines success. Internal pipeline terminology ("custom build", "predefined", "bootstrap", "standard demo") must not appear in the customer-facing confirmation document at any point.
 
@@ -624,3 +624,23 @@ The full Demo2Win methodology (Tell-Show-Tell, Limbic Opening, Visual Roadmaps) 
 **Rationale:** Demos that lack an opening punch and a value close leave the audience with feature impressions, not business conviction. Vignette independence allows SAs to adapt for time and audience without the whole script breaking. These structural rules are the minimum needed to produce a demo that advances a deal rather than just informing the buyer.
 
 **Date:** 2026-05-05 | **Session:** two-agent pipeline split
+
+---
+
+## D-052: `loom_state` engagement control plane — dual identity, keystore, evidence-linked intake, recorded gates
+
+**Status:** Active
+**Enforced by:** `scripts/loom_state.py` (library `scripts/loomstate/`), schemas `pipeline-state`, `discovery`, `gap-responses`, `capability-map`, `opportunity-profile`, `platform-audit`; acceptance tests `tests/test_loom_state.py`; orchestrator Steps 1–2 and Stages 1–3b.
+
+**Rules:**
+1. **Skills author, the CLI registers.** Skills write content; `loom_state` scaffolds engagements, validates outputs against `schemas/`, enforces gates, and is the only writer of the intake → demo-path stages and `approvals[]` in `{slug}-pipeline-state.json`. Phase and next action are derived from state (`loom_state next`), never stored.
+2. **Dual identity.** The slug is an SA-chosen public codename (`acme-…`), never derived from the customer name. Company / opportunity / CRM id live only in pipeline-state `identity`; `.env` `ENGAGEMENT` is the public display name. `new`, `keys set`, `vision freeze`, and `hygiene` refuse or flag private identity on shared artifacts. Tag-id uniqueness is checked on the D-026 normalized id (`acme-pharma` ≡ `acmepharma`).
+3. **Keystore ≠ provisioning.** `keystore.status` (`empty|partial|complete|validated`) is separate from the `cloud-provision` stage. Cross-engagement reuse is `keys clone` only (keeps this slug's `DEMO_SLUG`/space, distinct `INDEX_PREFIX` on a shared URL, opt-in for tag/cluster/deployment ids, never private identity or symlinks). Planning never requires a keystore.
+4. **Evidence-linked intake.** `inputs/` is the Path A source of truth. Discovery claims carry `source_ref` with verbatim excerpts verified at registration; gaps carry stable `gap_id`s. `gap-responses.json` (Path B) is optional. Stage freshness uses sha256 content hashes, not mtimes.
+5. **Recorded gates.** Qualification decision, design-anyway override, vision freeze, confirmation approval, and demo-path commit are `approvals[]` entries `{action, approver, timestamp, artifacts: {path: sha256|absent}, rationale}`. `continue_discovery` does not unlock Vision without an explicit override. `proceed` requires every blocking gap answered or accepted as risk.
+6. **Order (supersedes Step 0b placement in D-050).** Intake → qualify decision → ideation (warp-spark) → platform audit scoped to the frozen capability map (`capability_id`, `remediation_owner`, `capability_map_hash`) → demo-path commit (top-level `path` + `stages.build-path`). Scratch engagements without discovery ideate first. Predefined never unlocks build stages.
+7. **Capability catalog.** `skills/references/capability-catalog.json` is canonical (ids, audit feature, default remediation owner); the `.md` is the human guide. Agent Builder implies `ai-cost-dashboard` (D-036) unless opted out.
+
+**Rationale:** Engagement state lived in prose instructions and hand-edited JSON, so gates were advisory, slugs leaked customer names onto shared clusters, credential reuse meant copying `.env` by hand, and staleness used mtimes. A deterministic, stdlib-only CLI makes the same rules testable and resumable from state alone, without touching a cluster (`keys validate --probe` is read-only).
+
+**Date:** 2026-11-02 | **Session:** P2 implementation

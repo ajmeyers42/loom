@@ -8,9 +8,9 @@ description: >
 
   ALWAYS use this skill when the user says "create a new cluster for this demo", "spin up
   a serverless project", "provision an ECH deployment", "set up the demo environment",
-  or "I need a cluster for the [company] demo". Also trigger when bolt-launch is about to
-  run but no .env exists in the workspace. Run before bolt-launch — this is the
-  provisioning step; bolt-launch is the deployment step.
+  or "I need a cluster for the [company] demo". Also trigger when finish-verify or
+  bolt-bootstrap is about to run but no .env exists in the workspace. This is the
+  provisioning step. Deployment is finish-verify, then bolt-bootstrap.
 ---
 
 # Demo Cloud Provision
@@ -104,7 +104,11 @@ Capture (from the compose file, for the .env):
 ## Step 3: Write the Per-Engagement .env
 
 Write `.env` to `{engagement_dir}/.env` (at the **engagement root** — not in a subfolder).
-This is the single source of truth for all cluster credentials. See `skills/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
+This is the single source of truth for all cluster credentials. Read `{public_display_name}`
+from pipeline-state `identity.public_display_name` (`loom_state next <slug> --json`); never
+write the real company or opportunity name into `.env`. Prefer `loom_state keys set <slug>
+KEY=VALUE …` to write values (it enforces public-only values and updates keystore status),
+then `loom_state keys validate <slug> --probe`. See `skills/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
 
 **Two branches — choose based on whether the cluster is new or existing:**
 
@@ -114,12 +118,12 @@ Write all available endpoints directly from the provisioning API response. Blank
 endpoint vars that are not available for this deployment type.
 
 ```bash
-# Demo environment — {company}
+# Demo environment — {public_display_name}
 # Provisioned: {date} | Type: {type} | Region: {region}
 # ⚠️  Do not commit to version control — contains credentials
 
 DEMO_SLUG={slug}
-ENGAGEMENT={company}
+ENGAGEMENT={public_display_name}   # identity.public_display_name — never the real company name
 DEPLOYMENT_TYPE={serverless|ech|self_managed|docker}
 DEPLOY_MODE=python
 ELASTIC_VERSION={version}        # from provisioning response
@@ -139,7 +143,7 @@ ES_API_KEY={api_key}
 KIBANA_API_KEY={kibana_api_key}
 
 KIBANA_SPACE_PATH=/s/{slug}
-KIBANA_SOLUTION={es|oblt|security}
+KIBANA_SOLUTION={classic|es|oblt|security}
 
 INDEX_PREFIX=
 # DEMO_ASSET_TAG=
@@ -164,7 +168,7 @@ The SA fills in values and saves as `.env`.
 # See: skills/references/env-reference.md
 
 DEMO_SLUG={slug}
-ENGAGEMENT={company}
+ENGAGEMENT={public_display_name}
 DEPLOYMENT_TYPE={type}
 DEPLOY_MODE=python
 # D-020: validate live version — run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
@@ -197,7 +201,7 @@ ES_API_KEY=<your-es-api-key>
 KIBANA_API_KEY=<your-kibana-api-key>   # Required — do NOT use ES_API_KEY for Kibana APIs (D-016)
 
 KIBANA_SPACE_PATH=/s/{slug}
-KIBANA_SOLUTION={es|oblt|security}
+KIBANA_SOLUTION={classic|es|oblt|security}
 
 INDEX_PREFIX=<optional-e.g.-cb->
 # DEMO_ASSET_TAG=
@@ -265,7 +269,7 @@ def ensure_kibana_space(kb_url, kb_api_key, demo_slug, engagement):
             raise
     # Create the space — include solution and disabledFeatures per loom rules
     import os
-    kibana_solution = os.environ.get("KIBANA_SOLUTION", "es")  # es | oblt | security
+    kibana_solution = os.environ.get("KIBANA_SOLUTION", "classic")  # classic | es | oblt | security
     body = json.dumps({
         "id": space_id,
         "name": engagement,
@@ -341,9 +345,8 @@ API Key: configured ✅
 **KIBANA_SPACE_PATH:** /s/{slug} (created in Step 4.1)
 
 ## To reuse this cluster for another demo:
-ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
-cp "$ROOT/{slug}/.env" "$ROOT/{other-slug}/.env"
-# Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
+python3 scripts/loom_state.py keys clone {other-slug} --from {slug}
+# Binds DEMO_SLUG / ENGAGEMENT / KIBANA_SPACE_PATH to {other-slug}; forces a distinct INDEX_PREFIX
 
 ## To teardown this cluster when the demo is complete:
 [ECH] Delete deployment via cloud.elastic.co or EC API
@@ -358,15 +361,15 @@ Kibana: {version}
 
 ## What Good Looks Like
 
-**Serverless, new demo:** User says "create a serverless project for the Citizens Bank
-demo." Skill creates project named `loom-citizens-bank-20260415` in `us-east-1`,
-captures endpoint URLs and API key, writes `citizens-bank/.env`, validates connectivity.
-Provision log confirms green health. Ready for bolt-launch.
+**Serverless, new demo:** User says "create a serverless project for this demo."
+Skill creates a project named from the engagement slug, captures endpoint URLs and an
+API key, writes `{slug}/.env`, and validates connectivity. Provision log confirms green
+health. Ready for finish-verify.
 
 **ECH, reusing cluster:** User has an existing ECH cluster and says "use my existing
-ECH cluster for the Thermo Fisher demo." Skill skips provisioning, asks for the URL and
-API key, writes `thermo-fisher/.env` with `INDEX_PREFIX=tf-` to avoid collisions with
-any existing Citizens Bank indices on the same cluster. Validates connectivity.
+cluster for this demo." Skill skips provisioning, asks for the URL and API key, and
+writes `{slug}/.env` with a distinct `INDEX_PREFIX` so this engagement does not collide
+with other demos on the same cluster. Validates connectivity.
 
 **Multi-customer, same cluster:** User says "reuse the Citizens Bank cluster for the
 IHG demo." Skill copies `citizens-bank/.env` to `ihg-club/.env`, sets
