@@ -1,7 +1,8 @@
 # Loom UX Blueprint
 
-**Status:** Direction accepted (2026-10-30) — blueprint + prototype frozen as the SA-first control-plane UX  
+**Status:** Direction accepted (2026-10-30) — blueprint + prototype are the SA-first control-plane UX; contracts patched after validation  
 **Implementation:** Start **Full P2** in a **fresh chat** using [`p2-handoff.md`](p2-handoff.md). Keep UX-only edits in the originating UX session.  
+**Validation:** [`p2-p3-validation.md`](p2-p3-validation.md) — contract gaps and streamlining (2026-10-30).  
 **Audience:** Solutions Architects (primary), AE/SDR handoff, product and security reviewers  
 **Last updated:** 2026-10-30  
 
@@ -239,7 +240,7 @@ Engagement Home / {slug}
 
 | Nav area | Primary folder | Examples |
 |----------|----------------|----------|
-| Inputs | engagement root + `demo/` + raw uploads | `.env` / `.env.example` (keystore), `discovery.json`, `current-state.json` |
+| Inputs | `inputs/` + engagement root + `demo/` | raw notes / AE emails / diagnostics, `.env` / `.env.example` (keystore), `discovery.json`, `current-state.json` |
 | Opportunity | `opportunity/` | summary, profile, confirmation, gaps, **gap-responses** *[Proposed]*, demo-goals |
 | Demo Vision | `demo/` | `ideation.md` (capability map + out of scope), confirmation refresh |
 | Build | `demo/` + `data/` | script, agent spec, mappings, fleet manifest |
@@ -247,42 +248,55 @@ Engagement Home / {slug}
 | Demo | cluster + `deploy/` | space URL, brief, pulse report |
 | Governance | root + logs | `pipeline-state.json`, approval records, provision/teardown logs |
 
+### Per-artifact identity (dual identity)
+
+| Artifact class | Name to use |
+|----------------|-------------|
+| Opportunity docs, customer `confirmation.md` | **Real** company / opportunity |
+| Control-plane chrome | Real company · public slug subtitle |
+| Ideation header, demo scripts, Kibana space, indices, `loom:` tags, bootstrap / seed | **Public** Acme display / `DEMO_SLUG` only |
+
+Private identity lives in `pipeline-state.identity` (not in `.env`, so keystore clone cannot leak customer names).
+
 ---
 
 ## 7. Low-fidelity storyboards **[Proposed]**
 
-**Clickable prototype:** open [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) in a browser (Left/Right arrows or phase pills). Illustrative Acme Corp engagement — not product UI. Intake includes **engagement keystore** (SB-02); Design includes **capability map + SA feature adds** (SB-06).
+**Clickable prototype:** open [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) in a browser (Left/Right arrows or phase pills). Illustrative Acme Pharma engagement — not product UI. Intake includes **engagement keystore** (SB-02, deferrable); Design merges draft + capability map (SB-05); **Demo path** is SB-07 (not “Build Path”).
 
 ### 7.1 Storyboard flow
 
 ```mermaid
 flowchart LR
-  SB01[SB-01 Create] --> SB02[SB-02 Keystore]
-  SB02 --> SB03[SB-03 Evidence]
+  SB01[SB-01 Create] --> Overview[Overview hub]
+  Overview --> SB02[SB-02 Keystore optional]
+  Overview --> SB03[SB-03 Evidence]
   SB03 --> SB04[SB-04 Qualify]
   SB04 -->|not qualified| Stop[Stop]
-  SB04 -->|proceed| SB05[SB-05 Draft vision]
-  SB05 --> SB06[SB-06 Shape features]
-  SB06 --> SB07[SB-07 Path]
+  SB04 -->|continue_discovery| Overview
+  SB04 -->|proceed| SB05[SB-05 Vision freeze]
+  SB05 --> SB07[SB-07 Demo path]
   SB07 -->|predefined| Catalog[Catalog handoff]
   SB07 -->|custom| SB08[SB-08 Build]
   SB08 --> SB09[SB-09 Readiness]
-  SB09 --> SB10[SB-10 Deploy approve]
+  SB09 --> SB09b[SB-09b Cluster target]
+  SB09b --> SB10[SB-10 Deploy approve]
   SB10 --> SB11[SB-11 Launch demo]
   SB11 --> SB12[SB-12 Retire]
 ```
 
 | Beat | Phase | Nav focus | SA does | System does | Gate / branch |
 |------|-------|-----------|---------|-------------|---------------|
-| SB-01 | Intake | Inputs | Create engagement: **sales identity** + **public `acme-…` slug** | Create folder/`pipeline-state` under public slug; store company/opp privately | Never put customer name on shared demo assets |
-| SB-02 | Intake | Inputs | Define keystore: manual, sample, or **clone from sibling engagement** picklist | Write `{slug}/.env`; list other root `.env`s; copy values (optional keys) | Keep this slug’s space path; no shared file link; never log secrets |
-| SB-03 | Intake | Inputs | Correct claims and gaps | Evidence linked to source spans | Continue only after review |
-| SB-04 | Qualify | Opportunity | Review MEDDPIC/gaps; **direct Inputs edits** and/or optional responses; refresh; record viability | Re-parse notes and/or apply responses; update profile status | Blocking gaps open → continue_discovery; `not_qualified` → stop |
-| SB-05 | Design | Demo Vision | Draft storyline + confirmation preview | Propose archetype-aligned vision | Continue to capability map |
-| SB-06 | Design | Demo Vision | Review leveraged features; add/request features; freeze map | Write capability map + out-of-scope into ideation | D-050 freeze includes features |
-| SB-07 | Design | Demo Vision | Choose predefined vs custom | Audit **selected** features; catalog match | Predefined ends build |
-| SB-08 | Build & Validate | Build | Watch / pause generation | Weave selected features into script/data/assets | Activity log shows skills |
-| SB-09 | Build & Validate | Readiness | Run pre-cluster / live verify | Checklist + schema / ES\|QL probes | Live lane needs keystore |
+| Overview | All | Overview | See next action / blockers; resume | Derive phase from `pipeline-state` | Hub for all phases |
+| SB-01 | Intake | Inputs | Create engagement: **sales identity** + **public `acme-…` slug**; pick entry mode | Create folder/`pipeline-state` under unique public slug; store company/opp in state only | Never put customer name on shared demo assets; uniqueness check |
+| SB-02 | Intake | Inputs | Define keystore **or defer**: manual, sample, or **clone from sibling** | Write `{slug}/.env`; list other root `.env`s; copy values (optional keys); set `keystore.status` | Keep slug/space; distinct `INDEX_PREFIX` on shared URL; no identity vars; never log secrets |
+| SB-03 | Intake | Inputs | Correct claims and gaps under `inputs/` | Evidence linked to `source_ref`; stable `gap_id` | Import package may skip to Qualify refresh |
+| SB-04 | Qualify | Opportunity | Review MEDDPIC/gaps; **direct Inputs edits** and/or optional responses; refresh; record viability | Re-parse notes and/or apply responses; update profile + `approvals[]` | Blocking gaps → continue_discovery → Overview; `not_qualified` → stop; proceed → Vision |
+| SB-05 | Design | Demo Vision | Draft storyline; shape capability map (add features); freeze; **approve confirmation** | Write ideation (map + out of scope + archetype / wow / data / min bar); refresh confirmation + summary TL;DR | D-050; Agent Builder implies D-036 unless opted out |
+| SB-07 | Design | Demo Vision | Choose predefined vs custom (**Demo path**) | Audit **selected** map (`remediation_owner`); catalog match | Predefined ends build; custom unlocks Build |
+| SB-08 | Build & Validate | Build | Watch / pause; resolve “decision needed” | Weave selected features; list derived from frozen map | Activity log shows skills |
+| SB-09 | Build & Validate | Readiness | Run pre-cluster / live verify | Checklist lanes; pre-cluster skips asset-bundle blockers | Live lane needs keystore |
+| SB-09b | Build & Validate | Readiness | Choose existing cluster vs `bolt-spin`; generate deploy artifacts | Spend approval for spin; `finish-verify` → `bolt-bootstrap` plan/dry-run | Feeds SB-10 |
 | SB-10 | Present & Retire | Governance | Review artifacts; approve apply | Dry-run; hash approval record | D-024 signed approval |
 | SB-11 | Present & Retire | Demo | Choose launch surface + open live script | Kibana / custom UX / agent runtime; script + brief | Demo destination ≠ control plane |
 | SB-12 | Present & Retire | Governance | Retire with retention note | Dry-run / teardown / local delete | Typed slug confirm |
@@ -298,12 +312,12 @@ Use this chrome consistently across frames. Phase pills are the journey; left na
 | Phase pill 3 | Design | Vision draft + capability map + build path |
 | Phase pill 4 | Build & Validate | Generate + readiness |
 | Phase pill 5 | Present & Retire | Deploy, demo, teardown |
-| Nav | Overview | Status, next action, blockers |
-| Nav | Inputs | Raw notes, diagnostics, evidence, engagement keystore |
+| Nav | Overview | Status, next action, blockers (hub) |
+| Nav | Inputs | Raw notes (`inputs/`), diagnostics, evidence, engagement keystore |
 | Nav | Opportunity | Qualification, summary, demo-goals |
-| Nav | Demo Vision | Ideation, capability map, SA feature adds, confirmation, path choice |
+| Nav | Demo Vision | Ideation, capability map, SA feature adds, confirmation, **demo path** |
 | Nav | Build | Script, data, integrations, agents |
-| Nav | Readiness | Pre-cluster + live-cluster checks |
+| Nav | Readiness | Pre-cluster + live-cluster checks + cluster target |
 | Nav | Demo | Launch surfaces (Kibana / custom UX / agent runtime), live script, brief, pulse |
 | Nav | Governance | Approvals, audit log, retention, secrets |
 
@@ -312,7 +326,24 @@ Use this chrome consistently across frames. Phase pills are the journey; left na
 
 ### 7.3 Screen frames
 
-Frames are intentionally sparse — one job per frame. Primary CTA is bolded in the wire.
+Frames are intentionally sparse — one job per frame. Primary CTA is bolded in the wire. After Create, **Overview** is the hub; keystore is deferrable.
+
+#### Overview (hub)
+
+**Nav:** Overview · **Primary CTA:** Continue next action
+
+```
+┌─────────────────────────────────────────────┐
+│  Overview · acme-pharma                     │
+│  Sales: Northwind Pharmaceuticals           │
+│  Next: Record qualification decision        │
+│  Blockers: 1 open gap · keystore deferred   │
+│  Path: unset · Vision: not frozen           │
+│  [Go to Inputs] [Go to Opportunity]         │
+└─────────────────────────────────────────────┘
+```
+
+**Copy notes:** Derive next action from `pipeline-state` alone (resume acceptance). Do not store a separate `ux.phase` as source of truth.
 
 #### SB-01 Create or import engagement
 
@@ -321,7 +352,7 @@ Frames are intentionally sparse — one job per frame. Primary CTA is bolded in 
 ```
 ┌─────────────────────────────────────────────┐
 │  New engagement                             │
-│  Sales identity (private)                   │
+│  Sales identity (private · state only)      │
 │  Company: [Northwind Pharmaceuticals____]   │
 │  Opportunity: [NW Pharma — SOC AI FY26__]   │
 │  Opportunity ID: [006… optional SFDC____]   │
@@ -330,6 +361,7 @@ Frames are intentionally sparse — one job per frame. Primary CTA is bolded in 
 │  Display:   [Acme Pharma____________]       │
 │  hints: acme-pharma · acme-insfraud · …     │
 │  ○ Import AE/SDR package  ○ Start from notes│
+│  ○ From scratch (no notes yet)              │
 │  ⚠ Customer name never on shared demo assets│
 └─────────────────────────────────────────────┘
 ```
@@ -338,12 +370,12 @@ Frames are intentionally sparse — one job per frame. Primary CTA is bolded in 
 
 | Layer | Fields | Used for | Must NOT appear on |
 |-------|--------|----------|-------------------|
-| **Sales / private** | Company name, opportunity name, optional SFDC ID | Opportunity docs, AE handoffs, control-plane chrome, sales traceability | Kibana space name, dashboard titles, seed data, Agent Builder public copy, `loom:` tags, index names on shared clusters |
-| **Public demo** | `DEMO_SLUG` = `acme-{industry\|usecase}`, display name e.g. Acme Pharma | Folder under engagements root, `KIBANA_SPACE_PATH=/s/{slug}`, tags, bootstrap assets, live script customer-facing wording | — |
+| **Sales / private** | Company name, opportunity name, optional SFDC ID | Opportunity docs, AE handoffs, control-plane chrome, sales traceability — stored in `pipeline-state.identity` | Kibana space name, dashboard titles, seed data, Agent Builder public copy, `loom:` tags, index names; **not** in `.env` |
+| **Public demo** | `DEMO_SLUG` = `acme-{industry\|usecase}`, display name e.g. Acme Pharma | Folder under engagements root, `KIBANA_SPACE_PATH=/s/{slug}`, tags (`loom:acmepharma` after D-026 normalize), bootstrap assets, live script public wording | — |
 
-Slug pattern examples: `acme-pharma`, `acme-insfraud`, `acme-retailsearch`, `acme-observability`. Folder and pipeline files use the **public** slug; map private names in engagement metadata / `.env` (`ENGAGEMENT` or proposed `COMPANY_NAME` + `OPPORTUNITY_NAME`).
+Slug pattern examples: `acme-pharma`, `acme-insfraud`, `acme-retailsearch`, `acme-observability`. Folder and pipeline files use the **public** slug. On create: check uniqueness under engagements root; suffix if needed (`acme-pharma-2`). Map private names in pipeline-state only — `DEMO_SLUG` / public display go in `.env` when keystore is saved.
 
-**Copy notes:** Import path expects `demo-goals.md` + discovery files. Warn before create if root is cloud-synced. Next screen is the engagement keystore.
+**Copy notes:** Import path expects `demo-goals.md` + discovery files and may skip Evidence into Qualify refresh. Notes path → Evidence. Scratch → Overview then Vision (warp-spark Mode 3). Warn before create if root is cloud-synced. Next: Overview (keystore optional).
 
 #### SB-02 Engagement keystore
 
@@ -354,33 +386,35 @@ Each engagement has an **isolated** keystore at `{engagement_dir}/.env` (see [`s
 ```
 ┌─────────────────────────────────────────────┐
 │  Inputs · Keystore                          │
-│  Path: ~/engagements/acme-2026/.env         │
+│  Path: ~/engagements/acme-pharma/.env       │
 │  Populate:                                  │
 │  ● Enter manually                           │
 │  ○ Load from sample (.env.example)          │
 │  ○ Clone from another engagement            │
-│      Picklist: [2026CitizensAI ▾]           │
+│      Picklist: [acme-retailsearch ▾]        │
 │      [x] Include API keys and tokens        │
 │      [Clone into this engagement]           │
 │  Endpoints / credentials (editable form)    │
-│  [Save keystore] [Continue]                 │
+│  [Save keystore] [Set up later] [Continue]  │
 └─────────────────────────────────────────────┘
 ```
 
 **Clone-from-engagement behavior:**
 
 1. Scan `$LOOM_ENGAGEMENTS_ROOT` (default `~/engagements`) for sibling folders that contain a `.env` (or readable keystore).
-2. Picklist shows **slug + presence summary** (e.g. “ES+Kibana set” / “partial”) — not secret values.
+2. Picklist shows **slug + presence summary** (e.g. “ES+Kibana set” / “partial”) — not secret values. Use **synthetic** sibling examples in docs/prototype only.
 3. **Clone copies into this engagement’s `.env`** — it does not keep a live link to the source file; each slug stays isolated after clone.
 4. Default: keep **this** engagement’s `DEMO_SLUG` / `KIBANA_SPACE_PATH` (do not overwrite with the source slug’s space).
-5. Optional checkbox: **Include API keys and tokens** (on by default for same-cluster reuse; off = URLs / endpoints only).
-6. After clone, SA reviews and **Save keystore** before Continue.
+5. If `ELASTICSEARCH_URL` matches the source, **force a distinct `INDEX_PREFIX`** (default from public slug). Re-derive `KIBANA_SOLUTION`. Do not copy `DEMO_ASSET_TAG`, `CLUSTER_NAME`, or `DEPLOYMENT_ID` unless SA opts in.
+6. Never clone private identity fields (company / opportunity) — those live only in pipeline-state.
+7. Optional checkbox: **Include API keys and tokens** (on by default for same-cluster reuse; off = URLs / endpoints only).
+8. After clone, SA reviews and **Save keystore** before Continue. Optional: read-only `GET /` + Kibana status → set `keystore.status=validated` and `ELASTIC_VERSION` (D-020).
 
 **Rules:**
 
 1. One keystore **file per engagement** — clone duplicates values; never point two slugs at the same `.env` path.
-2. UI shows **set / missing / expired**, not secret values in activity logs or toasts.
-3. Planning (Qualify / Design / Build authoring) can proceed with empty cluster creds; **Readiness live verify**, **Deploy**, and **agent-runtime launch** require URLs + keys.
+2. UI shows **set / missing / expired**, not secret values in activity logs or toasts. Track `keystore.status`: `empty|partial|complete|validated` — **do not** treat stub `.env` as `cloud-provision` complete.
+3. Planning (Qualify / Design / Build authoring) can proceed with empty cluster creds (**Set up later**); **Readiness live verify**, **Deploy**, and **agent-runtime launch** require URLs + keys.
 4. Separate `ES_API_KEY` and `KIBANA_API_KEY` (D-016).
 5. If engagement root syncs to Drive/OneDrive, prefer `.env` on a **local symlink**.
 6. Optional fields (EC, Fleet, OTLP) appear when deployment type needs them.
@@ -421,7 +455,7 @@ Each engagement has an **isolated** keystore at `{engagement_dir}/.env` (see [`s
 └─────────────────────────────────────────────┘
 ```
 
-**Copy notes:** “Not qualified” archives and ends custom build. “Continue discovery” parks until gaps are answered or accepted as risk.
+**Copy notes:** “Not qualified” archives and ends custom build. “Continue discovery” returns to **Overview** (does not advance to Design) until gaps are answered, accepted as risk, or SA chooses “Design anyway (accept risk).” Record decision writes `approvals[]`.
 
 ### Where AE/SA edit gaps — and how Loom updates Qualify readiness **[Proposed]**
 
@@ -478,64 +512,51 @@ flowchart TD
 
 **AE collaboration:** Share which Input to update *or* the gaps inbox; SA refreshes qualify when source or responses change.
 
-#### SB-05 Draft demo vision
+#### SB-05 Freeze demo vision (merged draft + capability map)
 
-**Nav:** Demo Vision · **Primary CTA:** Shape features
+**Nav:** Demo Vision · **Primary CTA:** Freeze and review confirmation
 
-```
-┌─────────────────────────────────────────────┐
-│  Demo Vision · Draft                        │
-│  Storyline: [ideation preview]              │
-│  Customer confirmation (preview)            │
-│  Next: shape which Elastic capabilities     │
-│        carry this story                     │
-│                    [Shape features]         │
-└─────────────────────────────────────────────┘
-```
-
-**Copy notes:** Confirmation stays customer-safe (no “predefined,” “bootstrap,” or internal sales terms). Do not freeze until the capability map is confirmed on SB-05.
-
-#### SB-06 Shape Elastic capabilities
-
-**Nav:** Demo Vision · **Primary CTA:** Approve features
-
-Aligns with `warp-spark` **Elastic Capability Map** (outcome, proof point) and **Out of Scope**.
+Aligns with `warp-spark` Plan Contract: archetype, wow moments, **Elastic Capability Map**, data strategy, minimum bar, Out of Scope, and D-036 when Agent Builder is in scope. (Do **not** confuse with warp-spark’s internal “Build Path” Quick/Customized estimate — UX **Demo path** is SB-07.)
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Demo Vision · Capability map               │
+│  Demo Vision · Freeze                       │
+│  Archetype / storyline: [preview]           │
+│  Top wow moments: [3]                       │
 │  In storyline                               │
 │  [x] Detection rules — why / proof          │
 │  [x] Cases — why / proof                    │
 │  [x] AI Assistant — why / proof             │
 │  [x] ES|QL — why / proof                    │
-│                                             │
-│  Add features to the storyline              │
-│  [Agent Builder] [Workflows] [ML] …         │
+│  Add: [Agent Builder] [Workflows] [ML] …    │
 │  Custom: [________________] [Add]           │
-│                                             │
 │  Out of scope: Custom search UI (excluded)  │
+│  Data strategy / minimum bar: [preview]     │
+│  Customer confirmation (preview)            │
 │  [x] Freeze vision + capability map         │
-│                    [Approve features]       │
+│              [Freeze and review confirmation]│
 └─────────────────────────────────────────────┘
 ```
 
 **Interaction rules for this screen:**
 
-1. **From vision** — system proposes 2–4 capabilities tied to pain/audience (not a generic feature dump).
+1. **From vision** — system proposes 2–4 capabilities tied to pain/audience (not a generic feature dump). Warn if SA adds beyond ~4.
 2. **Each row shows** capability name + one-line outcome/proof (“why it is in the story”).
 3. **SA can uncheck** to move a capability out of scope.
-4. **SA can add** from a curated Elastic catalog (Agent Builder, Workflows, ML, Attack Discovery, Fleet, EIS, SLOs, etc.) or type a **custom feature request**.
+4. **SA can add** from a curated Elastic catalog (filtered by solution area) or type a **custom feature request**.
 5. **SA-added / SA-requested** chips distinguish human intent from model proposals.
-6. Freeze writes the map into `demo/{slug}-ideation.md` (capability table + out of scope) before audit.
+6. Adding **Agent Builder** auto-includes AI Cost + Usage (D-036) unless SA opts out.
+7. Freeze writes `demo/{slug}-ideation.md`, refreshes confirmation + opportunity-summary TL;DR; SA must **approve confirmation** (recorded in `approvals[]`) before audit.
 
-#### SB-07 Predefined vs custom (audited against map)
+**Copy notes:** Confirmation stays customer-safe (no “predefined,” “bootstrap,” or internal sales terms). Do not treat freeze complete until confirmation is approved.
 
-**Nav:** Demo Vision · **Primary CTA:** Commit path
+#### SB-07 Demo path (predefined vs custom, audited against map)
+
+**Nav:** Demo Vision · **Primary CTA:** Commit demo path
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Design · Build path                        │
+│  Design · Demo path                         │
 │  Audit · selected features                  │
 │  Detection rules …… ready                   │
 │  Cases ……………… ready                   │
@@ -547,13 +568,13 @@ Aligns with `warp-spark` **Elastic Capability Map** (outcome, proof point) and *
 │    └ Need evidence: Inputs → re-audit       │
 │  ○ Use standard demo (if catalog covers map)│
 │  ○ Build custom Elastic demo                │
-│                    [Commit path]            │
+│                    [Commit demo path]       │
 └─────────────────────────────────────────────┘
 ```
 
-**What amber means (corrected from prior Loom engagements):**
+**What amber means:**
 
-Prior demos (`2026PurposeAgents`, `2026CitizensAI`, `2026lenovoGAIaaS`) treated most “setup / amber” rows as **work the pipeline still owns** — agent specs, tools, workflows, dashboards, seed data authored via `weave-agent` / bootstrap from discovery — **not** as “expand discovery and restart,” and **not** as SA hand-building agents after the demo as a separate pre-execution step.
+Synthetic prior-pattern demos (e.g. illustrative multi-agent / SIEM / GAI engagements) treated most “setup / amber” rows as **work the pipeline still owns** — agent specs, tools, workflows, dashboards, seed data authored via `weave-agent` / bootstrap from discovery — **not** as “expand discovery and restart,” and **not** as SA hand-building agents after the demo as a separate pre-execution step.
 
 | Amber subtype | Meaning | UX action |
 |---------------|---------|-----------|
@@ -562,7 +583,7 @@ Prior demos (`2026PurposeAgents`, `2026CitizensAI`, `2026lenovoGAIaaS`) treated 
 | **Unverified / need evidence** | Missing version, license, or diagnostic | Optional deep-link to **Inputs** → re-audit only |
 | **Red / blocked** (not amber) | Wrong license, version, or infra | Descope, alternative, or timeline change |
 
-**Copy notes:** Audit rows are the **selected** capability map. Do not send SAs back through discovery because Agent Builder is amber. Predefined only if a catalog demo covers the map; otherwise custom unlocks Build.
+**Copy notes:** Audit rows are the **selected** capability map (`remediation_owner`: pipeline | manual_once | customer). Do not send SAs back through discovery because Agent Builder is amber. Predefined only if a catalog demo covers the map; otherwise custom unlocks Build. Label this screen **Demo path** (not Build path).
 
 #### SB-08 Build progress
 
@@ -574,13 +595,15 @@ Prior demos (`2026PurposeAgents`, `2026CitizensAI`, `2026lenovoGAIaaS`) treated 
 │  ✓ Story script                             │
 │  … Data model                               │
 │  ○ Fleet integrations                       │
-│  ○ Agent Builder (if in script)             │
+│  ○ Agent Builder (SA added → weave-agent)   │
+│  ○ AI Cost dashboard (D-036 with AB)        │
 │  Activity log ▸ weave-model · running       │
+│  Decision needed: [none] / fleet storyline  │
 │  [Pause] [Resume from last good]            │
 └─────────────────────────────────────────────┘
 ```
 
-**Copy notes:** Default labels are outcome-oriented. Skill names appear only in Activity log. Build must honor the frozen capability map (including SA-requested features).
+**Copy notes:** Default labels are outcome-oriented; list derives from frozen map (“why included”). Skill names appear only in Activity log. Surface weave-fleet / other human gates as **decision needed**.
 
 #### SB-09 Security / readiness review
 
@@ -593,11 +616,29 @@ Prior demos (`2026PurposeAgents`, `2026CitizensAI`, `2026lenovoGAIaaS`) treated 
 │  Live verify (needs .env)  Not started      │
 │  Schema probes · ES|QL · field population   │
 │  Blockers: [none]                           │
-│  [Run pre-cluster] [Run live verify]        │
+│  [Run pre-cluster] [Set up keystore]        │
+│  [Run live verify] [Cluster target →]       │
 └─────────────────────────────────────────────┘
 ```
 
-**Copy notes:** Bundle-dependent checks belong only in the live lane (after provision / `.env`).
+**Copy notes:** Bundle-dependent checks (`asset-bundle/`) belong only in the **live** lane — pre-cluster lane marks them pending (finish-check `--lane pre-cluster`). Prompt for keystore if deferred.
+
+#### SB-09b Cluster target and deploy artifacts *[P3]*
+
+**Nav:** Readiness · **Primary CTA:** Generate deploy artifacts
+
+```
+┌─────────────────────────────────────────────┐
+│  Readiness · Cluster target                 │
+│  ○ Use existing cluster (keystore)          │
+│  ○ Provision new (bolt-spin · spend gate)   │
+│  Then: finish-verify → asset-bundle         │
+│        bolt-bootstrap → plan + dry-run      │
+│              [Generate deploy artifacts]    │
+└─────────────────────────────────────────────┘
+```
+
+**Copy notes:** Feeds SB-10 with reviewed tf/bootstrap + dry-run results. No live apply here.
 
 #### SB-10 Deploy approval
 
@@ -614,7 +655,7 @@ Prior demos (`2026PurposeAgents`, `2026CitizensAI`, `2026lenovoGAIaaS`) treated 
 └─────────────────────────────────────────────┘
 ```
 
-**Copy notes:** Approve writes who / when / artifact hashes. Conversational “yes” alone is not enough.
+**Copy notes:** Approve writes who / when / artifact hashes into `approvals[]`. Conversational “yes” alone is not enough.
 
 #### SB-11 Launch the demo
 
@@ -623,7 +664,7 @@ Prior demos (`2026PurposeAgents`, `2026CitizensAI`, `2026lenovoGAIaaS`) treated 
 ```
 ┌─────────────────────────────────────────────┐
 │  Demo · Launch                              │
-│  Pulse: GREEN · /s/acme-2026                │
+│  Pulse: GREEN · /s/acme-pharma              │
 │  Present in:                                │
 │  ● Kibana space (default deep links)        │
 │  ○ Custom UX (optional branded app)         │
@@ -836,12 +877,13 @@ Package for review:
 |-------|---------|------|
 | **P0 Blueprint validation** | Direction accepted with primary SA (2026-10-30); broader SA/security review still welcome | Comments resolved; direction accepted |
 | **P1 Prototype** | Clickable Engagement Home — [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) | Usability test: 5 tasks, ≥80% success without coaching (optional polish) |
-| **P2 Full slice** ← **next (fresh chat)** | SB-01→SB-07: dual-identity create, keystore (+ clone), evidence/`warp-listen`, qualify + dual gap-closure, vision + capability-map freeze, predefined vs custom path — all writing real engagement files + `pipeline-state` | Exit criteria in [`p2-handoff.md`](p2-handoff.md) §6; scout + spark parity |
-| **P3 Build & Readiness slice** | Progress UI + unified readiness calling existing skills/CLIs | finish-check / finish-verify statuses visible |
+| **P1.5 Contract validation** | [`p2-p3-validation.md`](p2-p3-validation.md) + handoff/blueprint/prototype patches | Blockers documented; UX docs consistent |
+| **P2 Full slice** ← **next (fresh chat)** | SB-01→SB-07: dual-identity create, keystore (+ clone), evidence/`warp-listen`, qualify + dual gap-closure, merged vision freeze, **demo path** — real engagement files + `pipeline-state` + skill/schema work packages | Exit criteria in [`p2-handoff.md`](p2-handoff.md) §6; scout + spark parity |
+| **P3 Build & Readiness slice** | Progress UI + unified readiness (`--lane pre-cluster`) + SB-09b cluster target / deploy artifact gen | finish-check / finish-verify statuses honest |
 | **P4 Controlled pilot** | Deploy approval records + Kibana deep links on real non-prod demos | Infosec pack complete; live pair validated |
 | **P5 Production review** | Retention wizard, scoped keys, a11y AA smoke | Release gates (10.6) all green |
 
-**P2 chat split:** UX lineage owns this blueprint + prototype. Implementation owns code/fixtures per [`p2-handoff.md`](p2-handoff.md). Do not mix Full P2 coding into the UX session.
+**P2 chat split:** UX lineage owns this blueprint + prototype + validation report. Implementation owns code/fixtures per [`p2-handoff.md`](p2-handoff.md). Do not mix Full P2 coding into the UX session.
 
 ### Success measures
 
@@ -870,17 +912,21 @@ Package for review:
 
 ## 13. Open design questions
 
-1. Should the control plane be a local web app, a Cursor Canvas/extension, or a thin CLI+TUI first?
+1. Should the control plane be a local web app, a Cursor Canvas/extension, or a thin CLI+TUI first? *(P2 preference: library + CLI first — see handoff §4.)*
 2. Who hosts AE/SDR intake long-term (Gem only vs Slack after IT)?
 3. Is engagement-scoped API key generation in-product or a documented runbook beside the UI?
 4. How much Kibana chrome is acceptable for customer audiences vs SA rehearsal?
+5. Should `ENGAGEMENT` in `.env` remain public display name only (Acme), with real company never written to env? *(Validation A2 recommends yes.)*
+6. When continue_discovery is recorded, is “Design anyway (accept risk)” always available, or only after AE alignment checkbox?
+7. Capability catalog: live in `skills/references/capability-catalog.md` only, or also as JSON for UI chips?
 
-Resolve these in P0 review; they do not block blueprint acceptance.
+Resolve 1–4 in product review; 5–7 from [`p2-p3-validation.md`](p2-p3-validation.md) — safest interpretation in handoff until closed.
 
 ---
 
 ## 14. References
 
+- [`p2-p3-validation.md`](p2-p3-validation.md) — Contract validation + streamlining findings  
 - [`p2-handoff.md`](p2-handoff.md) — Full P2 implementation brief (fresh-chat starter)  
 - [`sa-first-journey-prototype.html`](sa-first-journey-prototype.html) — P1 clickable storyboard  
 - [`AGENTS.md`](../../AGENTS.md) — hygiene, D-024, privacy  

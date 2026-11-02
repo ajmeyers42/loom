@@ -24,6 +24,54 @@
       "enum": ["proceed", "continue_discovery", "not_qualified"]
     },
     "qualification_rationale": { "type": "string" },
+    "qualification_decision": {
+      "type": "object",
+      "description": "SA-recorded decision (Record decision). Written by loom_state qualify decide; thread-qualify must preserve it on refresh. qualification_status mirrors decision.status once recorded.",
+      "required": ["status", "decided_by", "decided_at"],
+      "properties": {
+        "status": { "type": "string", "enum": ["proceed", "continue_discovery", "not_qualified"] },
+        "recommended_status": { "type": ["string", "null"], "enum": ["proceed", "continue_discovery", "not_qualified", null] },
+        "decided_by": { "type": "string", "minLength": 1 },
+        "decided_at": { "type": "string" },
+        "rationale": { "type": ["string", "null"] },
+        "ae_alignment": {
+          "type": "object",
+          "properties": {
+            "confirmed": { "type": "boolean" },
+            "note": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "open_blocking_gaps": { "type": "array", "items": { "type": "string" } },
+        "override": {
+          "type": ["object", "null"],
+          "description": "Design anyway (accept risk) after continue_discovery",
+          "properties": {
+            "design_anyway": { "type": "boolean" },
+            "approver": { "type": "string" },
+            "at": { "type": "string" },
+            "rationale": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "accepted_risk": {
+      "type": "array",
+      "description": "Gaps explicitly accepted as risk (keyed by discovery gap_id)",
+      "items": {
+        "type": "object",
+        "required": ["gap_id", "rationale", "accepted_by", "accepted_at"],
+        "properties": {
+          "gap_id": { "type": "string", "pattern": "^g_[a-z0-9_]+$" },
+          "rationale": { "type": "string", "minLength": 1 },
+          "accepted_by": { "type": "string" },
+          "accepted_at": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
     "meddpic": {
       "type": "object",
       "required": ["metrics", "economic_buyer", "decision_criteria", "decision_process", "paper_process", "identify_pain", "champion"],

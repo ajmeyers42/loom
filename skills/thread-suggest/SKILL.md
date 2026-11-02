@@ -33,12 +33,14 @@ Read these files before making any recommendation:
 | File | Source | Required? |
 |---|---|---|
 | `demo/{slug}-ideation.md` | warp-spark | **Required** — frozen SA direction |
+| `demo/{slug}-capability-map.json` | warp-spark | **Required** — selected capabilities (criterion 1 + 2) |
 | `opportunity/{slug}-opportunity-profile.json` | thread-qualify | Required |
-| `demo/{slug}-platform-audit.json` | thread-audit | Required |
+| `demo/{slug}-platform-audit.json` | thread-audit | Required — must pass `loom_state path check` |
 | `skills/thread-suggest/references/standard-demos.md` | this skill | Required — lookup table |
 
-If `demo/{slug}-ideation.md` is missing, stop and tell the SA to run `warp-spark` first.
-Ideation must be frozen before this decision can be made.
+If ideation is not confirmed (`loom_state next <slug>` still shows Design → vision), stop
+and tell the SA to finish `warp-spark` first. Ideation must be frozen and the refreshed
+confirmation approved before this decision can be made.
 
 ---
 
@@ -83,9 +85,8 @@ ServiceNow tickets in the demo" is a blocker.
 → Proceed to Step 4 (predefined outputs).
 
 **CUSTOM required** — any criterion fails:
-→ Write a one-line note in the output explaining which criterion failed and why.
-→ Set `custom_required: true` in the output JSON.
-→ Present the decision to the SA and proceed to `weave-script`.
+→ Write a one-line note explaining which criterion failed and why (the commit rationale).
+→ Present the decision to the SA; on confirmation commit the custom path (Step 5).
 
 **BORDERLINE** — criteria 1 passes partially (covers 2 of 3 pains, misses one):
 → Present the partial match to the SA with a clear statement of what the standard demo
@@ -93,7 +94,7 @@ ServiceNow tickets in the demo" is a blocker.
 → Ask: "The [Demo Name] covers most of what they need — it misses [specific gap]. Options:
   (a) use predefined and address the gap in the talk track, (b) add one custom scene to the
   standard demo, (c) go fully custom. Which fits the timeline?"
-→ SA makes the call. Record the decision in the output JSON.
+→ SA makes the call. Record it with `loom_state path commit` (`--rationale` carries the reasoning).
 
 ---
 
@@ -184,19 +185,19 @@ Update the customer-facing confirmation document to reflect the committed demo d
 using technical-win framing. See `warp-spark` Step: Post-Ideation Refresh for the
 update pattern. Do not use "predefined", "standard demo", or any internal pipeline terminology.
 
-### 4c: Pipeline state
+### 4c: Commit the Demo path
 
-Write to the engagement workspace (or SA's working notes):
+On the SA's confirmation, run:
 
+```bash
+python3 scripts/loom_state.py path commit <slug> --path predefined --rationale "…"
 ```
-{slug}-pipeline-state.md:
-  predefined_recommended: true
-  standard_demo: {demo name}
-  custom_required: false
-  decision_date: {date}
-  decided_by: {SA name or "orchestrator"}
-  pipeline_ends_here: true
-```
+
+It requires `opportunity/{slug}-predefined-recommendation.md` (the demo name is read from the
+bold line under **Recommended Demo**, or pass `--standard-demo "…"`), refuses red audit rows,
+and writes top-level `path: predefined`, `stages.build-path` (`standard_demo`,
+`custom_required: false`, `pipeline_ends_here: true`), completes `platform-audit`, and records
+the `demo_path_commit` approval. Custom Build stays locked.
 
 ---
 
@@ -204,7 +205,9 @@ Write to the engagement workspace (or SA's working notes):
 
 If custom is required:
 
-Set the pipeline state to `custom_required: true` and present:
+On the SA's confirmation, run `python3 scripts/loom_state.py path commit <slug> --path custom
+--rationale "<criterion that failed>"` (writes `path: custom`, `stages.build-path.custom_required:
+true`, and the `demo_path_commit` approval), then present:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

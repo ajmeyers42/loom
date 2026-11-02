@@ -71,6 +71,25 @@
         "JSON captures the Elastic team members (SE/presenter role at minimum)",
         "Gap report correctly notes this is an approved demo with few or no blocking gaps"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Engagement acme-pharma (notes mode). Parse inputs/call-notes.md, then the AE added inputs/ae-followup.md naming the budget owner — re-run listen.",
+      "expected_output": "acme-pharma-discovery.json with evidence-linked claims (source_ref into inputs/ with verbatim excerpts) and gaps with stable gap_ids; on re-listen the economic-buyer gap disappears (closed by re-inference) while other gap ids are unchanged. Registered via loom_state listen record.",
+      "files": [
+        "../../tests/fixtures/p2-acme/notes/call-notes.md",
+        "../../tests/fixtures/p2-acme/notes/ae-followup.md"
+      ],
+      "expectations": [
+        "Uses the existing slug acme-pharma — never derives a slug from the company name",
+        "Every claim has claim_id c_*, field, text, and source_ref.file under inputs/",
+        "Every source_ref.excerpt is a verbatim span of the referenced file",
+        "Every gap has gap_id g_* and impact; the economic buyer gap sets blocks_qualification true",
+        "Re-listen keeps gap_id unchanged for fields that are still unknown",
+        "Re-listen removes the economic buyer gap and adds a claim citing inputs/ae-followup.md",
+        "Runs loom_state listen record and reports closed_by_reinference",
+        "Confirmation doc contains no internal sales jargon (champion, deal stage, ICP, ACV)"
+      ]
     }
   ]
 }

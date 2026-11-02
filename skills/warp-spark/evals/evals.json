@@ -20,10 +20,28 @@
       "expected_output": "Ideation output frames an operational use case without running discovery parser, platform audit, or build stages.",
       "files": [],
       "assertions": [
-        "Runs as Stage 0 only",
+        "Runs as Mode 3 (scratch) ideation — no qualification gate because there is no discovery",
         "Does not proceed to platform audit or script generation",
         "Creates a practical data strategy for synthetic or representative data",
         "Includes wow moments and qualification questions for the first discovery call"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "acme-pharma is qualified (proceed). Run ideation from the demo-goals brief; I also want to add Agent Builder for a conversational investigation scene.",
+      "expected_output": "Mode 1 ideation. capability-map.json built via loom_state vision map add with catalog ids (vision origin) plus agent-builder as sa_added; ai-cost-dashboard implied per D-036; frozen with loom_state vision freeze; refreshed confirmation + summary TL;DR Demo direction line; loom_state vision confirm after SA approval.",
+      "files": [
+        "../../tests/fixtures/p2-acme/qualify/demo-goals.md"
+      ],
+      "assertions": [
+        "Runs loom_state vision plan first and respects the gate",
+        "Contract H1 uses the public display name and slug — never the real company name",
+        "Capability Map table has an Origin column; agent-builder is SA added",
+        "ai-cost-dashboard appears as implied (D-036) and Operational Transparency is yes",
+        "Out of Scope and Minimum Bar sections are present",
+        "Build Effort is presented as an estimate, not the Demo path decision",
+        "Confirmation refresh has What We'll Show You and How We Define a Successful Evaluation without internal pipeline terms",
+        "Runs loom_state vision confirm only after explicit SA approval"
       ]
     }
   ]

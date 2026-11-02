@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://elastic.co/loom/schemas/pipeline-state.schema.json",
+  "title": "Loom Pipeline State",
+  "description": "{slug}-pipeline-state.json — durable engagement control-plane state. Extend additively; phase / next action are derived from stages, path, approvals, and keystore (never stored).",
+  "type": "object",
+  "required": ["slug", "stages"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "engagement_dir": { "type": "string" },
+    "created_at": { "type": "string" },
+    "last_updated": { "type": "string" },
+    "tag_id": { "type": "string", "pattern": "^[a-z0-9]+$", "description": "D-026 normalized engagement id (loom:<tag_id>)" },
+    "solution": { "type": "string", "enum": ["search", "observability", "security", "cross_solution", "unknown"] },
+    "identity": {
+      "type": "object",
+      "description": "Private sales identity lives here only — never in .env, tags, spaces, or seed data.",
+      "required": ["public_display_name"],
+      "properties": {
+        "company_name": { "type": ["string", "null"] },
+        "opportunity_name": { "type": ["string", "null"] },
+        "opportunity_id": { "type": ["string", "null"] },
+        "public_display_name": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "entry_mode": { "type": "string", "enum": ["import", "notes", "scratch"] },
+    "path": { "type": "string", "enum": ["custom", "predefined", "unset"] },
+    "keystore": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["empty", "partial", "complete", "validated"] },
+        "deferred": { "type": "boolean" },
+        "source": { "type": ["string", "null"], "enum": ["manual", "sample", "clone", null] },
+        "cloned_from": { "type": ["string", "null"] },
+        "validated_at": { "type": ["string", "null"] },
+        "elastic_version": { "type": ["string", "null"] },
+        "missing": { "type": "array", "items": { "type": "string" } },
+        "updated_at": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "approvals": { "type": "array", "items": { "$ref": "#/$defs/approval" } },
+    "stages": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/stage" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "approval": {
+      "type": "object",
+      "required": ["action", "approver", "timestamp", "artifacts"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "qualification_decision",
+            "qualification_override",
+            "vision_freeze",
+            "confirmation_approve",
+            "demo_path_commit",
+            "spend",
+            "deploy_apply",
+            "teardown"
+          ]
+        },
+        "approver": { "type": "string", "minLength": 1 },
+        "timestamp": { "type": "string" },
+        "artifacts": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^(sha256:[0-9a-f]{64}|absent)$" }
+        },
+        "rationale": { "type": ["string", "null"] },
+        "decision": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "stage": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "complete", "skipped", "awaiting_decision", "awaiting_confirmation", "stale", "blocked"]
+        },
+        "output": { "type": ["string", "null"] },
+        "outputs": { "type": "array", "items": { "type": "string" } },
+        "input_hash": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

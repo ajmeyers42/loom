@@ -204,9 +204,11 @@ pain that Elastic's current mapping templates address.
 
 ## Step 4: Write the Three Output Files
 
-Derive the slug from the cluster name or company name if available (lowercase, hyphens).
-Example: `"prod-cluster-lowes"` → `lowes`, `"thermo-fisher-es01"` → `thermo-fisher`.
-If a `demo/{slug}-discovery.json` already exists from warp-listen, use the same slug.
+**Use the engagement's existing slug** (the `{engagement_dir}` folder name). **Never derive a
+slug from the cluster name or company name** — cluster names often embed the customer name,
+and the slug is a public demo codename. If no engagement exists yet, create one with
+`python3 scripts/loom_state.py new` first. Put diagnostic files under `inputs/` (`loom_state
+inputs add`) and, after writing outputs, register with `loom_state scan record <slug>`.
 
 ### Output 1: `demo/{slug}-current-state.json`
 

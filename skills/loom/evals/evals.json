@@ -49,6 +49,22 @@
         "Checklist regenerated and reflects updated script",
         "Handoff summary notes what changed vs previous run"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "New engagement for a pharma SOC AI opportunity (company and opportunity are confidential). Set it up as acme-pharma, reuse the shared demo cluster from acme-retailsearch, and take it through to the demo-path decision. Do not deploy.",
+      "expected_output": "loom_state new with private identity only in pipeline-state; keys clone with a distinct INDEX_PREFIX (aph-); listen → qualify decide → warp-spark freeze/confirm → thread-audit on the capability map → path commit; no cluster mutation.",
+      "files": [],
+      "assertions": [
+        "Creates the engagement with loom_state new --slug acme-pharma; tag id loom:acmepharma",
+        "Company/opportunity never appear in .env, .env.example, ideation, or the capability map",
+        "Uses loom_state keys clone --from acme-retailsearch; INDEX_PREFIX differs from the sibling",
+        "Keystore status is reported separately from cloud-provision",
+        "Runs ideation after the recorded qualification decision, not before discovery",
+        "Platform audit is scoped to the frozen capability map",
+        "Commits the Demo path with loom_state path commit; predefined does not unlock weave stages",
+        "Does not run bolt-spin, terraform apply, or bootstrap-data.py"
+      ]
     }
   ]
 }

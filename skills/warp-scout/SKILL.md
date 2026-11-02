@@ -58,9 +58,14 @@ reformat first.
 **Produces:** `demo/{slug}-discovery.json`, `opportunity/{slug}-gaps.md`,
 `opportunity/{slug}-confirmation.md`
 
-After writing the discovery JSON, pause and confirm the engagement slug with the user
-if it was not explicitly provided. Use a slug derived from the company name
-(lowercase, hyphens, no spaces — e.g. `acme-corp`).
+**Engagement slug:** before writing outputs, confirm the slug with the user if it was not
+explicitly provided. The slug is a **public demo codename** (`acme-<vertical>`, e.g.
+`acme-pharma`) — **never derived from the company name**, because it ends up on shared demo
+assets. When running in an SA's loom setup, create the engagement with `python3
+scripts/loom_state.py new --slug acme-… --company "<company>" --entry-mode notes …` so
+the real company is stored only in the private pipeline-state identity. When producing a
+standalone package for SA handoff, any working prefix is fine — the SA's `loom_state new
+--entry-mode import --import <package-dir>` rebinds every file and `meta.slug` to the public slug.
 
 ---
 
@@ -213,7 +218,7 @@ SA handoff package:
 - ✅ `demo/{slug}-findings.md`
 
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
-SA next step: open `opportunity/{slug}-demo-goals.md` and run `warp-spark` to commit to a demo direction.
+SA next step: import the package (`loom_state new --entry-mode import --import <dir>`), record the qualification decision, then run `warp-spark` from `opportunity/{slug}-demo-goals.md` to commit to a demo direction.
 **━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━**
 
 ---

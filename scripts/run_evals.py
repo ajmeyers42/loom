@@ -12,9 +12,12 @@ Usage:
   python3 scripts/run_evals.py --skill weave-script   # limit to one skill
   python3 scripts/run_evals.py --verbose         # show assertion lists
 
+Also validates artifact fixtures (tests/fixtures/, skills/*/evals/fixtures/) against
+schemas/ by filename suffix (e.g. *-discovery.json → discovery.schema.json).
+
 Exit codes:
   0 — all evals parse cleanly
-  1 — one or more evals.json files failed schema validation
+  1 — one or more evals.json files or artifact fixtures failed schema validation
 """
 
 from __future__ import annotations
@@ -29,6 +32,32 @@ SKILLS_DIR = REPO_ROOT / "skills"
 
 REQUIRED_EVAL_KEYS = {"id", "prompt", "expected_output"}
 REQUIRED_ROOT_KEYS = {"skill_name", "evals"}
+
+FIXTURE_GLOBS = ("tests/fixtures/**/*.json", "skills/*/evals/fixtures/**/*.json")
+SCHEMA_BY_SUFFIX = {
+    "discovery.json": "discovery",
+    "opportunity-profile.json": "opportunity-profile",
+    "platform-audit.json": "platform-audit",
+    "capability-map.json": "capability-map",
+    "gap-responses.json": "gap-responses",
+    "pipeline-state.json": "pipeline-state",
+}
+
+
+def validate_fixtures() -> tuple[int, list[str]]:
+    """Validate artifact fixtures against schemas/ by filename suffix."""
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from loomstate.schema import validate_file  # noqa: PLC0415
+
+    checked, errors = 0, []
+    for pattern in FIXTURE_GLOBS:
+        for path in sorted(REPO_ROOT.glob(pattern)):
+            schema = next((s for suf, s in SCHEMA_BY_SUFFIX.items() if path.name.endswith(suf)), None)
+            if not schema:
+                continue
+            checked += 1
+            errors += [f"{path.relative_to(REPO_ROOT)}: {e}" for e in validate_file(path, schema)]
+    return checked, errors
 
 
 def validate_evals_file(path: Path) -> list[str]:
@@ -120,8 +149,18 @@ def main() -> int:
 
     print("─" * 55)
     print(f"  {'TOTAL':<28} {total_evals:>5}  {total_skills} skills")
-    if failed_skills:
-        print(f"\n  {failed_skills} skill(s) failed validation. Fix errors above.\n")
+
+    checked, fixture_errors = validate_fixtures()
+    if fixture_errors:
+        print(f"\n  ❌  {len(fixture_errors)} fixture schema error(s) across {checked} fixture(s):")
+        for err in fixture_errors:
+            print(f"    ⚠  {err}")
+    else:
+        print(f"\n  ✅  {checked} artifact fixture(s) match schemas/")
+
+    if failed_skills or fixture_errors:
+        if failed_skills:
+            print(f"\n  {failed_skills} skill(s) failed validation. Fix errors above.\n")
         return 1
     else:
         print(f"\n  All {total_skills} skills passed schema validation.\n")

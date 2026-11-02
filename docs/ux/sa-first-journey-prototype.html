@@ -513,15 +513,15 @@
 <body>
   <p class="sr-only">
     Clickable prototype of the Solutions Architect first Loom journey.
-    Use Previous and Next, phase pills, or primary screen actions to move through ten screens.
+    Use Previous and Next, phase pills, or primary screen actions to move through thirteen screens.
   </p>
 
   <div class="page">
     <div class="doc-banner">
       <strong>Prototype (not product).</strong>
-      Illustrative Acme Corp engagement. Open from
+      Illustrative Acme Pharma engagement. Open from
       <code>docs/ux/sa-first-journey-prototype.html</code>.
-      Spec: <code>loom-ux-blueprint.md</code>.
+      Spec: <code>loom-ux-blueprint.md</code> · Validation: <code>p2-p3-validation.md</code>.
     </div>
 
     <div class="shell" id="board">
@@ -541,29 +541,29 @@
       <div class="layout">
         <nav class="nav" aria-label="Engagement home">
           <span class="nav-label">Engagement</span>
-          <button type="button" data-nav="overview" data-jump="0">Overview</button>
+          <button type="button" data-nav="overview" data-jump="1">Overview</button>
           <button type="button" data-nav="inputs" data-jump="0" aria-current="true">Inputs</button>
-          <button type="button" data-nav="opportunity" data-jump="3">Opportunity</button>
-          <button type="button" data-nav="vision" data-jump="4">Demo Vision</button>
+          <button type="button" data-nav="opportunity" data-jump="4">Opportunity</button>
+          <button type="button" data-nav="vision" data-jump="5">Demo Vision</button>
           <button type="button" data-nav="build" data-jump="7">Build</button>
           <button type="button" data-nav="readiness" data-jump="8">Readiness</button>
-          <button type="button" data-nav="demo" data-jump="10">Demo</button>
-          <button type="button" data-nav="governance" data-jump="9">Governance</button>
+          <button type="button" data-nav="demo" data-jump="11">Demo</button>
+          <button type="button" data-nav="governance" data-jump="10">Governance</button>
         </nav>
 
         <main class="stage" aria-live="polite">
-          <!-- SB-01 -->
+          <!-- SB-01 Create -->
           <section class="frame" data-step="0" aria-label="Create engagement">
-            <p class="eyebrow">Screen 1 of 12 · Intake · Inputs</p>
+            <p class="eyebrow">Screen 1 of 13 · Intake · Inputs</p>
             <h2>Create engagement</h2>
             <p class="beat">Keep real company and opportunity names for sales traceability. Public demo assets must use an anonymized <span class="meta">acme-…</span> slug — never the customer identity on shared clusters.</p>
 
-            <div class="field" style="margin-bottom:6px"><label>Sales identity · private</label></div>
+            <div class="field" style="margin-bottom:6px"><label>Sales identity · private (pipeline-state only)</label></div>
             <div class="add-panel" style="margin-top:0;margin-bottom:12px">
               <div class="field"><label>Company name</label><div class="fake-input">Northwind Pharmaceuticals</div></div>
               <div class="field"><label>Opportunity name</label><div class="fake-input">NW Pharma — SOC AI / alert fatigue FY26</div></div>
               <div class="field"><label>Opportunity ID <span class="meta">(optional · SFDC)</span></label><div class="fake-input">006XXXXXXXXXXXX</div></div>
-              <p class="beat" style="margin:0;font-size:12px">Used in opportunity docs, AE handoffs, and internal control-plane chrome only — not on Kibana titles, tags, or seed data.</p>
+              <p class="beat" style="margin:0;font-size:12px">Used in opportunity docs and control-plane chrome — not in <span class="meta">.env</span>, Kibana titles, tags, or seed data.</p>
             </div>
 
             <div class="field" style="margin-bottom:6px"><label>Public demo identity · shared assets</label></div>
@@ -576,22 +576,26 @@
                 <span class="chip">acme-retailsearch</span>
                 <span class="chip">acme-observability</span>
               </div>
-              <p class="beat" style="margin:0;font-size:12px">Pattern: <span class="meta">acme-&#123;industry&#125;</span> or <span class="meta">acme-&#123;usecase&#125;</span>. Folder = ~/engagements/acme-pharma · space /s/acme-pharma.</p>
+              <p class="beat" style="margin:0;font-size:12px">Pattern: <span class="meta">acme-&#123;industry&#125;</span>. Folder = ~/engagements/acme-pharma · space /s/acme-pharma · tag <span class="meta">loom:acmepharma</span>. Uniqueness checked under root.</p>
             </div>
 
             <div class="field"><label>Engagement root</label><div class="fake-input">~/engagements</div></div>
             <button type="button" class="choice" data-choice="group-start" aria-pressed="true">
               <strong>Import AE/SDR package</strong>
-              <span>demo-goals.md + discovery files</span>
+              <span>demo-goals.md + discovery files · may skip Evidence</span>
             </button>
             <button type="button" class="choice" data-choice="group-start" aria-pressed="false">
               <strong>Start from notes</strong>
-              <span>Paste discovery call notes</span>
+              <span>Paste discovery call notes into inputs/</span>
+            </button>
+            <button type="button" class="choice" data-choice="group-start" aria-pressed="false">
+              <strong>From scratch</strong>
+              <span>No notes yet · warp-spark Mode 3</span>
             </button>
             <div class="callout">
               <strong>Customer identity.</strong>
-              Real names stay in sales/opportunity artifacts. Shared demo assets (indices, dashboards, Agent Builder, tags) must use the public slug only.
-              Keep the keystore (.env) on a local symlink if this root syncs to Drive.
+              Real names stay in sales/opportunity artifacts. Shared demo assets must use the public slug only.
+              Keystore is optional until live verify — set up later from Overview.
             </div>
             <div class="actions">
               <button type="button" class="btn primary" data-next>Create</button>
@@ -599,16 +603,41 @@
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-02 Engagement keystore -->
-          <section class="frame" data-step="1" hidden aria-label="Engagement keystore">
-            <p class="eyebrow">Screen 2 of 12 · Intake · Inputs</p>
+          <!-- Overview hub -->
+          <section class="frame" data-step="1" hidden aria-label="Overview">
+            <p class="eyebrow">Screen 2 of 13 · Hub · Overview</p>
+            <h2>Engagement overview</h2>
+            <p class="beat">Resume from <span class="meta">pipeline-state</span> alone. Next action and blockers are derived — not a stored phase label.</p>
+            <div class="field"><label>Sales (private)</label><div class="fake-input">Northwind Pharmaceuticals · NW Pharma — SOC AI FY26</div></div>
+            <div class="field"><label>Public demo</label><div class="fake-input">Acme Pharma · acme-pharma · loom:acmepharma</div></div>
+            <div class="row" style="margin:12px 0">
+              <span class="branch">Next</span>
+              <span class="meta" id="overviewNext">Ingest notes / review evidence · or open Opportunity if package imported</span>
+            </div>
+            <ul class="list">
+              <li><span class="dot warn" aria-hidden="true"></span><div>Keystore</div><span class="meta">deferred</span></li>
+              <li><span class="dot" aria-hidden="true"></span><div>Qualification</div><span class="meta">pending</span></li>
+              <li><span class="dot" aria-hidden="true"></span><div>Vision</div><span class="meta">not frozen</span></li>
+              <li><span class="dot" aria-hidden="true"></span><div>Demo path</div><span class="meta">unset</span></li>
+            </ul>
+            <div class="actions">
+              <button type="button" class="btn" data-jump-step="2">Keystore</button>
+              <button type="button" class="btn" data-jump-step="3">Inputs · Evidence</button>
+              <button type="button" class="btn primary" data-jump-step="4">Opportunity</button>
+            </div>
+            <p class="toast" data-toast hidden></p>
+          </section>
+
+          <!-- SB-02 Keystore -->
+          <section class="frame" data-step="2" hidden aria-label="Engagement keystore">
+            <p class="eyebrow">Screen 3 of 13 · Intake · Inputs</p>
             <h2>Engagement keystore</h2>
-            <p class="beat">Per-engagement secrets and endpoints (maps to <span class="meta">.env</span>). Never committed to git. Start blank, load a sample, or clone from another engagement under the same root.</p>
+            <p class="beat">Per-engagement secrets and endpoints (maps to <span class="meta">.env</span>). Never committed to git. Deferrable until live verify. Clone copies values — does not share the file or private identity.</p>
 
             <div class="field"><label>Keystore path</label><div class="fake-input">~/engagements/acme-pharma/.env</div></div>
             <div class="row" style="margin-bottom:12px">
               <span class="branch">Isolated</span>
-              <span class="meta">writes only to this slug · clone copies values, does not share the file</span>
+              <span class="meta">keystore.status ≠ cloud-provision · stub .env is not “provisioned”</span>
             </div>
 
             <div class="field" style="margin-bottom:6px"><label>How to populate</label></div>
@@ -627,15 +656,15 @@
 
             <div id="ksClonePanel" class="add-panel" hidden>
               <h3>Clone source</h3>
-              <p class="beat" style="margin-bottom:8px">Engagements under <span class="meta">~/engagements</span> that have a keystore. Copies into <span class="meta">acme-pharma/.env</span> — keep this engagement’s public slug/space; edit keys as needed.</p>
+              <p class="beat" style="margin-bottom:8px">Synthetic siblings under <span class="meta">~/engagements</span>. Copies into <span class="meta">acme-pharma/.env</span> — keep this slug/space; force distinct <span class="meta">INDEX_PREFIX</span> if ES URL matches.</p>
               <div class="field">
                 <label for="ksClonePick">Engagement keystore</label>
                 <select id="ksClonePick" class="fake-input" style="width:100%">
                   <option value="">Select an engagement…</option>
-                  <option value="2026CitizensAI">2026CitizensAI · .env present · ES+Kibana set</option>
-                  <option value="2026PurposeAgents">2026PurposeAgents · .env present · ES+Kibana set</option>
-                  <option value="2026lenovoGAIaaS">2026lenovoGAIaaS · .env present · ES+Kibana set</option>
-                  <option value="2026ihg">2026ihg · .env present · partial</option>
+                  <option value="acme-retailsearch">acme-retailsearch · .env present · ES+Kibana set</option>
+                  <option value="acme-observability">acme-observability · .env present · ES+Kibana set</option>
+                  <option value="acme-insfraud">acme-insfraud · .env present · ES+Kibana set</option>
+                  <option value="acme-secops">acme-secops · .env present · partial</option>
                 </select>
               </div>
               <div class="field" style="margin-top:8px">
@@ -654,6 +683,7 @@
               <div class="field"><label for="ksEsUrl">ELASTICSEARCH_URL</label><input class="fake-input" id="ksEsUrl" type="url" placeholder="https://….es.io:443" style="width:100%"></div>
               <div class="field"><label for="ksKbUrl">KIBANA_URL</label><input class="fake-input" id="ksKbUrl" type="url" placeholder="https://….kb.io:443" style="width:100%"></div>
               <div class="field"><label for="ksSpace">KIBANA_SPACE_PATH</label><input class="fake-input" id="ksSpace" type="text" value="/s/acme-pharma" style="width:100%"></div>
+              <div class="field"><label for="ksPrefix">INDEX_PREFIX <span class="meta">(required if shared cluster)</span></label><input class="fake-input" id="ksPrefix" type="text" placeholder="aph-" style="width:100%"></div>
               <div class="field"><label for="ksOtlp">MANAGED_OTLP_URL <span class="meta">(optional)</span></label><input class="fake-input" id="ksOtlp" type="url" placeholder="https://….otel…." style="width:100%"></div>
             </div>
 
@@ -679,22 +709,23 @@
             </div>
             <div class="actions">
               <button type="button" class="btn" data-toast-msg="Keystore saved to engagement .env (prototype stub · values not logged).">Save keystore</button>
-              <button type="button" class="btn primary" data-next>Continue</button>
+              <button type="button" class="btn" data-jump-step="1" data-toast-msg="Keystore deferred · keystore.status=empty.">Set up later</button>
+              <button type="button" class="btn primary" data-jump-step="1">Continue to Overview</button>
             </div>
             <p class="toast" data-toast hidden></p>
           </section>
 
           <!-- SB-03 Evidence -->
-          <section class="frame" data-step="2" hidden aria-label="Review evidence">
-            <p class="eyebrow">Screen 3 of 12 · Intake · Inputs</p>
+          <section class="frame" data-step="3" hidden aria-label="Review evidence">
+            <p class="eyebrow">Screen 4 of 13 · Intake · Inputs</p>
             <h2>Review extracted evidence</h2>
-            <p class="beat">Every AI claim links to a source excerpt. Edit before trusting the opportunity view.</p>
+            <p class="beat">Every AI claim links to a source excerpt under <span class="meta">inputs/</span>. Edit before trusting the opportunity view. Import package may skip here into Qualify refresh.</p>
             <ul class="list">
               <li>
                 <span class="dot ok" aria-hidden="true"></span>
                 <div>
                   <strong>Need unified AI-assisted SIEM</strong>
-                  <div class="meta">notes.md ¶12</div>
+                  <div class="meta">inputs/notes.md ¶12 · source_ref</div>
                 </div>
                 <span class="meta">claim</span>
               </li>
@@ -702,7 +733,7 @@
                 <span class="dot warn" aria-hidden="true"></span>
                 <div>
                   <strong>Economic buyer unnamed</strong>
-                  <div class="meta">gap · ask AE</div>
+                  <div class="meta">gap_id · g_econ_buyer · ask AE</div>
                 </div>
                 <span class="meta">gap</span>
               </li>
@@ -723,8 +754,8 @@
           </section>
 
           <!-- SB-04 Qualify -->
-          <section class="frame" data-step="3" hidden aria-label="Qualification">
-            <p class="eyebrow">Screen 4 of 12 · Qualify · Opportunity</p>
+          <section class="frame" data-step="4" hidden aria-label="Qualification">
+            <p class="eyebrow">Screen 5 of 13 · Qualify · Opportunity</p>
             <h2>Record opportunity viability</h2>
             <p class="beat">Align with AE first. Optionally review MEDDPIC and gaps; AE/SA answers live on this engagement — then refresh qualification readiness.</p>
 
@@ -755,7 +786,7 @@
               <h3>Gaps inbox</h3>
               <p class="beat" style="margin-bottom:8px">
                 Source list: <span class="meta">opportunity/acme-pharma-gaps.md</span>.
-                Close a gap by updating discovery notes / Inputs (then re-parse), or by an optional short response here — both are valid.
+                Close a gap by updating <span class="meta">inputs/</span> notes (then re-parse), or by an optional short response here — both are valid.
               </p>
               <ul class="list" id="gapsInbox">
                 <li data-gap="g1">
@@ -812,62 +843,46 @@
               <span class="meta" id="qualReadiness">1 blocking gap open · MEDDPIC partial · continue_discovery likely</span>
             </div>
 
-            <button type="button" class="choice" data-choice="group-qual" aria-pressed="false">
+            <button type="button" class="choice" data-choice="group-qual" data-qual="proceed" aria-pressed="false">
               <strong>Proceed</strong>
               <span>Enough MEDDPIC to design a demo</span>
             </button>
-            <button type="button" class="choice" data-choice="group-qual" aria-pressed="true">
+            <button type="button" class="choice" data-choice="group-qual" data-qual="continue" aria-pressed="true">
               <strong>Continue discovery</strong>
-              <span>Wait for AE answers on open gaps</span>
+              <span>Wait for AE answers on open gaps · parks on Overview</span>
             </button>
-            <button type="button" class="choice" data-choice="group-qual" aria-pressed="false">
+            <button type="button" class="choice" data-choice="group-qual" data-qual="stop" aria-pressed="false">
               <strong>Not qualified</strong>
               <span>End pipeline · archive notes</span>
             </button>
             <div class="row" style="margin-top:8px">
               <span class="branch">Gate</span>
-              <span class="meta">AE alignment confirmed</span>
+              <span class="meta">AE alignment confirmed · writes approvals[]</span>
             </div>
             <div class="actions">
               <button type="button" class="btn" id="btnRefreshQual">Refresh qualification</button>
               <button type="button" class="btn" data-toast-msg="Opportunity summary copied (prototype stub).">Copy summary</button>
-              <button type="button" class="btn primary" data-next>Record decision</button>
+              <button type="button" class="btn primary" id="btnRecordDecision">Record decision</button>
             </div>
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-04 -->
-          <section class="frame" data-step="4" hidden aria-label="Demo vision">
-            <p class="eyebrow">Screen 5 of 12 · Design · Demo Vision</p>
-            <h2>Draft the demo vision</h2>
-            <p class="beat">Lock the storyline first. Next screen shapes which Elastic capabilities carry that story.</p>
-            <div class="field">
-              <label>Storyline</label>
-              <div class="fake-area">Security analyst reduces alert fatigue with Elastic AI Assistant grounded in Acme’s detection story…</div>
-            </div>
-            <div class="field">
-              <label>Customer confirmation (preview)</label>
-              <div class="fake-area">We’ll show how Elastic unifies detections, cases, and guided investigation for your SOC workflow.</div>
-            </div>
-            <div class="callout">
-              <strong>Next.</strong>
-              Review the capability map and add any Elastic features you want written into the storyline.
-            </div>
-            <div class="actions">
-              <button type="button" class="btn primary" data-next>Shape features</button>
-            </div>
-            <p class="toast" data-toast hidden></p>
-          </section>
+          <!-- SB-05 Vision (merged draft + capability map) -->
+          <section class="frame" data-step="5" hidden aria-label="Freeze demo vision">
+            <p class="eyebrow">Screen 6 of 13 · Design · Demo Vision</p>
+            <h2>Freeze demo vision</h2>
+            <p class="beat">Storyline, capability map, and confirmation in one place. Freeze writes ideation; then approve the refreshed customer confirmation (D-050).</p>
 
-          <!-- SB-05 Feature map (new) -->
-          <section class="frame" data-step="5" hidden aria-label="Elastic capability map">
-            <p class="eyebrow">Screen 6 of 12 · Design · Demo Vision</p>
-            <h2>Shape Elastic capabilities</h2>
-            <p class="beat">See what the vision already leverages, then add or request features to weave into the storyline. Outcome-first — not a product tour.</p>
-
-            <div class="field" style="margin-bottom:6px">
-              <label>In storyline</label>
+            <div class="field">
+              <label>Archetype / storyline</label>
+              <div class="fake-area">Operational triage · Security analyst reduces alert fatigue with Elastic AI Assistant grounded in Acme’s detection story…</div>
             </div>
+            <div class="field">
+              <label>Top wow moments</label>
+              <div class="fake-area">1) Guided triage cuts time-to-hypothesis · 2) Case from multi-alert noise · 3) ES|QL pivot to entity activity</div>
+            </div>
+
+            <div class="field" style="margin-bottom:6px"><label>In storyline</label></div>
             <ul class="list features" id="featureInList">
               <li data-feature="detection-rules">
                 <input class="feature-check" type="checkbox" checked aria-label="Include Detection rules">
@@ -905,7 +920,7 @@
 
             <div class="add-panel">
               <h3>Add features to the storyline</h3>
-              <p class="beat" style="margin-bottom:8px">Pick from common Elastic capabilities or describe one in your own words.</p>
+              <p class="beat" style="margin-bottom:8px">Curated catalog (solution-filtered). Warn if map grows beyond ~4. Agent Builder implies AI Cost dashboard (D-036).</p>
               <div class="catalog" id="featureCatalog" role="group" aria-label="Feature catalog">
                 <button type="button" data-add-feature="agent-builder" data-label="Agent Builder" data-why="Conversational demo path for the Acme investigation story">Agent Builder</button>
                 <button type="button" data-add-feature="workflows" data-label="Workflows" data-why="Automate case enrichment after triage">Workflows</button>
@@ -924,9 +939,7 @@
               </div>
             </div>
 
-            <div class="field" style="margin:14px 0 6px">
-              <label>Out of scope (explicit)</label>
-            </div>
+            <div class="field" style="margin:14px 0 6px"><label>Out of scope (explicit)</label></div>
             <ul class="list features">
               <li>
                 <span class="dot" aria-hidden="true"></span>
@@ -938,23 +951,33 @@
               </li>
             </ul>
 
+            <div class="field" style="margin-top:12px">
+              <label>Data strategy / minimum bar</label>
+              <div class="fake-area">Starter + synthetic alerts · min bar: rules + cases + assistant without Agent Builder if time-boxed</div>
+            </div>
+            <div class="field">
+              <label>Customer confirmation (preview · customer-safe)</label>
+              <div class="fake-area">We’ll show how Elastic unifies detections, cases, and guided investigation for your SOC workflow.</div>
+            </div>
+
             <button type="button" class="choice" data-choice="group-freeze" aria-pressed="true" style="margin-top:12px">
               <strong>Freeze vision + capability map</strong>
-              <span>Writes ideation contract · unlocks platform audit</span>
+              <span>Writes ideation · then approve confirmation</span>
             </button>
             <div class="actions">
-              <button type="button" class="btn primary" data-next>Approve features</button>
+              <button type="button" class="btn" data-toast-msg="Confirmation approved · approvals[] + confirmation_approved (prototype stub).">Approve confirmation</button>
+              <button type="button" class="btn primary" data-next>Freeze and continue to demo path</button>
             </div>
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-06 Path -->
-          <section class="frame" data-step="6" hidden aria-label="Build path">
-            <p class="eyebrow">Screen 7 of 12 · Design · Demo Vision</p>
-            <h2>Choose build path</h2>
+          <!-- SB-07 Demo path -->
+          <section class="frame" data-step="6" hidden aria-label="Demo path">
+            <p class="eyebrow">Screen 7 of 13 · Design · Demo Vision</p>
+            <h2>Choose demo path</h2>
             <p class="beat">Audit the capability map. Amber usually means Loom still authors the asset in Build — not a restart of discovery, and not SA hand-building agents after the demo.</p>
             <div class="row" style="margin-bottom:10px">
-              <span class="meta">Audit · selected features</span>
+              <span class="meta">Audit · selected features · remediation_owner</span>
             </div>
             <div>
               <div class="audit-row">
@@ -984,7 +1007,7 @@
               <p class="beat" style="margin-bottom:8px">
                 Platform can run Agent Builder. The agent, tools, and workflows are <strong>not</strong> a post-build homework step —
                 they are generated in Build (<span class="meta">weave-agent</span> / bootstrap) from discovery + this capability map,
-                same pattern as prior engagements (e.g. PurposeAgents, CitizensAI, Lenovo GAIaaS).
+                same pattern as synthetic multi-agent / SIEM engagements.
               </p>
               <ul class="list">
                 <li>
@@ -1031,23 +1054,24 @@
               <span>Pipeline generates script, data, agents, tools, and workflows</span>
             </button>
             <div class="actions">
-              <button type="button" class="btn primary" data-next>Commit custom path</button>
+              <button type="button" class="btn primary" data-next>Commit demo path</button>
             </div>
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-07 -->
+          <!-- SB-08 Build -->
           <section class="frame" data-step="7" hidden aria-label="Build progress">
-            <p class="eyebrow">Screen 8 of 12 · Build &amp; Validate · Build</p>
+            <p class="eyebrow">Screen 8 of 13 · Build &amp; Validate · Build</p>
             <h2>Generate story, data, and assets</h2>
-            <p class="beat">Progress in plain language. Skill names stay in the activity log.</p>
+            <p class="beat">Progress in plain language. List derives from the frozen capability map. Skill names stay in the activity log.</p>
             <ul class="list">
               <li><span class="dot ok" aria-hidden="true"></span><div>Story script</div><span class="meta">done</span></li>
               <li><span class="dot run" aria-hidden="true"></span><div>Data model</div><span class="meta">running</span></li>
               <li><span class="dot" aria-hidden="true"></span><div>Fleet integrations</div><span class="meta">queued</span></li>
-              <li><span class="dot" aria-hidden="true"></span><div>Agent Builder</div><span class="meta">queued</span></li>
+              <li><span class="dot" aria-hidden="true"></span><div>Agent Builder <span class="chip sa">SA added</span></div><span class="meta">→ weave-agent</span></li>
+              <li><span class="dot" aria-hidden="true"></span><div>AI Cost dashboard</div><span class="meta">D-036 with AB</span></li>
             </ul>
-            <div class="callout"><strong>Activity.</strong> weave-model · writing mappings/</div>
+            <div class="callout"><strong>Activity.</strong> weave-model · writing mappings/ · Decision needed: none</div>
             <div class="actions">
               <button type="button" class="btn" data-toast-msg="Build paused (prototype stub).">Pause</button>
               <button type="button" class="btn primary" data-next>Open readiness</button>
@@ -1055,26 +1079,51 @@
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-07 -->
+          <!-- SB-09 Readiness -->
           <section class="frame" data-step="8" hidden aria-label="Readiness">
-            <p class="eyebrow">Screen 9 of 12 · Build &amp; Validate · Readiness</p>
+            <p class="eyebrow">Screen 9 of 13 · Build &amp; Validate · Readiness</p>
             <h2>Unified readiness</h2>
-            <p class="beat">Pre-cluster checklist and live-cluster verify in one place. Bundle checks appear only after .env exists.</p>
+            <p class="beat">Pre-cluster checklist and live-cluster verify in one place. Bundle checks appear only in the live lane (after keystore / provision).</p>
             <ul class="list">
-              <li><span class="dot ok" aria-hidden="true"></span><div>Pre-cluster checklist</div><span class="meta">14/16</span></li>
+              <li><span class="dot ok" aria-hidden="true"></span><div>Pre-cluster checklist</div><span class="meta">14/16 · asset-bundle pending live</span></li>
               <li><span class="dot warn" aria-hidden="true"></span><div>Live verify</div><span class="meta">needs .env</span></li>
-              <li><span class="dot" aria-hidden="true"></span><div>Schema · ES|QL · field population</div><span class="meta">blocked</span></li>
+              <li><span class="dot" aria-hidden="true"></span><div>Schema · ES|QL · field population</div><span class="meta">blocked until verify</span></li>
             </ul>
             <div class="actions">
-              <button type="button" class="btn" data-toast-msg="Pre-cluster check queued (prototype stub).">Run pre-cluster</button>
-              <button type="button" class="btn primary" data-next>Provision then verify</button>
+              <button type="button" class="btn" data-toast-msg="Pre-cluster check queued (prototype stub · --lane pre-cluster).">Run pre-cluster</button>
+              <button type="button" class="btn" data-jump-step="2">Set up keystore</button>
+              <button type="button" class="btn primary" data-next>Cluster target →</button>
             </div>
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-08 -->
-          <section class="frame" data-step="9" hidden aria-label="Deploy approval">
-            <p class="eyebrow">Screen 10 of 12 · Present &amp; Retire · Governance</p>
+          <!-- SB-09b Cluster target -->
+          <section class="frame" data-step="9" hidden aria-label="Cluster target">
+            <p class="eyebrow">Screen 10 of 13 · Build &amp; Validate · Readiness</p>
+            <h2>Cluster target &amp; deploy artifacts</h2>
+            <p class="beat">Choose how credentials arrive, then generate reviewable deploy artifacts. No live apply on this screen.</p>
+            <button type="button" class="choice" data-choice="group-cluster" aria-pressed="true">
+              <strong>Use existing cluster</strong>
+              <span>Requires engagement keystore URLs + keys</span>
+            </button>
+            <button type="button" class="choice" data-choice="group-cluster" aria-pressed="false">
+              <strong>Provision new (bolt-spin)</strong>
+              <span>Spend gate · separate approval before create</span>
+            </button>
+            <div class="callout">
+              <strong>Then.</strong>
+              finish-verify → <span class="meta">asset-bundle/</span> · bolt-bootstrap → terraform plan + bootstrap --dry-run · results feed Deploy approval.
+            </div>
+            <div class="actions">
+              <button type="button" class="btn" data-toast-msg="Spend approval recorded for bolt-spin (prototype stub).">Approve spend</button>
+              <button type="button" class="btn primary" data-next>Generate deploy artifacts</button>
+            </div>
+            <p class="toast" data-toast hidden></p>
+          </section>
+
+          <!-- SB-10 Deploy -->
+          <section class="frame" data-step="10" hidden aria-label="Deploy approval">
+            <p class="eyebrow">Screen 11 of 13 · Present &amp; Retire · Governance</p>
             <h2>Deploy approval</h2>
             <p class="beat">Spend and mutate only after review, dry-run, and a signed record with artifact hashes.</p>
             <ul class="list">
@@ -1084,7 +1133,7 @@
             </ul>
             <div class="callout">
               <strong>Approval record.</strong>
-              you · hash a3f9… · stored in pipeline-state
+              you · hash a3f9… · stored in approvals[]
             </div>
             <div class="actions">
               <button type="button" class="btn danger" data-toast-msg="Apply rejected. No cluster changes.">Reject</button>
@@ -1093,14 +1142,14 @@
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-10 Demo launch -->
-          <section class="frame" data-step="10" hidden aria-label="Demo launch">
-            <p class="eyebrow">Screen 11 of 12 · Present &amp; Retire · Demo</p>
+          <!-- SB-11 Launch -->
+          <section class="frame" data-step="11" hidden aria-label="Demo launch">
+            <p class="eyebrow">Screen 12 of 13 · Present &amp; Retire · Demo</p>
             <h2>Launch the demo</h2>
             <p class="beat">Pick how you present — Kibana space, a custom app, or an agent runtime talking to the cluster. Keep the live script open either way.</p>
 
             <div class="field"><label>Sales (private)</label><div class="fake-input">Northwind Pharmaceuticals · NW Pharma — SOC AI / alert fatigue FY26</div></div>
-            <div class="field"><label>Public demo</label><div class="fake-input">Acme Pharma · /s/acme-pharma · loom:acme-pharma</div></div>
+            <div class="field"><label>Public demo</label><div class="fake-input">Acme Pharma · /s/acme-pharma · loom:acmepharma</div></div>
             <div class="row" style="margin-bottom:12px">
               <span class="dot ok" aria-hidden="true"></span>
               <span class="meta">Pulse green · assets deployed</span>
@@ -1159,9 +1208,9 @@
             <p class="toast" data-toast hidden></p>
           </section>
 
-          <!-- SB-10 -->
-          <section class="frame" data-step="11" hidden aria-label="Retire">
-            <p class="eyebrow">Screen 12 of 12 · Present &amp; Retire · Governance</p>
+          <!-- SB-12 Retire -->
+          <section class="frame" data-step="12" hidden aria-label="Retire">
+            <p class="eyebrow">Screen 13 of 13 · Present &amp; Retire · Governance</p>
             <h2>Teardown and retention</h2>
             <p class="beat">Guided retire so customer artifacts do not linger after the deal or demo.</p>
             <button type="button" class="choice" data-choice="group-retire" aria-pressed="true">
@@ -1170,7 +1219,7 @@
             </button>
             <button type="button" class="choice" data-choice="group-retire" aria-pressed="false">
               <strong>Delete cluster assets</strong>
-              <span>Manifest-scoped</span>
+              <span>Manifest-scoped · loom:acmepharma</span>
             </button>
             <button type="button" class="choice" data-choice="group-retire" aria-pressed="false">
               <strong>Delete local engagement folder</strong>
@@ -1188,15 +1237,15 @@
 
       <div class="footer">
         <button type="button" class="btn" id="prev">Previous</button>
-        <span class="step-label" id="stepLabel">1 / 12</span>
+        <span class="step-label" id="stepLabel">1 / 13</span>
         <button type="button" class="btn primary" id="next">Next</button>
       </div>
     </div>
 
     <p class="legend">
       Keyboard: Left / Right arrows move screens.
-      Phases map to blueprint Section 5; frames map to SB-01–SB-12.
-      Inputs includes per-engagement keystore (.env).
+      Phases map to blueprint Section 5; frames map to SB-01–SB-12 (merged Vision + Overview + Cluster target).
+      Inputs includes per-engagement keystore (.env · deferrable).
     </p>
   </div>
 
@@ -1204,14 +1253,15 @@
     (function () {
       var steps = [
         { phase: 0, phaseName: "Intake", nav: "inputs", label: "Create engagement" },
+        { phase: 0, phaseName: "Intake", nav: "overview", label: "Overview" },
         { phase: 0, phaseName: "Intake", nav: "inputs", label: "Engagement keystore" },
         { phase: 0, phaseName: "Intake", nav: "inputs", label: "Review evidence" },
         { phase: 1, phaseName: "Qualify", nav: "opportunity", label: "Qualification" },
-        { phase: 2, phaseName: "Design", nav: "vision", label: "Draft vision" },
-        { phase: 2, phaseName: "Design", nav: "vision", label: "Shape features" },
-        { phase: 2, phaseName: "Design", nav: "vision", label: "Build path" },
+        { phase: 2, phaseName: "Design", nav: "vision", label: "Freeze vision" },
+        { phase: 2, phaseName: "Design", nav: "vision", label: "Demo path" },
         { phase: 3, phaseName: "Build & Validate", nav: "build", label: "Build progress" },
         { phase: 3, phaseName: "Build & Validate", nav: "readiness", label: "Readiness" },
+        { phase: 3, phaseName: "Build & Validate", nav: "readiness", label: "Cluster target" },
         { phase: 4, phaseName: "Present & Retire", nav: "governance", label: "Deploy approval" },
         { phase: 4, phaseName: "Present & Retire", nav: "demo", label: "Launch demo" },
         { phase: 4, phaseName: "Present & Retire", nav: "governance", label: "Retire" }
@@ -1281,7 +1331,20 @@
         });
       });
 
+      Array.prototype.forEach.call(document.querySelectorAll("[data-jump-step]"), function (b) {
+        b.addEventListener("click", function () {
+          var target = Number(b.getAttribute("data-jump-step"));
+          if (!isNaN(target)) show(target);
+          var msg = b.getAttribute("data-toast-msg");
+          if (msg) {
+            var frame = frames[target] || b.closest(".frame");
+            if (frame) showToast(frame, msg);
+          }
+        });
+      });
+
       Array.prototype.forEach.call(document.querySelectorAll("[data-toast-msg]"), function (b) {
+        if (b.hasAttribute("data-jump-step")) return;
         b.addEventListener("click", function () {
           var frame = b.closest(".frame");
           showToast(frame, b.getAttribute("data-toast-msg"));
@@ -1337,6 +1400,7 @@
 
       function appendFeature(id, label, why, chipText) {
         if (!featureList || added[id]) return false;
+        var count = featureList.querySelectorAll("li").length;
         added[id] = true;
         var li = document.createElement("li");
         li.setAttribute("data-feature", id);
@@ -1348,7 +1412,7 @@
         li.querySelector(".why").textContent = why;
         li.querySelector(".chip").textContent = chipText || "SA added";
         featureList.appendChild(li);
-        return true;
+        return { ok: true, count: count + 1, id: id };
       }
 
       Array.prototype.forEach.call(document.querySelectorAll("[data-add-feature]"), function (btn) {
@@ -1357,10 +1421,18 @@
           var label = btn.getAttribute("data-label");
           var why = btn.getAttribute("data-why");
           var frame = btn.closest(".frame");
-          if (appendFeature(id, label, why, "SA added")) {
+          var result = appendFeature(id, label, why, "SA added");
+          if (result && result.ok) {
             btn.setAttribute("aria-pressed", "true");
             btn.disabled = true;
-            showToast(frame, "Added “" + label + "” to the storyline.");
+            var msg = "Added “" + label + "” to the storyline.";
+            if (id === "agent-builder") {
+              msg += " AI Cost + Usage (D-036) included by default.";
+            }
+            if (result.count > 4) {
+              msg += " Map has " + result.count + " capabilities — consider scoping to 2–4.";
+            }
+            showToast(frame, msg);
           } else {
             showToast(frame, "“" + label + "” is already in the storyline.");
           }
@@ -1378,9 +1450,14 @@
             return;
           }
           var id = "custom-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-          if (appendFeature(id, label, "SA-requested · weave into storyline and proof points", "SA requested")) {
+          var result = appendFeature(id, label, "SA-requested · weave into storyline and proof points", "SA requested");
+          if (result && result.ok) {
             customInput.value = "";
-            showToast(frame, "Added “" + label + "” to the storyline.");
+            var msg = "Added “" + label + "” to the storyline.";
+            if (result.count > 4) {
+              msg += " Map has " + result.count + " capabilities — consider scoping to 2–4.";
+            }
+            showToast(frame, msg);
           } else {
             showToast(frame, "“" + label + "” is already in the storyline.");
           }
@@ -1427,9 +1504,11 @@
           var esUrl = document.getElementById("ksEsUrl");
           var kbUrl = document.getElementById("ksKbUrl");
           var space = document.getElementById("ksSpace");
-          if (esUrl) esUrl.value = "https://" + slug.toLowerCase().replace(/[^a-z0-9]+/g, "") + ".es.example:443";
-          if (kbUrl) kbUrl.value = "https://" + slug.toLowerCase().replace(/[^a-z0-9]+/g, "") + ".kb.example:443";
-            if (space) space.value = "/s/acme-pharma";
+          var prefix = document.getElementById("ksPrefix");
+          if (esUrl) esUrl.value = "https://shared.es.example:443";
+          if (kbUrl) kbUrl.value = "https://shared.kb.example:443";
+          if (space) space.value = "/s/acme-pharma";
+          if (prefix) prefix.value = "aph-";
           if (withKeys) {
             var esKey = document.getElementById("ksEsKey");
             var kbKey = document.getElementById("ksKbKey");
@@ -1439,7 +1518,7 @@
           showToast(
             frame,
             "Cloned from " + slug + (withKeys ? " (URLs + keys)" : " (URLs only)") +
-              ". Space kept as /s/acme-pharma — review before save."
+              ". Space /s/acme-pharma · INDEX_PREFIX=aph- (shared URL) — review before save."
           );
         });
       }
@@ -1520,9 +1599,9 @@
           Array.prototype.forEach.call(
             document.querySelectorAll('.choice[data-choice="group-qual"]'),
             function (c) {
-              var t = (c.querySelector("strong") || {}).textContent || "";
-              if (t.indexOf("Proceed") === 0) proceedBtn = c;
-              if (t.indexOf("Continue") === 0) continueBtn = c;
+              var q = c.getAttribute("data-qual");
+              if (q === "proceed") proceedBtn = c;
+              if (q === "continue") continueBtn = c;
               c.setAttribute("aria-pressed", "false");
             }
           );
@@ -1532,6 +1611,24 @@
           } else {
             if (proceedBtn) proceedBtn.setAttribute("aria-pressed", "true");
             showToast(frame, "Refresh: no blocking gaps → suggested proceed (SA still confirms).");
+          }
+        });
+      }
+
+      var btnRecordDecision = document.getElementById("btnRecordDecision");
+      if (btnRecordDecision) {
+        btnRecordDecision.addEventListener("click", function () {
+          var selected = document.querySelector('.choice[data-choice="group-qual"][aria-pressed="true"]');
+          var qual = selected ? selected.getAttribute("data-qual") : "continue";
+          var frame = btnRecordDecision.closest(".frame");
+          if (qual === "proceed") {
+            showToast(frame, "Recorded proceed · approvals[] · unlocking Design.");
+            setTimeout(function () { show(5); }, 400);
+          } else if (qual === "stop") {
+            showToast(frame, "Recorded not_qualified · pipeline stopped · archive.");
+          } else {
+            showToast(frame, "Recorded continue_discovery · parking on Overview (Design locked).");
+            setTimeout(function () { show(1); }, 400);
           }
         });
       }

@@ -6,15 +6,16 @@ description: >
   prior context exists. Helps the SA review, modify, and freeze a demo direction before
   any technical build work begins. After freezing, updates the customer-facing confirmation
   document with technical-win framing. Integrates Demo Archetypes from hive-mind and
-  produces {slug}-ideation.md that feeds weave-script and thread-suggest.
+  produces {slug}-ideation.md + {slug}-capability-map.json that feed thread-audit,
+  thread-suggest, and weave-script.
 
   ALWAYS use this skill when the loom orchestrator reaches the ideation stage —
   ideation always runs; it is the SA's commit gate to demo direction. Also trigger when
   the SA says "help me figure out what to build", "review the discovery and suggest
   a direction", "I have a meeting with X", "what archetype fits this customer", or
   provides a company name, vertical, or discovery outputs and wants to plan a demo.
-  Ideation runs after discovery/opportunity-review when those outputs exist, or from
-  scratch when they don't.
+  Ideation runs after intake and the recorded qualification decision (proceed, or an
+  explicit design-anyway override), or from scratch when no discovery exists.
 ---
 
 # Demo Ideation
@@ -35,6 +36,12 @@ A well-designed demo that tells the right story beats a rushed build every time.
 ---
 
 ## Operating Modes
+
+Run `python3 scripts/loom_state.py vision plan <slug>` first. It enforces the gate
+(qualification decided `proceed`, or `design-anyway` after `continue_discovery`; scratch
+engagements pass), reports the mode, the public display name to use, and the catalog
+capabilities for the engagement's solution. If it reports Vision locked, stop and return to
+qualification — do not ideate around the gate.
 
 Choose the mode based on what inputs are available:
 
@@ -213,10 +220,20 @@ Justify choices with vertical knowledge. Use customer pain points from discovery
 not generic Elastic feature descriptions.
 
 **Capability mapping (required, outcome-first):**
-- Pick 2-4 Elastic capabilities that best match this use case
+- Pick 2-4 Elastic capabilities that best match this use case (soft limit 4 in scope; the
+  CLI warns above it)
 - For each capability: the decision/problem it enables, why it matters to this audience,
   what proof point the demo must show
 - Do not force a capability because it appeared in previous demos
+- Use ids from `skills/references/capability-catalog.json` (guide: `capability-catalog.md`).
+  Record each with `loom_state vision map add <slug> <id> --origin vision --outcome "…" --proof "…"`.
+- **Ask the SA what they want to add.** The map should carry at least one SA-added feature
+  (`--origin sa_added`, the default). A feature not in the catalog is an SA request:
+  `vision map add <slug> --name "…" --outcome … --proof …` (origin `sa_requested`).
+- Adding `agent-builder` auto-adds `ai-cost-dashboard` (origin `implied`, D-036); opt out
+  only on SA request with `vision map token-visibility <slug> off`.
+- Record explicit exclusions with `vision map exclude <slug> "<feature>" --reason "…"`.
+- `capability-map.json` is canonical; the ideation table is rendered from it at freeze.
 
 **Capture impact criteria now** — for each proposed capability:
 - The **wow moment** the audience will experience (specific, not vague)
@@ -241,11 +258,11 @@ from ideation to pipeline execution.
 Write this file to the engagement workspace:
 
 ```markdown
-# Demo Ideation Contract — {Company} ({slug})
+# Demo Ideation Contract — {Public Display Name} ({slug})
 
 ## Engagement Context
-- **Customer / Event:** {company name or event}
-- **SA:** {from .env ENGAGEMENT or as provided}
+- **Customer / Event:** {public display name, e.g. "Acme Pharma" — never the real company or opportunity name}
+- **SA:** {SA name as provided}
 - **Audience:** {technical / executive / mixed}
 - **Timeline / Meeting Date:** {if known}
 - **Delivery Method:** {local / hosted}
@@ -266,9 +283,11 @@ Steps: {1-3 user actions and expected outcomes}
 Steps: ...
 
 ## Elastic Capability Map
-| Capability | Outcome Enabled | Proof Point |
-|---|---|---|
-| {e.g. Semantic search via ELSER} | {SA finds relevant incidents in seconds} | {Search "pump overheating" returns fault records without keyword match} |
+| Capability | Origin | Outcome Enabled | Proof Point |
+|---|---|---|---|
+| {e.g. Semantic search (`semantic-search`)} | {vision / SA added / SA requested / implied (D-036)} | {SA finds relevant incidents in seconds} | {Search "pump overheating" returns fault records without keyword match} |
+
+*(Rendered from `demo/{slug}-capability-map.json` by `loom_state vision freeze`.)*
 
 ## Data Strategy
 - **Starter data sufficient?** {yes / no / partial}
@@ -288,14 +307,24 @@ Steps: ...
 ## Minimum Bar (if time runs short)
 {Fallback scope that still impresses}
 
-## Build Path
+## Build Effort
 {Quick / Customized / Custom Data / Full Custom} — ~{estimate} hours
+*(Effort estimate only — the Demo path (predefined vs. custom) is decided later by thread-suggest.)*
 
 ## Risks / Open Questions
 - {e.g. "Custom data requires domain examples — ask SA for sample records"}
 ```
 
 ---
+
+### Freeze
+
+When the SA agrees, run `python3 scripts/loom_state.py vision freeze <slug>`. It checks the
+required sections (Chosen Archetype, Top 3 Wow Moments, Elastic Capability Map, Data
+Strategy, Out of Scope, Minimum Bar), requires an outcome + proof point for every in-scope
+capability, refuses private identity in the contract or map, renders the map table and
+exclusions, applies D-036, and records the `vision_freeze` approval. Ideation is then
+`awaiting_confirmation`. Editing the map afterwards returns it to draft — re-freeze.
 
 ## Post-Ideation Refresh (all modes — runs after Plan Contract is frozen)
 
@@ -351,6 +380,10 @@ Present the updated confirmation excerpt to the SA:
 > platform audit."
 
 Do not proceed to platform-audit until the SA explicitly confirms the updated confirmation.
+On the SA's confirmation, run `loom_state vision confirm <slug>` — it verifies the frozen
+contract and map are unchanged, the confirmation has both refreshed sections and no internal
+pipeline terms, and the summary TL;DR has the `Demo direction:` line, then records
+`confirmation_approve`.
 
 ---
 
@@ -358,20 +391,18 @@ Do not proceed to platform-audit until the SA explicitly confirms the updated co
 
 After `demo/{slug}-ideation.md` is frozen and the confirmation refresh is approved,
 the orchestrator should use it as:
-- **Input to `warp-listen`** — if discovery notes are also available, the ideation
-  contract gives the parser a target narrative to validate against
+- **Input to `thread-audit`** — the audit is scoped to the selected capability map
+  (`loom_state path plan <slug>`), not to discovery signals
+- **Input to `thread-suggest`** — the Demo path decision (predefined vs. custom) reads the
+  contract and map
 - **Input to `weave-script`** — the contract replaces the "what should we show?" phase;
   the script writer starts from confirmed wow moments and capability map
 - **Input to `weave-model`** — the data strategy and volume minimums feed directly
   into the modeler's planning phase
 
-If discovery notes are also provided, run `warp-listen` first to produce
-`demo/{slug}-discovery.json`, then pass both the discovery JSON and ideation contract to
-`weave-script`.
-
-If no discovery notes exist (ideation only), pass the ideation contract directly to
-`weave-script` as the primary input — it contains enough context to write
-a credible script.
+Discovery (`warp-listen`) always precedes ideation when notes exist — the contract never
+feeds back into discovery parsing. Scratch engagements (no discovery) pass the ideation
+contract directly to `weave-script` as the primary input.
 
 ---
 

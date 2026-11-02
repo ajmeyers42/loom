@@ -104,7 +104,11 @@ Capture (from the compose file, for the .env):
 ## Step 3: Write the Per-Engagement .env
 
 Write `.env` to `{engagement_dir}/.env` (at the **engagement root** — not in a subfolder).
-This is the single source of truth for all cluster credentials. See `skills/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
+This is the single source of truth for all cluster credentials. Read `{public_display_name}`
+from pipeline-state `identity.public_display_name` (`loom_state next <slug> --json`); never
+write the real company or opportunity name into `.env`. Prefer `loom_state keys set <slug>
+KEY=VALUE …` to write values (it enforces public-only values and updates keystore status),
+then `loom_state keys validate <slug> --probe`. See `skills/references/env-reference.md` for the full variable reference and the endpoint availability table by deployment type.
 
 **Two branches — choose based on whether the cluster is new or existing:**
 
@@ -114,12 +118,12 @@ Write all available endpoints directly from the provisioning API response. Blank
 endpoint vars that are not available for this deployment type.
 
 ```bash
-# Demo environment — {company}
+# Demo environment — {public_display_name}
 # Provisioned: {date} | Type: {type} | Region: {region}
 # ⚠️  Do not commit to version control — contains credentials
 
 DEMO_SLUG={slug}
-ENGAGEMENT={company}
+ENGAGEMENT={public_display_name}   # identity.public_display_name — never the real company name
 DEPLOYMENT_TYPE={serverless|ech|self_managed|docker}
 DEPLOY_MODE=python
 ELASTIC_VERSION={version}        # from provisioning response
@@ -164,7 +168,7 @@ The SA fills in values and saves as `.env`.
 # See: skills/references/env-reference.md
 
 DEMO_SLUG={slug}
-ENGAGEMENT={company}
+ENGAGEMENT={public_display_name}
 DEPLOYMENT_TYPE={type}
 DEPLOY_MODE=python
 # D-020: validate live version — run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
@@ -341,9 +345,8 @@ API Key: configured ✅
 **KIBANA_SPACE_PATH:** /s/{slug} (created in Step 4.1)
 
 ## To reuse this cluster for another demo:
-ROOT="${LOOM_ENGAGEMENTS_ROOT:-$HOME/engagements}"
-cp "$ROOT/{slug}/.env" "$ROOT/{other-slug}/.env"
-# Then update DEMO_SLUG, ENGAGEMENT, and INDEX_PREFIX in the copied file
+python3 scripts/loom_state.py keys clone {other-slug} --from {slug}
+# Binds DEMO_SLUG / ENGAGEMENT / KIBANA_SPACE_PATH to {other-slug}; forces a distinct INDEX_PREFIX
 
 ## To teardown this cluster when the demo is complete:
 [ECH] Delete deployment via cloud.elastic.co or EC API

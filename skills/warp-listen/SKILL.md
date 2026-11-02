@@ -26,8 +26,15 @@ that isn't there.
 
 ## Step 1: Read the Input
 
-Read all provided files. If given a PDF, use the Read tool. If given markdown or plain text,
-read it directly. Accept multiple files for the same customer — reconcile them into one output.
+**Inputs live in `{engagement_dir}/inputs/`** — it is the Path A source of truth. If the SA
+hands you a file outside it, add it first (`python3 scripts/loom_state.py inputs add <slug>
+<file>`), then run `loom_state listen plan <slug>` to get the input list and the **prior gap
+ids** you must keep stable. Every `source_ref.file` you write must point under `inputs/`.
+
+Read every file under `inputs/`. If given a PDF, use the Read tool. If given markdown or plain
+text, read it directly. Reconcile multiple files for the same customer into one output; on
+re-listen (new follow-up notes added), re-read **all** inputs — a gap that the new notes answer
+simply disappears from `gaps[]` (closed by re-inference).
 
 **Input types** (any combination):
 - **Discovery notes** — call reports, live notes, prep notes, qualification threads.
@@ -68,9 +75,26 @@ role from title and context. A "SRE who supports Patrick's team a lot" is `techn
 **Elastic version:** If a version is mentioned or strongly implied ("fallen behind on releases",
 "on-prem cluster"), set `fallen_behind_releases: true` and note the version if known.
 
+**Evidence (required — `schemas/discovery.schema.json`):**
+- `claims[]` — one entry per load-bearing extracted fact (pain, objective, stakeholder role,
+  volume, timeline). Each has `claim_id` (`c_<snake>`), `field` (the discovery field it
+  supports), `text`, and `source_ref: {file: "inputs/…", locator, excerpt}`. The `excerpt`
+  must be a **verbatim span** from that file (whitespace/case-insensitive) — registration
+  fails on paraphrased excerpts. Notes-mode engagements need at least one claim.
+- Pain points with a verbatim quote also carry `source_ref`.
+- `gaps[]` — every gap has `gap_id` (`g_<field_snake>`, e.g. `g_economic_buyer`),
+  `field`, `question`, `impact`, optional `blocks_qualification: true` (MEDDPIC-critical),
+  `suggested_input` (which `inputs/` file the SA should update), and `source_ref` when the
+  notes explicitly flag the unknown ("budget owner not identified").
+- **Gap-id stability:** reuse the prior `gap_id` for the same `field` (from `listen plan`).
+  Never rename an id for an unchanged field — gap responses, accepted risks, and approvals
+  reference it.
+
 ```json
 {
   "meta": {
+    "slug": "{slug}",
+    "inputs": ["inputs/call-notes.md"],
     "notes_quality": "raw | structured | polished",
     "notes_style": ["polished_report", "raw_live_notes", "technical_spec", "mixed_prep_and_live"],
     "extraction_confidence": "low | medium | high",
@@ -134,7 +158,16 @@ role from title and context. A "SRE who supports Patrick's team a lot" is `techn
       "label": "",
       "description": "",
       "severity": "critical | high | medium | low",
-      "verbatim_quote": ""
+      "verbatim_quote": "",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "¶3", "excerpt": "" }
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "c_alert_noise",
+      "field": "pain_points[0]",
+      "text": "",
+      "source_ref": { "file": "inputs/call-notes.md", "locator": "¶3", "excerpt": "" }
     }
   ],
   "objectives": {
@@ -178,9 +211,13 @@ role from title and context. A "SRE who supports Patrick's team a lot" is `techn
   },
   "gaps": [
     {
-      "field": "",
+      "gap_id": "g_economic_buyer",
+      "field": "meddpic.economic_buyer",
       "question": "",
-      "impact": "blocks_demo_build | reduces_personalization | low"
+      "impact": "blocks_demo_build | reduces_personalization | low",
+      "blocks_qualification": true,
+      "suggested_input": "inputs/call-notes.md",
+      "source_ref": { "file": "inputs/call-notes.md", "excerpt": "" }
     }
   ]
 }
@@ -210,8 +247,10 @@ the focus (ELSER, Agent Builder, ML anomaly detection, etc.). Most common type.
 
 ## Step 4: Write the Three Output Files
 
-Derive the company slug from the company name (lowercase, hyphens, no special chars).
-Example: "Citizens Bank" → `citizens-bank`, "Holiday Inn Club Vacations" → `ihg-club`.
+**Use the engagement's existing slug** (the `{engagement_dir}` folder name, set by
+`loom_state new`). **Never derive a slug from the company name** — the slug is a public demo
+codename (e.g. `acme-pharma`); the real company stays in `customer.company` and the private
+pipeline-state identity. If no engagement exists yet, stop and create one with `loom_state new`.
 
 ### Output 1: `demo/{slug}-discovery.json`
 
@@ -318,6 +357,18 @@ Internal use only — not sent to the customer. For each gap in the JSON:
   diagnostic file, etc.)
 
 If all gaps are low-impact: close with "No blocking gaps — safe to proceed to demo build."
+
+Head each gap with its `gap_id` so the SA can answer it via Path A (update the named
+`inputs/` file and re-listen) or Path B (`loom_state gaps respond <slug> <gap_id> …`).
+
+## Step 5: Register the Output
+
+Run `python3 scripts/loom_state.py listen record <slug>`. It validates the discovery JSON,
+verifies every `source_ref` excerpt against `inputs/`, rejects duplicate or renamed gap ids,
+checks the confirmation for internal sales jargon, and records `stages.discovery-parser` with
+a sha256 `input_hash` of `inputs/`. On failure, fix the JSON (do not pass
+`--allow-unverified-excerpts` unless the SA accepts unverified evidence). Report the
+`closed_by_reinference` and `new_gaps` it prints.
 
 ## What Good Looks Like
 

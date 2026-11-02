@@ -1,0 +1,26 @@
+{
+  "version": "1",
+  "description": "Canonical capability ids for the ideation capability map, thread-audit rows, and Build. Human guide: capability-catalog.md. audit_feature names the row in thread-audit's Feature Requirements Reference.",
+  "capabilities": [
+    { "id": "esql", "name": "ES|QL investigations and analytics", "solutions": ["search", "observability", "security"], "audit_feature": "ES|QL", "default_remediation_owner": "pipeline", "build_skills": ["weave-script", "weave-query"] },
+    { "id": "full-text-search", "name": "Full-text search (BM25)", "solutions": ["search"], "audit_feature": "BM25 / standard search", "default_remediation_owner": "pipeline", "build_skills": ["weave-model"] },
+    { "id": "semantic-search", "name": "Semantic search (semantic_text via EIS)", "solutions": ["search", "security", "observability"], "audit_feature": "Elastic Inference Service (EIS) via Cloud Connect", "default_remediation_owner": "pipeline", "build_skills": ["weave-model"] },
+    { "id": "hybrid-search", "name": "Hybrid retrieval (RRF)", "solutions": ["search"], "audit_feature": "RRF hybrid retrieval", "default_remediation_owner": "pipeline", "build_skills": ["weave-model", "weave-query"] },
+    { "id": "reranking", "name": "Reranking (EIS)", "solutions": ["search"], "audit_feature": "Elastic Inference Service (EIS) via Cloud Connect", "default_remediation_owner": "pipeline", "build_skills": ["weave-model"] },
+    { "id": "agent-builder", "name": "Agent Builder (agents + tools)", "solutions": ["search", "observability", "security"], "audit_feature": "Agent Builder", "default_remediation_owner": "pipeline", "implies": ["ai-cost-dashboard"], "build_skills": ["weave-agent"] },
+    { "id": "ai-cost-dashboard", "name": "AI Cost + Usage dashboard (D-036)", "solutions": ["search", "observability", "security"], "audit_feature": "ES|QL", "default_remediation_owner": "pipeline", "build_skills": ["weave-cost"] },
+    { "id": "workflows", "name": "Elastic Workflows", "solutions": ["search", "observability", "security"], "audit_feature": "Elastic Workflows", "default_remediation_owner": "pipeline", "build_skills": ["weave-agent"] },
+    { "id": "ai-assistant", "name": "Elastic AI Assistant (Security / Observability)", "solutions": ["observability", "security"], "audit_feature": "AI Assistant (Security / Observability)", "default_remediation_owner": "manual_once", "build_skills": ["finish-check"] },
+    { "id": "detection-rules", "name": "Detection rules + alerts", "solutions": ["security"], "audit_feature": "Security / SIEM detection rules", "default_remediation_owner": "pipeline", "build_skills": ["weave-script", "finish-verify"] },
+    { "id": "cases", "name": "Cases", "solutions": ["security", "observability"], "audit_feature": "Security / SIEM detection rules", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
+    { "id": "attack-discovery", "name": "Attack Discovery", "solutions": ["security"], "audit_feature": "AI Assistant (Security / Observability)", "default_remediation_owner": "manual_once", "build_skills": ["finish-check"] },
+    { "id": "entity-analytics", "name": "Entity analytics / risk scoring", "solutions": ["security"], "audit_feature": "ML anomaly detection (UI + API)", "default_remediation_owner": "pipeline", "build_skills": ["weave-train"] },
+    { "id": "ml-anomaly", "name": "ML anomaly detection", "solutions": ["observability", "security", "search"], "audit_feature": "ML anomaly detection (UI + API)", "default_remediation_owner": "pipeline", "build_skills": ["weave-train"] },
+    { "id": "fleet-integrations", "name": "Fleet integrations (EPR packages)", "solutions": ["observability", "security"], "audit_feature": "Fleet / Elastic Agent", "default_remediation_owner": "pipeline", "build_skills": ["weave-fleet"] },
+    { "id": "apm", "name": "APM / distributed tracing", "solutions": ["observability"], "audit_feature": "Fleet / Elastic Agent", "default_remediation_owner": "pipeline", "build_skills": ["weave-fleet"] },
+    { "id": "logs", "name": "Log analytics (Discover / Streams)", "solutions": ["observability", "security"], "audit_feature": "Data streams", "default_remediation_owner": "pipeline", "build_skills": ["weave-model", "weave-fleet"] },
+    { "id": "slos", "name": "SLOs and burn-rate alerting", "solutions": ["observability"], "audit_feature": "Transforms", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
+    { "id": "alerting", "name": "Kibana alerting rules + connectors", "solutions": ["observability", "security", "search"], "audit_feature": "Data streams", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] },
+    { "id": "dashboards", "name": "Kibana dashboards (ES|QL panels)", "solutions": ["search", "observability", "security"], "audit_feature": "ES|QL", "default_remediation_owner": "pipeline", "build_skills": ["finish-verify"] }
+  ]
+}
