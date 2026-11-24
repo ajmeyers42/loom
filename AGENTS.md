@@ -61,11 +61,15 @@ Customer discovery notes, diagnostic exports, opportunity summaries, and any oth
 
 2. **Keep `~/engagements/` outside any git-tracked directory.** If an SA's home directory is itself tracked (e.g. a dotfiles repo), confirm that `~/engagements/` is in `.gitignore` before running the pipeline. A mistakenly committed `.env` file contains cluster API keys.
 
-3. **Never commit `.env` files.** Each engagement's `.env` carries `ES_API_KEY`, `KIBANA_API_KEY`, and `EC_API_KEY`. These are credentials — not config. If accidentally staged, run `git rm --cached .env` immediately.
+3. **Never commit `.env` files.** Each engagement's `.env` carries `ES_API_KEY`, `KIBANA_API_KEY`, and `EC_API_KEY`. These are credentials — not config. If accidentally staged, run `git rm --cached .env` immediately. `.gitignore` ignores `.env`/`.env.*` in every directory (templates like `.env.example` stay tracked).
 
-4. **Retention.** Delete engagement directories when the deal closes or the demo environment is torn down. Discovery notes and confirmation documents may contain customer-identifying information that should not be retained beyond their useful life. Follow your organization's data-handling policy.
+4. **Secrets live in a vault, not `.env` — in the Cloud Agent / test environment especially.** When running under a Cloud Agent (or any shared/test environment), provide `ES_API_KEY`, `KIBANA_API_KEY`, `EC_API_KEY`, and cluster endpoint URLs through the Cursor **Secrets** vault (injected as environment variables), never a plaintext `.env` committed or synced anywhere. Resolve credentials from the environment (`os.environ`) and write a `.env` only to a per-engagement folder under `$LOOM_ENGAGEMENTS_ROOT` when a local script requires one — that folder is outside the repo and git-ignored. Never place real credentials in the repo, `.cursor/environment.json`, a Dockerfile, or chat/logs.
 
-5. **Dry-run safety.** `bootstrap-data.py --dry-run` and `terraform plan` are always safe to run without cluster access. Never run `terraform apply` or `bootstrap-data.py` (no `--dry-run`) against a live cluster without the SA's explicit approval per D-024.
+5. **Anonymize customer identity in anything deployed to a test cluster.** Assets created in a shared/test environment must not carry a customer's real name. Use the engagement **slug**, `INDEX_PREFIX`, and the `loom:<engagement_id>` tag (D-026) — not `ENGAGEMENT=<Company>` — in index names, Kibana spaces, dashboards, SLOs, rules, ML jobs, and `CLUSTER_NAME`. Customer-identifying narrative (company name, contacts, discovery notes) stays in the engagement folder under `$LOOM_ENGAGEMENTS_ROOT`; it is not baked into deployed assets.
+
+6. **Retention.** Delete engagement directories when the deal closes or the demo environment is torn down. Discovery notes and confirmation documents may contain customer-identifying information that should not be retained beyond their useful life. Follow your organization's data-handling policy.
+
+7. **Dry-run safety.** `bootstrap-data.py --dry-run` and `terraform plan` are always safe to run without cluster access. Never run `terraform apply` or `bootstrap-data.py` (no `--dry-run`) against a live cluster without the SA's explicit approval per D-024.
 
 ## hive-mind-start
 # Hive Mind

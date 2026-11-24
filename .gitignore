@@ -1,5 +1,19 @@
-# Engagement workspaces live under ~/engagements by default (see docs/engagements-path.md).
-# This folder only holds a pointer README — do not add customer data here.
+# Engagement workspaces live under $LOOM_ENGAGEMENTS_ROOT (default ~/engagements),
+# OUTSIDE this repo, by design (see docs/engagements-path.md and AGENTS.md
+# "Engagement data hygiene"). The rules below are defense-in-depth: even if a root is
+# ever pointed inside the clone, no customer-identifying asset may be committed.
+
+# In-repo engagements/ holds only the pointer README — never customer data.
+/engagements/*
+!/engagements/README.md
+
+# Secret-bearing env files in ANY directory. Credentials and customer-identifying
+# fields belong in the secrets vault (injected env vars), never a committed .env.
+# Safe, credential-free templates stay tracked.
+.env
+.env.*
+!.env.example
+!.env-sample
 
 # Python
 __pycache__/
@@ -7,7 +21,6 @@ __pycache__/
 *.pyo
 .venv/
 venv/
-.env
 
 # macOS
 .DS_Store
