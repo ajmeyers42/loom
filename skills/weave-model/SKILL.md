@@ -24,9 +24,9 @@ have a working data layer.
 
 ## Step 0: Resolve the Target Stack Version
 
-**Baseline: 9.6+ → D-033.** Read version from `demo/{slug}-platform-audit.json` (`platform.version`, `platform.version_verified`), then `demo/{slug}-current-state.json`, then `.env ELASTIC_VERSION` (informational only). If version is unverified, flag it as a risk and do not proceed.
+**Floor: 9.4+ → D-033; default target: latest available release (currently 9.6).** Read version from `demo/{slug}-platform-audit.json` (`platform.version`, `platform.version_verified`), then `demo/{slug}-current-state.json`, then `.env ELASTIC_VERSION` (informational only). If version is unverified, flag it as a risk and do not proceed.
 
-**API shapes for 9.6+ → see `references/feature-compatibility.md` and `references/inference-config.md`:**
+**API shapes for the confirmed target version → see `references/feature-compatibility.md` and `references/inference-config.md`:**
 - Inference: → D-028. ECH: `service: "elastic"`. Serverless: `service: "elser"`. Never `service: "elasticsearch"` for embeddings.
 - ILM: → D-027. Hot-only default; never `rollover` on plain indices.
 - Agent Builder: → D-029. `configuration.skill_ids` + typed tool list.

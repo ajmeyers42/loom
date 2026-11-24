@@ -10,17 +10,18 @@ This file is the **single source of truth** for Elastic version gates and featur
 
 | Constant | Value |
 |----------|-------|
-| Default Elastic version for new demos | **9.6** |
-| Minimum Elastic version for generated scripts | **9.6** |
-| `SKIP_VERSION_CHECK` env var | Set to `true` to bypass the version gate (use only for pre-GA testing) |
-| Bootstrap halt message | `"Cluster version {v} < 9.6 — set SKIP_VERSION_CHECK=true to override"` |
+| Default Elastic version for new demos | **Latest available** (currently **9.6**) |
+| Minimum Elastic version for generated scripts | **9.4** |
+| `SKIP_VERSION_CHECK` env var | Set to `true` to bypass the version gate (use only for pre-GA testing, never for customer demos below 9.4) |
+| Bootstrap halt message | `"Cluster version {v} < 9.4 — demos require 9.4+; upgrade before continuing"` |
 
-New demos default to Elastic 9.6 unless the SA specifies a different version. Serverless
-9.6 capabilities are available now; ECH and self-managed 9.6 availability should be
-confirmed at provisioning time and pinned when the create API exposes it. Existing
-deployments still use the live version from `GET /` and Kibana `/api/status`.
+New demos always default to the latest available Elastic release; as of 2026-11-24 that
+is Elastic 9.6. Serverless 9.6 capabilities are available now; ECH and self-managed
+9.6 availability should be confirmed at provisioning time and pinned when the create
+API exposes it. If the SA specifies a version, it must still be **9.4 or newer**.
+Existing deployments still use the live version from `GET /` and Kibana `/api/status`.
 
-All `bootstrap.py` / `bootstrap-data.py` generated scripts validate `version.number >= (9, 6)` at Step 1 unless `SKIP_VERSION_CHECK=true`.
+All `bootstrap.py` / `bootstrap-data.py` generated scripts validate `version.number >= (9, 4)` at Step 1 unless `SKIP_VERSION_CHECK=true`.
 
 ---
 
@@ -79,14 +80,16 @@ All `bootstrap.py` / `bootstrap-data.py` generated scripts validate `version.num
 
 Status legend: ✅ = generally available for that deployment type, TP = technical preview,
 ⏳ = announced but not yet available for that deployment type, ❌ = not available / not
-applicable. Treat TP and private-preview features as storyline options only after the
-SA confirms preview risk and `finish-verify` probes the backing APIs or package assets.
+applicable. Loom should include upcoming / non-GA features as demo storyline options by
+default. Restrict demos to GA-only capabilities only when the SA explicitly requests it.
+Any TP or private-preview dependency still requires `finish-verify` probes and a clear
+preview-risk note before deployment.
 
 ---
 
 ## 9.6 Demo Guidance
 
-Use 9.6 GA capabilities first when they fit the customer outcome:
+Use the latest GA and upcoming capabilities by default when they fit the customer outcome:
 
 - **Search / AI:** Logical Views for reusable ES|QL, `IN` / `NOT IN` subqueries for
   dynamic allow/deny lists, coordinator-mode `LOOKUP JOIN` for distributed lookup
@@ -104,9 +107,9 @@ Use 9.6 GA capabilities first when they fit the customer outcome:
   service accounts, FIPS 140-3 Agent support, and cross-project search for Serverless
   consolidation stories.
 
-Technical-preview or private-preview features must be framed as optional "preview wow"
-moments, not required demo dependencies, unless the customer explicitly accepts preview
-risk and the target deployment proves support:
+Technical-preview or private-preview features are in scope by default as "preview wow"
+moments. They may become required demo dependencies only when the customer explicitly
+accepts preview risk and the target deployment proves support:
 
 - ES|QL Data Federation for Amazon S3 (TP; Enterprise; ECH/self-managed first,
   Serverless announced as coming soon).

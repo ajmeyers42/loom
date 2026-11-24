@@ -10,7 +10,7 @@ This file is the **single source of truth** for Elastic inference service/model 
 
 ## ELSER (Sparse Embedding)
 
-### ECH / Self-managed / ECK (9.6+)
+### ECH / Self-managed / ECK (9.4+)
 
 ```json
 {

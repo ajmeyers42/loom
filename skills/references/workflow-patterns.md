@@ -1,4 +1,4 @@
-# Kibana Workflow Patterns — Practical Reference (9.x; re-probe on 9.6+)
+# Kibana Workflow Patterns — Practical Reference (9.x; re-probe target cluster)
 
 **Upstream libraries (Elastic org):**
 - **[elastic/workflows](https://github.com/elastic/workflows)** — official Elastic Workflow Library (sample YAML under `workflows/`, docs under `docs/`). Use for step types, Liquid patterns, and copy-paste examples.
@@ -12,7 +12,7 @@ Use *this* file for loom-specific API wiring (Agent Builder `workflow_id`, idemp
 **Authentication:** All Kibana Workflow API calls must use `KIBANA_API_KEY`, not `ES_API_KEY` (D-016). See `kibana-api-registry.md`.
 
 Patterns below are derived from live 9.4 ECH deployments and must be re-probed against
-the target 9.6+ cluster before authoring required workflow assets. Use this as a lookup,
+the target cluster before authoring required workflow assets. Use this as a lookup,
 not a tutorial.
 
 ---

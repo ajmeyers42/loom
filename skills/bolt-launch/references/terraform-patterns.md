@@ -489,7 +489,7 @@ resource "elasticstack_kibana_agentbuilder_agent" "fraud_assistant" {
 ```
 
 **Layer 3 (`bootstrap-data.py`) scope — what Terraform cannot manage:**
-- Step 0: version gate 9.6+ (D-033); optional ECH user_settings_json patch
+- Step 0: version gate 9.4+ (D-033); optional ECH user_settings_json patch
 - Step 0.5: tech preview `PUT /api/spaces/space/{id}` + probe per space (D-011); halt if unavailable
 - Step 1: enrich policy `_execute` + poll
 - Step 2: bulk seed data + `demo_critical_docs` individual verification (D-004)

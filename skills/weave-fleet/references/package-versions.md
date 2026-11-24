@@ -4,13 +4,13 @@ Used by `weave-fleet` Step 2 when no live cluster is available.
 Maps Elastic stack version ranges to tested, compatible package versions for the
 initial supported packages. Update this table after each stack release cycle.
 
-*Last updated: 2026-11-24 | Baseline: Elastic 9.6+*
+*Last updated: 2026-11-24 | Default stack: Elastic 9.6*
 
 ---
 
 ## Version compatibility table
 
-| Package | Stack 8.17.x | Stack 9.0–9.3 | Stack 9.4–9.5 | Stack 9.6+ (baseline) |
+| Package | Stack 8.17.x | Stack 9.0–9.3 | Stack 9.4–9.5 | Stack 9.6 (default) |
 |---|---|---|---|---|
 | `kubernetes` | 1.57.x | 1.60.x | 1.62.0 | Resolve live from EPM |
 | `system` | 1.54.x | 1.57.x | 1.58.4 | Resolve live from EPM |

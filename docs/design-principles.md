@@ -18,7 +18,7 @@ Confirmation docs use only the customer's own language. Platform audits only cle
 
 ## Stack version is explicit (D-020, D-033)
 
-API baseline is **Elastic 9.6+**. New cloud resources default to 9.6 or the latest GA for that product line unless you specify otherwise. Existing deployments require a validated version (from diagnostic, `GET /`, or Kibana status) before scripting starts. ES|QL, mappings, and API calls are scoped to that version. No legacy compatibility shims.
+New cloud resources default to the latest available Elastic release (currently **9.6**) unless you specify otherwise. The hard API floor is **Elastic 9.4+** — no customer demo can be built on a cluster below 9.4. Existing deployments require a validated version (from diagnostic, `GET /`, or Kibana status) before scripting starts. ES|QL, mappings, and API calls are scoped to that version. No legacy compatibility shims.
 
 ## Solution scope matches the customer (D-021)
 
@@ -34,7 +34,7 @@ The assistant will not run `bolt-spin` or `bolt-launch` (create resources, execu
 
 ## Elastic truthfulness (D-025)
 
-Every defined asset must be deployable on Elastic using supported APIs. Mappings use Elasticsearch field types (`keyword`, `text`, `date`, `long`, etc.). Agent Builder tool parameters match the 9.6+ schema. Rules, saved objects, and API shapes follow product conventions — not abstract or invented types.
+Every defined asset must be deployable on Elastic using supported APIs. Mappings use Elasticsearch field types (`keyword`, `text`, `date`, `long`, etc.). Agent Builder tool parameters match the confirmed target-version schema. Rules, saved objects, and API shapes follow product conventions — not abstract or invented types.
 
 ## Engagement tagging (D-026)
 

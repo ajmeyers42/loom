@@ -25,7 +25,7 @@ install packages directly unless the SA explicitly asks for a live cluster opera
 a `.env` is present.
 
 **Deployability (D-025):** Every API path and body you reference must be valid for the
-resolved target stack version (baseline 9.6+, D-033). Do not reference Fleet APIs that
+resolved target stack version (floor 9.4+, latest-release default per D-033). Do not reference Fleet APIs that
 are unavailable on Serverless.
 
 ---
@@ -345,7 +345,7 @@ consume both outputs — giving the SA a unified view before the script is final
 - `references/package-versions.md` — offline version compatibility table (use when no live cluster)
 - `references/package-asset-catalog.md` — offline asset catalog per package (use in Step 3 when no live EPM API)
 - `skills/references/asset-manifest.md` — manifest schema including `fleet_integrations` key
-- `docs/decisions.md` D-025 (deployable API shapes), D-033 (9.6+ baseline)
+- `docs/decisions.md` D-025 (deployable API shapes), D-033 (9.4+ floor / latest-release default)
 
 ---
 

@@ -53,14 +53,14 @@ Write **copy-paste-ready** agent instructions that:
    under 10 minutes."* If the opportunity profile is absent, derive equivalent language from
    the human story and pain points in the demo script.
 
-## Step 4: Tools (9.6+ Agent Builder)
+## Step 4: Tools (Agent Builder on confirmed target version)
 
 List each tool with **type** and **purpose**. Reference `hive-mind/patterns/agent-builder/AGENT_BUILDER_API_MANAGEMENT.md` for the current API shape.
 
 | Type | Use |
 |------|-----|
 | **ES|QL** | Parameterized queries the SA tests in the tool editor (SLA breakdowns, aggregations, lookups). Parameter `type` values must use ES-style types: `keyword`, `text`, `integer`, `date`. |
-| **Index search** | Scoped to one index pattern; semantic/policy questions, document retrieval. Use `index_search` tool type (9.6+). |
+| **Index search** | Scoped to one index pattern; semantic/policy questions, document retrieval. Use `index_search` tool type after probing Agent Builder on the target cluster. |
 | **Workflow** | **Workflow `id`** (from API) that performs an action — not the workflow *name*. Obtain `id` from POST response; do not re-fetch. |
 | **Platform built-in** | `platform.core.create_visualization`, `platform.core.index_explorer` — add these to `tool_ids` to give the agent UI creation capability. |
 
@@ -69,7 +69,7 @@ List each tool with **type** and **purpose**. Reference `hive-mind/patterns/agen
 - `visualization-creation` — enables the agent to create charts and dashboards
 - Probe `GET /api/agent_builder/skills` to confirm available skill IDs before deploying
 
-**Agent configuration shape (9.6+, D-029):**
+**Agent configuration shape (D-029; probe target version before deploy):**
 ```json
 {
   "configuration": {
