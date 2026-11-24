@@ -3,7 +3,7 @@ name: bolt-ech
 description: >
   ECH (Elastic Cloud Hosted) deployment variant for bolt-bootstrap. Generates
   Terraform HCL targeting the elasticstack provider for all infrastructure resources and
-  bootstrap-data.py for data operations only. Terraform-first (D-038). Targets 9.4+
+  bootstrap-data.py for data operations only. Terraform-first (D-038). Targets 9.6+
   ECH clusters.
 ---
 
@@ -16,7 +16,7 @@ before writing any resource. Every pattern comes from those reference files — 
 **ECH-specific rules (all sourced from `references/` files):**
 - ILM policies: use `elasticstack_elasticsearch_index_lifecycle` resource
 - Inference (ELSER): `service: "elastic"` with `model_id: ".elser-2"` (EIS) — see `references/inference-config.md`
-- Kibana dashboards: use `elasticstack_kibana_dashboard` resource (9.4+ declarative API)
+- Kibana dashboards: use `elasticstack_kibana_dashboard` resource (9.6+ declarative API)
 - Agent Builder: `elasticstack_kibana_agentbuilder_agent`, `elasticstack_kibana_agentbuilder_tool` (D-040)
 - Workflows: `elasticstack_kibana_agentbuilder_workflow` (D-040)
 - Kibana space: `elasticstack_kibana_space` with `disabled_features = []` and `solution` variable (D-029)
@@ -197,8 +197,8 @@ def step1_connectivity():
     version = resp["version"]["number"]
     print(f"  Connected: {ES_URL} | Version: {version}")
     major, minor = (int(x) for x in version.split(".")[:2])
-    if (major, minor) < (9, 4) and os.environ.get("SKIP_VERSION_CHECK", "").lower() != "true":
-        print(f"  ⛔ Version {version} below 9.4 baseline (D-033). Set SKIP_VERSION_CHECK=true to override.")
+    if (major, minor) < (9, 6) and os.environ.get("SKIP_VERSION_CHECK", "").lower() != "true":
+        print(f"  ⛔ Version {version} below 9.6 baseline (D-033). Set SKIP_VERSION_CHECK=true to override.")
         sys.exit(1)
     env_ver = os.environ.get("ELASTIC_VERSION", "").strip()
     if env_ver and env_ver != version:

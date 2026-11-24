@@ -42,10 +42,11 @@ Also determine:
   `fraud-claims` → `cb-fraud-claims`). Leave blank for isolated clusters.
 
 **Version (critical):**
-- **Creating a new deployment or Serverless project** — Use the **latest generally
-  available** stack for that product line **unless the SA names a specific version**.
-  Serverless tracks current GA; ECH deployments should select the **newest supported GA**
-  stack version in the create API/UI. Record the resolved version in `.env` as
+- **Creating a new deployment or Serverless project** — Use **Elastic 9.6** (or the
+  newer generally available stack for that product line) **unless the SA names a
+  specific version**. Serverless exposes 9.6 capabilities first; ECH deployments should
+  select 9.6 when the create API/UI exposes it, otherwise surface the availability gap
+  before provisioning. Record the resolved version in `.env` as
   `ELASTIC_VERSION` and in the provision log.
 - **Connecting to an existing deployment or project** (reuse — `cloud-manage-project`,
   copied `.env`, or customer URLs) — **Do not assume latest.** Read `version.number`
@@ -168,7 +169,7 @@ ENGAGEMENT={company}
 DEPLOYMENT_TYPE={type}
 DEPLOY_MODE=python
 # D-020: validate live version — run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
-ELASTIC_VERSION=<e.g.-9.4.0>
+ELASTIC_VERSION=<e.g.-9.6.0>
 
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>
 # Found at: Cloud console → deployment → Copy endpoint → Elasticsearch
@@ -337,7 +338,7 @@ Written to: `{engagement_dir}/.env` (engagement root — not in a subfolder)
 ES URL: {url} ✅
 Kibana URL: {url} ✅
 API Key: configured ✅
-**ELASTIC_VERSION:** {version} (from API — new deploys: latest GA unless pinned)
+**ELASTIC_VERSION:** {version} (from API — new deploys: 9.6/latest GA unless pinned)
 **KIBANA_SPACE_PATH:** /s/{slug} (created in Step 4.1)
 
 ## To reuse this cluster for another demo:

@@ -63,8 +63,8 @@ Read all available files in this order:
 **Stack version:** If the audit or current-state includes `cluster.version` (or equivalent),
 the script must **name the target Elasticsearch/Kibana versions** in an upfront “Environment”
 or “Assumptions” note so SEs do not run ES|QL or UI steps on the wrong stack. If the demo
-targets a **new** cluster not yet provisioned, state that scenes assume **latest GA** at
-provision time unless the SA specified a version.
+targets a **new** cluster not yet provisioned, state that scenes assume **Elastic 9.6**
+or the newer GA stack available at provision time unless the SA specified a version.
 
 **Primary solution domain:** Take from discovery and audit — **search / analytics**, **Observability**,
 **Elastic Security**, or **mixed / cross-solution**. Do not default to a generic search narrative

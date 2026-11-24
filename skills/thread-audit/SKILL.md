@@ -252,7 +252,7 @@ ML available but on basic license (Gold required). Agent Builder requires 9.3+ (
 on 7.x or 8.x). Recommendation: re-scope to ES|QL + BM25 + basic ML, or flag that an upgrade
 conversation needs to happen before the demo can be built. Overall red — scope must change.
 
-**Amber — ECK 9.4, Agent Builder in scope:** Greenfield deployment, ECK 9.4 with Enterprise
+**Amber — ECK 9.6, Agent Builder in scope:** Greenfield deployment, ECK 9.6 with Enterprise
 Trial. Agent Builder is available (9.3+ on ECK). EIS access requires Cloud Connect
 configuration (quick, one-time). Inference endpoints (ELSER on EIS, jina-embeddings-v3,
 jina-reranker-v3) not yet deployed — setup required. Overall amber — buildable, critical path

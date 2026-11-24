@@ -11,7 +11,7 @@ Drop in discovery notes (and optionally a diagnostic export) and say **"build th
 - **Discovery → demo in one session.** No manual index design, no copy-pasting curl commands, no dashboard JSON assembly.
 - **Consistent, repeatable.** Every engagement gets the same pipeline: structured discovery profile, platform audit, versioned script, data model, bootstrap script, pre-demo checklist.
 - **Agent-first.** The assistant executes; you review and approve before anything touches a live cluster.
-- **Elastic 9.4+ native.** Scripts target supported APIs and correct field types — nothing that fails on a real cluster.
+- **Elastic 9.6+ native.** Scripts target supported APIs and correct field types — nothing that fails on a real cluster.
 
 ## The Pipeline
 

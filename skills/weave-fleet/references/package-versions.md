@@ -4,26 +4,29 @@ Used by `weave-fleet` Step 2 when no live cluster is available.
 Maps Elastic stack version ranges to tested, compatible package versions for the
 initial supported packages. Update this table after each stack release cycle.
 
-*Last updated: 2026-05-01 | Baseline: Elastic 9.4+*
+*Last updated: 2026-11-24 | Baseline: Elastic 9.6+*
 
 ---
 
 ## Version compatibility table
 
-| Package | Stack 8.17.x | Stack 9.0–9.3 | Stack 9.4+ (baseline) |
-|---|---|---|---|
-| `kubernetes` | 1.57.x | 1.60.x | 1.62.0 |
-| `system` | 1.54.x | 1.57.x | 1.58.4 |
-| `nvidia_gpu` | 1.14.x | 1.16.x | 1.17.0 |
-| `custom_logs` | 1.1.x | 1.2.x | 1.3.0 |
-| `custom_metrics` | 1.1.x | 1.2.x | 1.3.0 |
-| `apm` | 8.17.x | 9.0.x | 9.4.0 |
-| `synthetics` | 1.4.x | 1.5.x | 1.6.2 |
-| `nginx` | 1.18.x | 1.20.x | 1.20.3 |
-| `aws` | 2.26.x | 2.29.x | 2.31.0 |
+| Package | Stack 8.17.x | Stack 9.0–9.3 | Stack 9.4–9.5 | Stack 9.6+ (baseline) |
+|---|---|---|---|---|
+| `kubernetes` | 1.57.x | 1.60.x | 1.62.0 | Resolve live from EPM |
+| `system` | 1.54.x | 1.57.x | 1.58.4 | Resolve live from EPM |
+| `nvidia_gpu` | 1.14.x | 1.16.x | 1.17.0 | Resolve live from EPM |
+| `custom_logs` | 1.1.x | 1.2.x | 1.3.0 | Resolve live from EPM |
+| `custom_metrics` | 1.1.x | 1.2.x | 1.3.0 | Resolve live from EPM |
+| `apm` | 8.17.x | 9.0.x | 9.4.0 | Resolve live from EPM |
+| `synthetics` | 1.4.x | 1.5.x | 1.6.2 | Resolve live from EPM |
+| `nginx` | 1.18.x | 1.20.x | 1.20.3 | Resolve live from EPM |
+| `aws` | 2.26.x | 2.29.x | 2.31.0 | Resolve live from EPM |
 
 > **Note:** Always prefer resolving versions live via `GET /api/fleet/epm/packages/{name}`
 > when a cluster is available. Use this table only as a planning fallback.
+> 9.6 was just released, so this offline reference intentionally does not pin 9.6
+> package versions yet; `weave-fleet` must resolve the live EPM catalog before locking
+> package versions for a 9.6 demo.
 
 ---
 

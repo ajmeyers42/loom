@@ -58,9 +58,9 @@ Write to `asset-bundle/asset-schema.json`:
 }
 ```
 
-**Version gate (D-033):** If `es_version` < 9.4 and `SKIP_VERSION_CHECK` is not set, halt:
+**Version gate (D-033):** If `es_version` < 9.6 and `SKIP_VERSION_CHECK` is not set, halt:
 ```
-⛔ Cluster version {version} is below the 9.4 baseline (D-033).
+⛔ Cluster version {version} is below the 9.6 baseline (D-033).
    Update the cluster or set SKIP_VERSION_CHECK=true in .env to override.
 ```
 

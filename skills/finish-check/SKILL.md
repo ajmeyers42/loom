@@ -44,7 +44,7 @@ A FAIL on any item is a **no-go blocker** regardless of other readiness status.
 
 | # | Decision | How to check | Pass condition | Fail action |
 |---|---|---|---|---|
-| C-1 | **D-033: Version gate** | Read `demo/{slug}-platform-audit.json` → `platform.version_verified` AND `asset-bundle/asset-schema.json` → `platform.version_gate_passed` | Both `true`; version ≥ 9.4 | NO-GO — version unverified or below 9.4 |
+| C-1 | **D-033: Version gate** | Read `demo/{slug}-platform-audit.json` → `platform.version_verified` AND `asset-bundle/asset-schema.json` → `platform.version_gate_passed` | Both `true`; version ≥ 9.6 | NO-GO — version unverified or below 9.6 |
 | C-2 | **D-043: Schema probe ran** | Check `deploy/asset-bundle/asset-schema.json` exists and has `confirmed_schemas` entries | File exists, at least one schema entry for every index in data model | NO-GO — re-run finish-verify |
 | C-3 | **D-044: Field population** | Check `deploy/asset-bundle/asset-index.json` for any `"all_non_null_confirmed": false` | No false entries | NO-GO — fix null fields and re-run finish-verify |
 | C-4 | **D-025: ES|QL validation** | Check `deploy/asset-bundle/asset-index.json` for any `"validation_status": "failed"` queries | No failed queries | NO-GO — fix queries and re-run finish-verify |
@@ -59,7 +59,7 @@ A FAIL on any item is a **no-go blocker** regardless of other readiness status.
 
 ```
 ── Decision Compliance Check ──────────────────────────────────────────
-  C-1  D-033 Version gate          ✅ PASS  (9.4.2, verified)
+  C-1  D-033 Version gate          ✅ PASS  (9.6.0, verified)
   C-2  D-043 Schema probe          ✅ PASS  (5 schemas confirmed)
   C-3  D-044 Field population      ✅ PASS  (no null viz-queried fields)
   C-4  D-025 ES|QL validation      ✅ PASS  (12/12 queries passed)

@@ -1,7 +1,7 @@
 # Fleet Integration Package Asset Catalog — Offline Reference
 
 Used by `weave-fleet` Step 3 (asset catalog review) when no live EPM API is
-available. Lists known shipped assets per package for the baseline stack version (9.4+).
+available. Lists known shipped assets per package for the baseline stack version (9.6+).
 
 Asset entry format (shared taxonomy — also used by future `thread-audit` asset discovery):
 ```
@@ -11,7 +11,7 @@ Asset entry format (shared taxonomy — also used by future `thread-audit` asset
   Action: {one specific sentence}
 ```
 
-*Last updated: 2026-05-01 | Stack baseline: 9.4+*
+*Last updated: 2026-11-24 | Stack baseline: 9.6+*
 
 ---
 

@@ -26,7 +26,7 @@ The schema uses **open lists** of typed asset records rather than hardcoded cate
   "slug":               "2026citizens-ai",
   "bootstrap_version":  "1.0.0",
   "deployed_at":        "2026-04-22T14:30:00Z",
-  "es_version":         "9.4.0",
+  "es_version":         "9.6.0",
   "es_url":             "https://demo-447f06.es.us-west2.gcp.elastic-cloud.com",
   "assets": {
     "elasticsearch": [

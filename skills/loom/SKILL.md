@@ -55,7 +55,7 @@ Cursor, Claude, and other hosts is unified — see repo root `AGENTS.md` and
 **Key behavioral rules** (rationale in `docs/decisions.md`; these are the actions):
 
 - **Deploy approval (D-024):** Stages 8–9 against a live cluster require explicit SA confirmation that they've reviewed `bootstrap-data.py`, platform audit, risks, and checklist. `terraform plan` and `bootstrap-data.py --dry-run` are always safe without approval.
-- **Version (D-020, D-033):** New deploy → latest GA unless SA specifies. Existing cluster → probe `GET /` and Kibana `/api/status` first; scope all ES|QL, APIs, and guidance to the confirmed version.
+- **Version (D-020, D-033):** New deploy → Elastic 9.6 / latest GA unless SA specifies. Existing cluster → probe `GET /` and Kibana `/api/status` first; scope all ES|QL, APIs, and guidance to the confirmed version.
 - **Deployability (D-025):** All mappings, API calls, and bootstrap payloads must use real Elasticsearch field types and Kibana API shapes — not invented JSON. Trust `elastic/agent-skills` reference behavior.
 - **Tagging (D-026):** Every resource that supports `tags` gets `loom:<engagement_id>`. Spec: `skills/references/loom-tagging.md`.
 - **Demo scope:** Enterprise-appropriate features matching the customer's outcomes. Any solution area (search, Observability, Security, cross-solution). Architecture diagrams are first-class inputs. Do not default to search-only.
