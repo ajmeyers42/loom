@@ -198,7 +198,7 @@ def step1_connectivity():
     print(f"  Connected: {ES_URL} | Version: {version}")
     major, minor = (int(x) for x in version.split(".")[:2])
     if (major, minor) < (9, 4) and os.environ.get("SKIP_VERSION_CHECK", "").lower() != "true":
-        print(f"  ⛔ Version {version} below 9.4 baseline (D-033). Set SKIP_VERSION_CHECK=true to override.")
+        print(f"  ⛔ Version {version} below 9.4 floor (D-033). Demos require 9.4+; upgrade before continuing.")
         sys.exit(1)
     env_ver = os.environ.get("ELASTIC_VERSION", "").strip()
     if env_ver and env_ver != version:

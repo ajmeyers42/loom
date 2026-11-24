@@ -19,7 +19,7 @@ from those reference files — not memory.
 - **No ILM:** Serverless uses Data Stream Lifecycle (DSL). Set `lifecycle` in the index template, not a separate ILM policy resource.
 - **ELSER:** `service: "elser"` (managed endpoint, no `model_id`) — see `references/inference-config.md`
 - **ML field names:** Serverless uses `record_score`, `timestamp`, `partition_field_value`, `by_field_value` — NOT `anomaly_score`, `@timestamp`, `store_id`, `sku`. Confirmed by Step 1f in finish-verify.
-- **Dashboards:** Same `elasticstack_kibana_dashboard` resource as ECH — 9.4 declarative API
+- **Dashboards:** Same `elasticstack_kibana_dashboard` resource as ECH — 9.6 declarative API
 - **Agent Builder + Workflows:** Same `elasticstack_kibana_agentbuilder_*` resources as ECH (D-040)
 - **Serverless quirks:** See `references/serverless-differences.md` for Liquid syntax differences, stale-read warnings, and saved object format variations
 

@@ -231,7 +231,7 @@ before committing to a build direction or sizing approach.}
 | Field | Value | Follow-up / Clarification needed |
 |---|---|---|
 | Deployment type | `ech` / `serverless` / `self_managed` / `none` | {e.g. "Confirmed ECH — verify region"} |
-| Version | {e.g. "9.4.0" or "⚠️ Not captured"} | {e.g. "Run GET / before scripting ES|QL or ML APIs"} |
+| Version | {e.g. "9.6.0" or "⚠️ Not captured"} | {e.g. "Run GET / before scripting ES|QL or ML APIs"} |
 | License tier | {e.g. "Enterprise (assumed)" or "Basic"} | {e.g. "Verify ML nodes before scoping anomaly detection"} |
 | Solution areas in use | {e.g. "Search, Observability" or "None currently"} | {e.g. "Security not confirmed — probe on next call"} |
 | Cluster topology | {e.g. "3-zone hot-warm, 8 hot nodes" or "⚠️ Not captured"} | {e.g. "Needed if ML or large ingest is in scope"} |

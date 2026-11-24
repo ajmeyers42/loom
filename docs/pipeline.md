@@ -217,7 +217,7 @@ See [docs/engagements-path.md](engagements-path.md) for the env-var override and
 | `weave-cost` | Evals written — Agent Builder default inclusion + opt-out behavior |
 | `finish-check` | Sample pipeline outputs from multiple customer interactions |
 | `bolt-spin` | Evals written — serverless project + shared cluster namespace copy |
-| `finish-verify` + `bolt-bootstrap` | Replaces retired `bolt-launch`. Live apply stays behind the D-024 review gate. |
+| `finish-verify` + `bolt-bootstrap` | Verified asset bundle, then Terraform and `bootstrap-data.py`. Live apply stays behind the D-024 review gate. |
 | `wind-pulse` | Evals written — readiness check + ML-focused readiness check |
 | `wind-reset` | Evals written — isolated cluster teardown + shared cluster prefix teardown |
 

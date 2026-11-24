@@ -29,7 +29,7 @@
 ## D-002: Idempotent deployment with check-before-create
 
 **Status:** Active  
-**Enforced by:** `bolt-bootstrap` and the ECH/Serverless variants. Terraform apply is idempotent. `bootstrap-data.py` checks before writing (enrich execute, seed counts, manifest upsert). The old `skills/bolt-launch/templates/bootstrap-template.py` file is gone with the retired skill.
+**Enforced by:** `bolt-bootstrap` and the ECH/Serverless variants. Terraform apply is idempotent. `bootstrap-data.py` checks before writing (enrich execute, seed counts, manifest upsert). The legacy monolith bootstrap template is gone; generation is `finish-verify` then `bolt-bootstrap` only.
 
 **Rationale:** A failed deploy at step 9 shouldn't require tearing down steps 1–8. Demo environments are time-pressured.
 
@@ -236,7 +236,7 @@
 
 ---
 
-## D-020: Default to latest GA for new stacks; validate version for existing
+## D-020: Default to latest available release for new stacks; validate version for existing
 
 **Status:** Active  
 **Enforced by:** `finish-verify` Step 0 — mandatory `GET /` and `GET {kibana}/api/status` on any existing cluster before any asset authoring begins. Result written to `asset-bundle/asset-schema.json` `platform.version`. `bootstrap-data.py` template Step 1 version gate warns if `.env ELASTIC_VERSION` disagrees with live cluster.
@@ -377,14 +377,14 @@
 
 ---
 
-## D-033: API baseline is Elastic 9.4+; no pre-9.x shims
+## D-033: API floor is Elastic 9.4+; new demos default to latest release
 
 **Status:** Active  
 **Enforced by:** `finish-verify` Step 0 version gate — probes `GET /` and halts if version < 9.4 unless `SKIP_VERSION_CHECK=true`. `bootstrap-data.py` template Step 1 contains the same gate as a second check at execution time.
 
-**Concrete:** Bootstrap halts on clusters below 9.4. All Terraform resources and `bootstrap-data.py` patterns target 9.4 API shapes only. See `references/feature-compatibility.md` for version-specific behavior table.
+**Concrete:** New demos default to the latest available Elastic release (9.6 as of 2026-11-24). If a version is specified, it must still be 9.4 or newer; no customer demo may be built under 9.4. Bootstrap halts on clusters below 9.4. Demos should showcase latest upcoming features by default; restrict to GA-only only when the SA explicitly requests it. See `references/feature-compatibility.md` for version-specific behavior table and 9.6 GA / preview guidance.
 
-**Date:** 2026-04-22 | **Session:** post-mortem gap remediation
+**Date:** 2026-11-24 | **Session:** latest-release default update
 
 ---
 

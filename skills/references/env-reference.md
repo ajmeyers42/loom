@@ -91,7 +91,7 @@ KIBANA_SOLUTION=es
 # ── Version (informational, set by bolt-spin) ──
 # Must match live cluster version (D-020). Run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
 # Informational. bolt-spin sets this from the live cluster.
-# New deployments: latest GA (9.5.5 as of 2026-10-26). Generated-script floor: 9.4.
+# New deployments: latest available release (currently 9.6; generated-script floor 9.4 per D-033).
 ELASTIC_VERSION=
 
 # ── Deploy Mode (D-038) ────────────────────────────────────
@@ -208,7 +208,7 @@ DEPLOY_MODE=python   # python | terraform
 
 # D-020: must match live cluster version
 # Run: curl -s -H "Authorization: ApiKey $ES_API_KEY" $ELASTICSEARCH_URL | python3 -m json.tool | grep '"number"'
-ELASTIC_VERSION=<e.g.-9.4.0>
+ELASTIC_VERSION=<e.g.-9.6.0>
 
 # ── Required endpoints ────────────────────────────────────
 ELASTICSEARCH_URL=<https://your-cluster.es.io:443>

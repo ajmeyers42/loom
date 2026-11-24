@@ -52,7 +52,6 @@ Use `loom` when you want the guided end-to-end pipeline. Use an individual skill
 | `finish-verify` | Planning artifacts must be probed and turned into a verified asset bundle before any deploy files are generated | `deploy/asset-bundle/` |
 | `bolt-bootstrap` | `finish-verify` has written `asset-bundle/` and the SA wants Terraform plus `bootstrap-data.py` generated | `deploy/main.tf`, `deploy/providers.tf`, `deploy/bootstrap-data.py` |
 | `bolt-spin` | A new Elastic Cloud deployment or Serverless project is needed, or a reusable `.env` must be prepared | `.env`, `.env.example`, `{slug}-provision-log.md` |
-| `bolt-launch` | Do not run. Redirects to `finish-verify`, then `bolt-bootstrap`. | — |
 | `wind-pulse` | A deployed demo needs a quick health/readiness pulse check before the meeting | Terminal readiness report |
 | `wind-reset` | A deployed demo should be cleaned up after the meeting | `teardown.py`, `{slug}-teardown-log.md` |
 

@@ -162,9 +162,9 @@ The current keychain token has `repo` scope but not `read:org`, which blocks `gh
 **Action:** Regenerate the GitHub PAT at `github.com/settings/tokens` and include `read:org`.
 
 ### 14. Run evals for bolt-spin, finish-verify, and bolt-bootstrap
-`bolt-spin` and the retired `bolt-launch` have `evals/evals.json`. `finish-verify` and `bolt-bootstrap` are the live deploy pair. The eval loop (run → grade → benchmark) has not been executed. These evals need a real cluster to mean anything.
+`bolt-spin`, `finish-verify`, and `bolt-bootstrap` have `evals/evals.json`. The eval loop (run → grade → benchmark) has not been executed. These evals need a real cluster to mean anything.
 
-**Action:** After the first live deploy (item 3), run evals for `bolt-spin`, `finish-verify`, and `bolt-bootstrap`. Do not spend an eval cycle on `bolt-launch`.
+**Action:** After the first live deploy (item 3), run evals for `bolt-spin`, `finish-verify`, and `bolt-bootstrap`.
 
 ### 15. Validate `.ml-anomalies-*` field names on first Serverless ML build
 
@@ -178,7 +178,7 @@ The Serverless field names differ from documentation: use `record_score`, `times
 
 ## ✅ Resolved
 
-- **2026-10-30 baseline** — Local dependency clones fast-forwarded. Deploy instructions, handoffs, and indexes name `finish-verify` then `bolt-bootstrap` (`main.tf` + `bootstrap-data.py`). `bolt-launch` is a redirect only. Duplicate `skills/bolt-launch/references/` removed. `wind_pulse.py` reads `deploy/kibana-objects/`. `weave-query` targets Vulcan 2.1 (`OPENROUTER_*`). `validate_ext_deps.py` finds the agent-skills plugin. `elastic-demo-starter` is an optional registry entry. D-035 is superseded by D-050.
+- **2026-10-30 baseline** — Local dependency clones fast-forwarded. Deploy instructions, handoffs, and indexes name `finish-verify` then `bolt-bootstrap` (`main.tf` + `bootstrap-data.py`). Shared pipeline references live under `skills/references/`. `wind_pulse.py` reads `deploy/kibana-objects/`. `weave-query` targets Vulcan 2.1 (`OPENROUTER_*`). `validate_ext_deps.py` finds the agent-skills plugin. `elastic-demo-starter` is an optional registry entry. D-035 is superseded by D-050.
 - **elastic/agent-skills installed (checked 2026-10-26)** — Cursor plugin cache, `~/.claude/skills`, and `~/Documents/GitHub/agent-skills` (`baa5111`). Re-run `npx skills update elastic/agent-skills` when the Cursor plugin should move past that cache.
 - **wind-pulse D-037 paths (2026-10-26)** — `wind_pulse.py` searches `deploy/kibana-objects/` and `deploy/kibana/` first, and still falls back to the pre-D-037 root paths.
 

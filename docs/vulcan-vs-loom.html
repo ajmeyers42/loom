@@ -308,7 +308,7 @@
     <table>
       <thead><tr><th>Dimension</th><th>What loom has</th><th>Vulcan</th></tr></thead>
       <tbody>
-        <tr class="row-ok"><td>Deployment / bootstrap pattern</td><td>Single idempotent bootstrap.py per engagement (steps 1&ndash;15). bolt-launch + wind-reset with cluster-resident manifest (D-031). Approval gate before live cluster (D-024).</td><td>Not present</td></tr>
+        <tr class="row-ok"><td>Deployment / bootstrap pattern</td><td>`finish-verify` plus `bolt-bootstrap` (`main.tf` + `bootstrap-data.py`) and wind-reset with cluster-resident manifest (D-031). Approval gate before live cluster (D-024).</td><td>Not present</td></tr>
         <tr class="row-ok"><td>Kibana breadth</td><td>Spaces (disabledFeatures: []), dashboards (stable UUIDs), SLOs, alerting, SIEM rules (clone-not-modify D-032), Workflows, Cases, Connectors.</td><td>Not present</td></tr>
         <tr class="row-ok"><td>Discovery &rarr; qualification</td><td>warp-listen &rarr; thread-qualify (MEDDPIC gate) &rarr; thread-audit (feasibility matrix). Stops pipeline if not_qualified.</td><td>Not present</td></tr>
         <tr class="row-ok"><td>ML / anomaly detection</td><td>weave-train generates anomaly detection jobs + datafeeds. bootstrap.py steps 11&ndash;12 deploy; step 14 injects demo anomalies.</td><td>Not present</td></tr>
@@ -338,7 +338,7 @@
     <div class="arch-card">
       <div class="arch-title">Stage C &mdash; Deploy + Ops</div>
       <div class="arch-owner">loom only</div>
-      <div class="arch-text">bolt-launch generates bootstrap.py covering spaces, dashboards, ML, SIEM, SLOs, workflows, Agent Builder, weave-cost. Teardown + manifest. Vulcan has no equivalent.</div>
+      <div class="arch-text">bolt-bootstrap deploys spaces, dashboards, ML, SIEM, SLOs, workflows, Agent Builder, weave-cost from a verified asset bundle. Teardown + manifest. Vulcan has no equivalent.</div>
     </div>
   </div>
 

@@ -10,9 +10,16 @@ This file is the **single source of truth** for Elastic version gates and featur
 
 | Constant | Value |
 |----------|-------|
+| Default Elastic version for new demos | **Latest available** (currently **9.6**) |
 | Minimum Elastic version for generated scripts | **9.4** |
-| `SKIP_VERSION_CHECK` env var | Set to `true` to bypass the version gate (use only for pre-GA testing) |
-| Bootstrap halt message | `"Cluster version {v} < 9.4 — set SKIP_VERSION_CHECK=true to override"` |
+| `SKIP_VERSION_CHECK` env var | Set to `true` to bypass the version gate (use only for pre-GA testing, never for customer demos below 9.4) |
+| Bootstrap halt message | `"Cluster version {v} < 9.4 — demos require 9.4+; upgrade before continuing"` |
+
+New demos always default to the latest available Elastic release; as of 2026-11-24 that
+is Elastic 9.6. Serverless 9.6 capabilities are available now; ECH and self-managed
+9.6 availability should be confirmed at provisioning time and pinned when the create
+API exposes it. If the SA specifies a version, it must still be **9.4 or newer**.
+Existing deployments still use the live version from `GET /` and Kibana `/api/status`.
 
 `bootstrap-data.py` validates `version.number >= (9, 4)` at step 1 unless `SKIP_VERSION_CHECK=true`.
 
@@ -64,8 +71,78 @@ Corrected in hive-mind `patterns/search/ESQL_MULTI_INDEX_ENRICHMENT.md` (2026-09
 | Connector framework (ingestion) | 8.8 | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Data streams | 7.9 | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Geo / spatial search | 7.x | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ES\|QL Logical Views | 9.6 | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ES\|QL `IN` / `NOT IN` subqueries | 9.6 | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ES\|QL coordinator-mode `LOOKUP JOIN` | 9.6 | Enterprise | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ES\|QL Data Federation for Amazon S3 | 9.6 | Enterprise | ⏳ coming soon | ⏳ coming soon | ⏳ coming soon | TP | TP |
+| Columnar Mode high-cardinality analytics / codec | 9.6 | Check license | TP | TP | TP | TP | TP |
+| PromQL against Elasticsearch | 9.6 | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Cross-project search (CPS) | Serverless GA | Check license | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Universal Alerting (ES\|QL alerts) | 9.6 | Basic | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Elastic Service Accounts for Workflows | 9.6 | Any (`manage_security` to bind) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Non-streaming chat completion | 9.6 | Any | ✅ | ✅ | ✅ | ✅ | ✅ |
+| EIS `document_extraction` task | 9.6 | EIS entitlement | TP | TP | TP | TP | TP |
+| Opt-in prompt caching | 9.6 | Provider-dependent | TP | TP | TP | TP | TP |
+| Multiuser Kibana chat | 9.6 | Any | TP | TP | TP | TP | TP |
+| Prompt-generated custom Kibana panels | 9.6 | Any | TP | TP | TP | TP | TP |
+| Elastic Security AlertZero | 9.6 | Enterprise or trial | ❌ | ❌ | TP | ❌ until 9.6 ECH | ❌ until 9.6 self-managed |
+| Elastic Security Entity Analytics attention signals/resolution | 9.6 | Enterprise | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Elastic Defend Linux ransomware protection | 9.6 | Security license | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Elastic Defend custom YARA memory signatures | 9.6 | Security license | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Security for AI integration package | 9.6 | Platinum or trial | ❌ | ❌ | TP | TP | TP |
+| Elastic Agent FIPS 140-3 support | 9.6 | Deployment-dependent | ❌ | ✅ | ✅ | ✅ | ✅ |
 
 ---
+
+Status legend: ✅ = generally available for that deployment type, TP = technical preview,
+⏳ = announced but not yet available for that deployment type, ❌ = not available / not
+applicable. Loom should include upcoming / non-GA features as demo storyline options by
+default. Restrict demos to GA-only capabilities only when the SA explicitly requests it.
+Any TP or private-preview dependency still requires `finish-verify` probes and a clear
+preview-risk note before deployment.
+
+---
+
+## 9.6 Demo Guidance
+
+Use the latest GA and upcoming capabilities by default when they fit the customer outcome:
+
+- **Search / AI:** Logical Views for reusable ES|QL, `IN` / `NOT IN` subqueries for
+  dynamic allow/deny lists, coordinator-mode `LOOKUP JOIN` for distributed lookup
+  patterns, PromQL for migration-friendly metrics dashboards, non-streaming chat
+  completion for regulated proxy environments, and Elastic Service Accounts for
+  durable scheduled Workflows.
+- **Observability:** Universal Alerting for ES|QL-authored alerts, contextual APM
+  investigations, service-map drilldowns, GenAI trace visibility (technical preview),
+  Vercel/Supabase/Temporal integrations where the Fleet package exists, and automatic
+  Synthetics private-location scaling.
+- **Security:** Entity Analytics attention signals and entity resolution, Linux
+  ransomware protection, custom YARA memory signatures, MITRE ATLAS / AI detection
+  rule coverage, and Security for AI only when the package and license are confirmed.
+- **Platform governance:** budget alerts, serverless log delivery, Cloud audit trails,
+  service accounts, FIPS 140-3 Agent support, and cross-project search for Serverless
+  consolidation stories.
+
+Technical-preview or private-preview features are in scope by default as "preview wow"
+moments. They may become required demo dependencies only when the customer explicitly
+accepts preview risk and the target deployment proves support:
+
+- ES|QL Data Federation for Amazon S3 (TP; Enterprise; ECH/self-managed first,
+  Serverless announced as coming soon).
+- Columnar Mode high-cardinality aggregations and columnar codec (TP).
+- EIS `document_extraction`, prompt caching, multiuser Kibana chat, prompt-generated
+  custom panels, AlertZero, Security for AI, GenAI traces, and nightshift AI SRE
+  (nightshift is private preview).
+
+9.6 known-risk notes for demo authors:
+
+- Kibana Workflows execution-read APIs require both `workflow_execution_read` and
+  `workflow_read`; custom roles with execution-only access receive `403`.
+- ES|QL `KNN` followed by `STATS` requires an explicit `LIMIT` immediately after `KNN`.
+- Inline `TO_DENSE_VECTOR` inside `KNN` can fail; convert with `EVAL` first and pass
+  the derived dense-vector column.
+- Avoid 9.x upgrades of indices with complex `simple_pattern` tokenizer expressions
+  until the Lucene tokenizer issue is fixed.
 
 ## Feature Probe Endpoints
 
@@ -77,6 +154,11 @@ These probes must be run after provisioning or connecting to an existing cluster
 | Agent Builder Skills catalog | `GET /api/agent_builder/skills` | 404 = skills not available (use tools only) |
 | Workflows | `GET /api/workflows` | 404 = not enabled |
 | Kibana Streams | `GET /api/streams` | 404 = not available on this version |
+| Fleet package inventory | `GET /api/fleet/epm/packages/{package}/assets` | Confirm package dashboards, rules, ML jobs, and templates before custom assets |
+| Security for AI package | Search EPM, then `GET /api/fleet/epm/packages/{confirmed_package}/assets` | 404 = package unavailable; do not assume package IDs before probing |
+| ES\|QL S3 Data Federation | Probe the documented 9.6 data-source APIs and run a dry ES\|QL query | 404/403 = do not use as a required demo path |
+| Elastic Service Accounts | Probe Kibana service-account / Workflows binding APIs | 404/403 = keep scheduled Workflows user/API-key based |
+| Universal Alerting | Probe rule type inventory for ES\|QL alert support | 404/403 = use classic alerting patterns |
 
 Always use `KIBANA_API_KEY` for these probes. Surface the result before writing any code that depends on these features.
 

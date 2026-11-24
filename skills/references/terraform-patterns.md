@@ -60,7 +60,7 @@ kibana_api_key    = ""   # set from .env — never hardcode
 
 # Optional
 ec_api_key     = ""   # needed only for cloud provisioning resources
-elastic_version = "9.4.0"
+elastic_version = "9.6.0"
 kibana_solution = "es"   # es | oblt | security
 ```
 

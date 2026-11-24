@@ -4,7 +4,7 @@ These are the architectural choices that shape how loom works. Most have a corre
 
 ## Each skill is a specialist
 
-Drop into any stage independently — you don't need to run the full pipeline every time. The orchestrator handles sequencing when you want it. Running `bolt-bootstrap` on an existing engagement re-uses the verified asset bundle; running `warp-listen` on updated notes triggers only the downstream stages that depend on its output. `bolt-launch` is a retired redirect to `finish-verify`, then `bolt-bootstrap`.
+Drop into any stage independently — you don't need to run the full pipeline every time. The orchestrator handles sequencing when you want it. Running `bolt-bootstrap` on an existing engagement re-uses the verified asset bundle; running `warp-listen` on updated notes triggers only the downstream stages that depend on its output. Deploy generation is always `finish-verify`, then `bolt-bootstrap` (D-045).
 
 ## Outputs feed inputs
 
@@ -18,7 +18,7 @@ Confirmation docs use only the customer's own language. Platform audits only cle
 
 ## Stack version is explicit (D-020, D-033)
 
-API baseline is **Elastic 9.4+**. New cloud resources default to the latest GA unless you specify otherwise. Existing deployments require a validated version (from diagnostic, `GET /`, or Kibana status) before scripting starts. ES|QL, mappings, and API calls are scoped to that version. No legacy compatibility shims.
+New cloud resources default to the latest available Elastic release (currently **9.6**) unless you specify otherwise. The hard API floor is **Elastic 9.4+** — no customer demo can be built on a cluster below 9.4. Existing deployments require a validated version (from diagnostic, `GET /`, or Kibana status) before scripting starts. ES|QL, mappings, and API calls are scoped to that version. No legacy compatibility shims.
 
 ## Solution scope matches the customer (D-021)
 
@@ -34,7 +34,7 @@ The assistant will not run `bolt-spin`, `terraform apply`, or `bootstrap-data.py
 
 ## Elastic truthfulness (D-025)
 
-Every defined asset must be deployable on Elastic using supported APIs. Mappings use Elasticsearch field types (`keyword`, `text`, `date`, `long`, etc.). Agent Builder tool parameters match the 9.4+ schema. Rules, saved objects, and API shapes follow product conventions — not abstract or invented types.
+Every defined asset must be deployable on Elastic using supported APIs. Mappings use Elasticsearch field types (`keyword`, `text`, `date`, `long`, etc.). Agent Builder tool parameters match the confirmed target-version schema. Rules, saved objects, and API shapes follow product conventions — not abstract or invented types.
 
 ## Engagement tagging (D-026)
 
@@ -102,7 +102,6 @@ loom/
     ├── bolt-spin/
     ├── finish-verify/
     ├── bolt-bootstrap/
-    ├── bolt-launch/          ← retired redirect; do not execute
     ├── references/           ← env-reference, tagging, asset-manifest, serverless, workflows
     ├── wind-pulse/
     └── wind-reset/

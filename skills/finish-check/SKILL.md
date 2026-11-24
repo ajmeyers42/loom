@@ -59,7 +59,7 @@ A FAIL on any item is a **no-go blocker** regardless of other readiness status.
 
 ```
 ── Decision Compliance Check ──────────────────────────────────────────
-  C-1  D-033 Version gate          ✅ PASS  (9.4.2, verified)
+  C-1  D-033 Version gate          ✅ PASS  (9.6.0, verified; latest default)
   C-2  D-043 Schema probe          ✅ PASS  (5 schemas confirmed)
   C-3  D-044 Field population      ✅ PASS  (no null viz-queried fields)
   C-4  D-025 ES|QL validation      ✅ PASS  (12/12 queries passed)

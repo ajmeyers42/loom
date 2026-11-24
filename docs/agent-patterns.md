@@ -98,7 +98,6 @@ flowchart TD
 
 | Capability | Reason |
 |------------|--------|
-| **bolt-launch** | Deprecated stub → finish-verify + bolt-bootstrap |
 | **weave-pipe**, **wind-streams**, **bolt-eck** | Spec-only backlog |
 | **weave-agent**, **weave-cost** | Skills stay; sequential after script (agent) or additive to model (cost). Do **not** parallel weave-agent with weave-train — agent is Stage 4b (post-script); train is Stage 6 (post-model) |
 
